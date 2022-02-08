@@ -1,0 +1,53 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Build new release
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 8
+      uses: actions/setup-java@v2
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: maven
+    - name: create jt400 psudo-directory
+      run: sudo mkdir -p /QIBM/ProdData/OS400/jt400/lib/
+    - name: change ownership of jt400 psudo-directory
+      run: sudo chown $USER /QIBM/ProdData/OS400/jt400/lib/
+    - name: fetch jt400.jar
+      run: sudo curl https://repo1.maven.org/maven2/net/sf/jt400/jt400/10.7/jt400-10.7.jar -o /QIBM/ProdData/OS400/jt400/lib/jt400.jar
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+    - name: Copy .jar file to target name
+      run: cp target/*-with-dependencies.jar ./codeforibmiserver.jar
+    - name: Create the release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    - name: Upload .zip file to release
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./codeforibmiserver.jar
+        asset_name: codeforibmiserver.jar
+        asset_content_type: application/zip
