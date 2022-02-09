@@ -42,6 +42,9 @@ public class CodeForiServer {
                 case "sql":
                     worker.doSql(args);
                     break;
+                case "gencmdxml":
+                    worker.doGenCmdXml(args);
+                    break;
                 default:
                     logger.printfln_err("ERROR: Unknown command '%s'", operation);
                     printUsageAndExit();

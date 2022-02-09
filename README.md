@@ -13,6 +13,7 @@ For instance,
 Supported operations are currently:
 - `sysval`: fetch system values
 - `sql`: run SQL
+- `gencmdxml`: Generate XML for a CL command
 
 # Options for customizing behavior
 Some operations support behavior customizations. This is done by setting Java system properties. 

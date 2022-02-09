@@ -16,6 +16,9 @@ import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.stream.JsonWriter;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400JDBCDriver;
+import com.ibm.as400.access.Command;
+import com.ibm.as400.access.ObjectDescription;
+import com.ibm.as400.access.ObjectList;
 import com.ibm.as400.access.SystemValue;
 
 class HardWorker {
@@ -50,8 +53,46 @@ class HardWorker {
         }
     }
 
-    public void doSql(LinkedList<String> _args) throws IOException {
+    void doGenCmdXml(LinkedList<String> _args) throws IOException {
+        m_results.startObject("cmd_xml");
+        m_results.beginArray(null);
+        for (String cmd : _args) {
+            try {
+                m_results.startObject(null);
+                m_results.addValue("name", cmd);
+                String[] split = cmd.trim().split("\\s*/\\s*", 2);
+                final String lib;
+                final String obj;
+                final String ifsPath;
+                if (1 == split.length) {
+                    obj = split[0].trim();
+                    ObjectList lister = new ObjectList(m_as400, ObjectList.LIBRARY_LIST, obj, "*CMD");
+                    ObjectDescription[] matches = lister.getObjects(0, 1);
+                    if (1 > matches.length) {
+                        throw new RuntimeException("Cannot locate command in library list: " + obj);
+                    }
+                    lib = matches[0].getLibrary();
+                } else if (2 == split.length) {
+                    lib = split[0].trim();
+                    obj = split[1].trim();
+                } else {
+                    throw new IllegalArgumentException("Improper object name " + cmd);
+                }
+                ifsPath = (lib.trim().equalsIgnoreCase("qsys") ? "/" : "/qsys.lib/") + lib + ".lib/" + obj + ".cmd";
 
+                Command c = new Command(m_as400, ifsPath);
+
+                m_results.addValue("library", lib);
+                m_results.addValue("xml", c.getXMLExtended());
+            } catch (Exception e) {
+                m_results.err(e);
+            } finally {
+                m_results.endObject();
+            }
+        }
+    }
+
+    public void doSql(LinkedList<String> _args) throws IOException {
         m_results.startObject("sql");
         m_results.beginArray(null);
         AS400JDBCDriver driver = new AS400JDBCDriver();

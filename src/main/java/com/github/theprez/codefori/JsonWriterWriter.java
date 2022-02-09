@@ -59,7 +59,8 @@ public class JsonWriterWriter implements Flushable, Closeable {
 
     public void err(Exception _e) {
         m_logger.printExceptionStack_verbose(_e);
-        if (ClosableDocumentElement.ARRAY_START == m_stack.peek()) {
+        
+        if (!m_stack.isEmpty() && ClosableDocumentElement.ARRAY_START == m_stack.peek()) {
             pop();
         }
         try {
