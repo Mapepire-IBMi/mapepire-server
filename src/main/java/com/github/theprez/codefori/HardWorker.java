@@ -1,5 +1,6 @@
 package com.github.theprez.codefori;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.sql.Connection;
@@ -7,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -17,6 +19,8 @@ import com.google.gson.stream.JsonWriter;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400JDBCDriver;
 import com.ibm.as400.access.Command;
+import com.ibm.as400.access.IFSFile;
+import com.ibm.as400.access.IFSFileInputStream;
 import com.ibm.as400.access.ObjectDescription;
 import com.ibm.as400.access.ObjectList;
 import com.ibm.as400.access.SystemValue;
@@ -45,6 +49,29 @@ class HardWorker {
                 Object value = sv.getValue();
                 m_logger.printf_verbose("System value '%s' type is '%s'. Value='%s'\n", sysval, value.getClass().getSimpleName(), "" + value);
                 m_results.addValue("value", value.toString());
+            } catch (Exception e) {
+                m_results.err(e);
+            } finally {
+                m_results.endObject();
+            }
+        }
+    }
+    void doFileBytes(LinkedList<String> _args) throws IOException {
+        m_results.startObject("file_bytes");
+        m_results.beginArray(null);
+        for (String file : _args) {
+            m_results.startObject(null);
+            m_results.addValue("name", file);
+            try (IFSFileInputStream f = new IFSFileInputStream(m_as400, file)){
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buf = new byte[1024*1024];
+                int bytesRead = -1;
+                while(-1 < (bytesRead = f.read(buf))) {
+                    baos.write(buf, 0, bytesRead);
+                }
+                String encoded = Base64.getEncoder().encodeToString(baos.toByteArray());
+                baos.reset();
+                m_results.addValue("bytes_base64", encoded);
             } catch (Exception e) {
                 m_results.err(e);
             } finally {

@@ -45,6 +45,9 @@ public class CodeForiServer {
                 case "gencmdxml":
                     worker.doGenCmdXml(args);
                     break;
+                case "filebytes":
+                    worker.doFileBytes(args);
+                    break;
                 default:
                     logger.printfln_err("ERROR: Unknown command '%s'", operation);
                     printUsageAndExit();
