@@ -75,8 +75,6 @@ class HardWorker {
                 for (RecordFormat fmt : fmts) {
                     m_results.addValue("name", fmt.getName());
                     m_results.beginArray("fields");
-//                    m_results.addValue("name", fmt.getName());
-//                    m_results.beginArray(fmt.getName());
                     for (FieldDescription fd : fmt.getFieldDescriptions()) {
                         m_results.addBeanObject(null, fd);
                     }

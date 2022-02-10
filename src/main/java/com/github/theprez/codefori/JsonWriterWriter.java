@@ -13,6 +13,7 @@ import java.util.Stack;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.stream.JsonWriter;
+import com.ibm.as400.access.AS400DataType;
 import com.ibm.as400.access.RecordFormat;
 
 public class JsonWriterWriter implements Flushable, Closeable {
@@ -82,13 +83,23 @@ public class JsonWriterWriter implements Flushable, Closeable {
                 continue;
             }
             String name = m.getName().toLowerCase();
-            if (name.startsWith("is") || name.startsWith("get")) {
+            if (!name.equals("getclass") && (name.startsWith("is") || name.startsWith("get"))) {
                 try {
                     String prop = name.replaceFirst("^get", "");
                     Object val = m.invoke(_bean);
-//                    if (!(val instanceof Class)) {
+                    if (null == val) {
+                        p.put(prop, null);
+                    } else if (val instanceof Class) {
+                        p.put(prop, ((Class<?>) val).getSimpleName());
+                    } else if (val.getClass().isPrimitive() || CharSequence.class.isAssignableFrom(val.getClass())) {
                         p.put(prop, val);
-//                    }
+                    } else if (val instanceof Enum) {
+                        p.put(prop, ((Enum) val).name());
+                    } else if (val instanceof AS400DataType) {
+                        p.put(prop, val.getClass().getSimpleName().replace("AS400", ""));
+                    } else {
+                        p.put(prop, val);
+                    }
                 } catch (Exception e) {
                 }
             }
