@@ -3,13 +3,17 @@ package com.github.theprez.codefori;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Stack;
 
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.stream.JsonWriter;
+import com.ibm.as400.access.RecordFormat;
 
 public class JsonWriterWriter implements Flushable, Closeable {
     enum ClosableDocumentElement {
@@ -53,13 +57,48 @@ public class JsonWriterWriter implements Flushable, Closeable {
         m_stack.push(ClosableDocumentElement.ARRAY_START);
     }
 
-    public void addValue(String _prop, String _value) throws IOException {
-        m_writer.name(_prop).value(_value);
+    public void addValue(String _prop, Object _value) throws IOException {
+        if (null == _value) {
+            m_writer.name(_prop).nullValue();
+        } else if (_value instanceof CharSequence) {
+            m_writer.name(_prop).value(_value.toString());
+        } else if (_value instanceof Boolean) {
+            m_writer.name(_prop).value((Boolean) _value);
+        } else if (_value instanceof Number) {
+            m_writer.name(_prop).value((Number) _value);
+        } else {
+            m_writer.name(_prop).value(_value.toString());
+        }
+    }
+
+    public void addBeanObject(final String _name, final Object _bean) throws IOException {
+        if (null == _bean) {
+            return;
+        }
+        Class<?> c = _bean.getClass();
+        LinkedHashMap<String, Object> p = new LinkedHashMap<String, Object>();
+        for (Method m : c.getMethods()) {
+            if (m.getParameterCount() > 0) {
+                continue;
+            }
+            String name = m.getName().toLowerCase();
+            if (name.startsWith("is") || name.startsWith("get")) {
+                try {
+                    String prop = name.replaceFirst("^get", "");
+                    Object val = m.invoke(_bean);
+//                    if (!(val instanceof Class)) {
+                        p.put(prop, val);
+//                    }
+                } catch (Exception e) {
+                }
+            }
+        }
+        addObject(_name, p);
     }
 
     public void err(Exception _e) {
         m_logger.printExceptionStack_verbose(_e);
-        
+
         if (!m_stack.isEmpty() && ClosableDocumentElement.ARRAY_START == m_stack.peek()) {
             pop();
         }

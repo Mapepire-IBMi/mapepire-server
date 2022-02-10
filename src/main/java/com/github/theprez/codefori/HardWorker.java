@@ -17,12 +17,16 @@ import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.stream.JsonWriter;
 import com.ibm.as400.access.AS400;
+import com.ibm.as400.access.AS400FileRecordDescription;
 import com.ibm.as400.access.AS400JDBCDriver;
 import com.ibm.as400.access.Command;
+import com.ibm.as400.access.FieldDescription;
 import com.ibm.as400.access.IFSFile;
 import com.ibm.as400.access.IFSFileInputStream;
 import com.ibm.as400.access.ObjectDescription;
 import com.ibm.as400.access.ObjectList;
+import com.ibm.as400.access.RecordFormat;
+import com.ibm.as400.access.SequentialFile;
 import com.ibm.as400.access.SystemValue;
 
 class HardWorker {
@@ -56,17 +60,48 @@ class HardWorker {
             }
         }
     }
+
+    void doRecFmt(LinkedList<String> _args) throws IOException {
+        m_results.startObject("record_formats");
+        m_results.beginArray(null);
+        for (String fileIn : _args) {
+            String file = new IBMiObjectPathNormalizer(fileIn, "file").getIfsPath();
+            m_logger.printf_verbose("Retrieving record format for '%s'\n", file);
+            m_results.startObject(null);
+            m_results.addValue("name", file);
+            try {
+                AS400FileRecordDescription f = new AS400FileRecordDescription(m_as400, file);
+                RecordFormat[] fmts = f.retrieveRecordFormat();
+                for (RecordFormat fmt : fmts) {
+                    m_results.addValue("name", fmt.getName());
+                    m_results.beginArray("fields");
+//                    m_results.addValue("name", fmt.getName());
+//                    m_results.beginArray(fmt.getName());
+                    for (FieldDescription fd : fmt.getFieldDescriptions()) {
+                        m_results.addBeanObject(null, fd);
+                    }
+                    m_results.endArray();
+                }
+                m_results.endArray();
+            } catch (Exception e) {
+                m_results.err(e);
+            } finally {
+                m_results.endObject();
+            }
+        }
+    }
+
     void doFileBytes(LinkedList<String> _args) throws IOException {
         m_results.startObject("file_bytes");
         m_results.beginArray(null);
         for (String file : _args) {
             m_results.startObject(null);
             m_results.addValue("name", file);
-            try (IFSFileInputStream f = new IFSFileInputStream(m_as400, file)){
+            try (IFSFileInputStream f = new IFSFileInputStream(m_as400, file)) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                byte[] buf = new byte[1024*1024];
+                byte[] buf = new byte[1024 * 1024];
                 int bytesRead = -1;
-                while(-1 < (bytesRead = f.read(buf))) {
+                while (-1 < (bytesRead = f.read(buf))) {
                     baos.write(buf, 0, bytesRead);
                 }
                 String encoded = Base64.getEncoder().encodeToString(baos.toByteArray());

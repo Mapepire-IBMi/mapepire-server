@@ -48,6 +48,9 @@ public class CodeForiServer {
                 case "filebytes":
                     worker.doFileBytes(args);
                     break;
+                case "recfmt":
+                    worker.doRecFmt(args);
+                    break;
                 default:
                     logger.printfln_err("ERROR: Unknown command '%s'", operation);
                     printUsageAndExit();
