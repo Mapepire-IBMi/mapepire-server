@@ -1,5 +1,5 @@
 package com.github.theprez.codefori;
-class Version {
-      static String s_compileDateTime = "@timestamp@ (GMT)";
-      static String s_version = "@version@";
+public class Version {
+      static public final String s_compileDateTime = "@timestamp@ (GMT)";
+      static public final String s_version = "@version@";
 }
