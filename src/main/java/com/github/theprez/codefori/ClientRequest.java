@@ -47,7 +47,9 @@ public abstract class ClientRequest implements Runnable {
             go();
             addReplyData("success", true);
         } catch (Exception _e) {
-            _e.printStackTrace();
+            if (Boolean.getBoolean("codeserver.verbose")) {
+                _e.printStackTrace();
+            }
             addReplyData("success", false);
             addReplyData("error", _e.getLocalizedMessage());
         } finally {
@@ -62,7 +64,7 @@ public abstract class ClientRequest implements Runnable {
     }
 
     protected void processAfterReplySent() {
-        
+
     }
 
     public int getRequestFieldInt(String _key, int _default) {
@@ -81,6 +83,7 @@ public abstract class ClientRequest implements Runnable {
     public SystemConnection getSystemConnection() {
         return m_conn;
     }
+
     public boolean isForcedSynchronous() {
         return false;
     }

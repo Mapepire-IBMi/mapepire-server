@@ -13,11 +13,13 @@ import java.util.Map;
 import com.github.theprez.codefori.requests.Exit;
 import com.github.theprez.codefori.requests.GetDbJob;
 import com.github.theprez.codefori.requests.GetVersion;
+import com.github.theprez.codefori.requests.IncompleteReq;
 import com.github.theprez.codefori.requests.Ping;
 import com.github.theprez.codefori.requests.Reconnect;
 import com.github.theprez.codefori.requests.RunSql;
 import com.github.theprez.codefori.requests.RunSqlMore;
 import com.github.theprez.codefori.requests.UnknownReq;
+import com.github.theprez.codefori.requests.UnparsableReq;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.ConsoleQuestionAsker;
 import com.github.theprez.jcmdutils.StringUtils;
@@ -50,18 +52,23 @@ public class DataStreamProcessor implements Runnable {
         try {
             String requestString = null;
             while (null != (requestString = m_in.readLine())) {
-                if(StringUtils.isEmpty(requestString)) {
+                if (StringUtils.isEmpty(requestString)) {
                     continue;
                 }
-                JsonElement reqElement = JsonParser.parseString(requestString);
+                final JsonElement reqElement;
                 final JsonObject reqObj;
                 try {
+                    reqElement = JsonParser.parseString(requestString);
                     reqObj = reqElement.getAsJsonObject();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    dispatch(new UnparsableReq(this, m_conn, requestString));
                     continue;
                 }
-                JsonElement type = reqObj.get("type");
+                final JsonElement type = reqObj.get("type");
+                if (null == type || null == reqObj.get("id")) {
+                    dispatch(new IncompleteReq(this, m_conn, requestString));
+                    continue;
+                }
                 String typeString = type.getAsString();
                 switch (typeString) {
                     case "ping":
@@ -93,8 +100,8 @@ public class DataStreamProcessor implements Runnable {
                 }
             }
         } catch (JsonSyntaxException | IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
+            System.exit(-1);
         }
 
     }
