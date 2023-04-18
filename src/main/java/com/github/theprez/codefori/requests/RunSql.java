@@ -34,10 +34,15 @@ public class RunSql extends ClientRequest {
                 m_isDone = true;
                 break;
             }
-            final List<Object> rowData = new LinkedList<Object>();
+            final LinkedHashMap<String, Object> rowData = new LinkedHashMap<String,Object>();
             final int numCols = m_rs.getMetaData().getColumnCount();
             for (int col = 1; col <= numCols; ++col) {
-                rowData.add(m_rs.getObject(col));
+                String column = m_rs.getMetaData().getColumnName(col);
+                Object cellData = m_rs.getObject(col);
+                if(cellData instanceof String) {
+                    cellData = ((String)cellData).trim();
+                }
+                rowData.put(column, cellData);
             }
             data.add(rowData);
         }
