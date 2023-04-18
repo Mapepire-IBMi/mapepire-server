@@ -20,7 +20,7 @@ public class IncompleteReq extends ClientRequest {
 
     private static JsonObject getIncompleteJsonObject() {
         JsonObject ret = new JsonObject();
-        ret.addProperty("id", "incomplete_"+m_int.getAndIncrement());
+        ret.addProperty("id", "incomplete_" + m_int.getAndIncrement());
         return ret;
     }
 

@@ -7,7 +7,7 @@ import com.github.theprez.codefori.Version;
 import com.google.gson.JsonObject;
 
 public class GetVersion extends ClientRequest {
-    
+
     public GetVersion(DataStreamProcessor _io, SystemConnection m_conn, JsonObject _reqObj) {
         super(_io, m_conn, _reqObj);
     }

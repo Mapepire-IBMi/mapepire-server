@@ -1,15 +1,9 @@
 package com.github.theprez.codefori;
 
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.LinkedList;
 
 import com.github.theprez.jcmdutils.AppLogger;
-import com.github.theprez.jcmdutils.ConsoleQuestionAsker;
-import com.google.gson.stream.JsonWriter;
-import com.ibm.as400.access.AS400;
-import com.ibm.as400.access.AS400SecurityException;
 
 public class CodeForiServer {
     public static void main(String[] _args) {

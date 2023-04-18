@@ -59,15 +59,15 @@ public class RunSql extends ClientRequest {
         }
     }
 
-    
-     List<Object> getNextDataBlock(int numRows) throws SQLException {
+    List<Object> getNextDataBlock(int numRows) throws SQLException {
         List<Object> data = new LinkedList<Object>();
-        if(m_isDone) {
+        if (m_isDone) {
             return data;
         }
         for (int i = 0; i < numRows; ++i) {
             if (!m_rs.next()) {
-                m_isDone = true;break;
+                m_isDone = true;
+                break;
             }
             List<Object> rowData = new LinkedList<Object>();
             int numCols = m_rs.getMetaData().getColumnCount();
@@ -79,7 +79,8 @@ public class RunSql extends ClientRequest {
         return data;
     }
 
-    public Object isDone() {return m_isDone;
+    public Object isDone() {
+        return m_isDone;
     }
 
 }

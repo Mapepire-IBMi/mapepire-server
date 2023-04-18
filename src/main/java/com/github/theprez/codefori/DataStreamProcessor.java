@@ -39,8 +39,7 @@ public class DataStreamProcessor implements Runnable {
     private Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
     private SystemConnection m_conn;
 
-    public DataStreamProcessor(AppLogger _logger, InputStream _in, PrintStream _out, SystemConnection _conn)
-            throws UnsupportedEncodingException {
+    public DataStreamProcessor(AppLogger _logger, InputStream _in, PrintStream _out, SystemConnection _conn) throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
         m_out = _out;
         m_logger = _logger;

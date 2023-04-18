@@ -20,7 +20,7 @@ public class UnparsableReq extends ClientRequest {
 
     private static JsonObject getUnparseableJsonObject() {
         JsonObject ret = new JsonObject();
-        ret.addProperty("id", "unparseable_"+m_int.getAndIncrement());
+        ret.addProperty("id", "unparseable_" + m_int.getAndIncrement());
         return ret;
     }
 

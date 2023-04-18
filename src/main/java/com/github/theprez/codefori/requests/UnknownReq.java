@@ -7,7 +7,7 @@ import com.github.theprez.codefori.Version;
 import com.google.gson.JsonObject;
 
 public class UnknownReq extends ClientRequest {
-    
+
     private String m_reqType;
 
     public UnknownReq(DataStreamProcessor _io, SystemConnection m_conn, JsonObject _reqObj, String _reqType) {
@@ -17,6 +17,6 @@ public class UnknownReq extends ClientRequest {
 
     @Override
     protected void go() throws Exception {
-        throw new RuntimeException("Unknown request type: "+m_reqType);
+        throw new RuntimeException("Unknown request type: " + m_reqType);
     }
 }
