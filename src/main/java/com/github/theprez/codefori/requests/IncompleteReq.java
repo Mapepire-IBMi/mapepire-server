@@ -5,23 +5,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
-import com.github.theprez.codefori.Version;
 import com.google.gson.JsonObject;
 
 public class IncompleteReq extends ClientRequest {
 
-    private String m_str;
     private static AtomicInteger m_int = new AtomicInteger(1);
 
-    public IncompleteReq(DataStreamProcessor _io, SystemConnection m_conn, String _str) {
-        super(_io, m_conn, getIncompleteJsonObject());
-        m_str = _str;
-    }
-
     private static JsonObject getIncompleteJsonObject() {
-        JsonObject ret = new JsonObject();
+        final JsonObject ret = new JsonObject();
         ret.addProperty("id", "incomplete_" + m_int.getAndIncrement());
         return ret;
+    }
+
+    private final String m_str;
+
+    public IncompleteReq(final DataStreamProcessor _io, final SystemConnection m_conn, final String _str) {
+        super(_io, m_conn, getIncompleteJsonObject());
+        m_str = _str;
     }
 
     @Override

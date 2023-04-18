@@ -9,14 +9,14 @@ import com.google.gson.JsonObject;
 
 public class Reconnect extends ClientRequest {
 
-    public Reconnect(DataStreamProcessor _io, SystemConnection _conn, JsonObject _reqObj) {
+    public Reconnect(final DataStreamProcessor _io, final SystemConnection _conn, final JsonObject _reqObj) {
         super(_io, _conn, _reqObj);
     }
 
     @Override
     protected void go() throws Exception {
-        JsonElement props = getRequestField("props");
-        ConnectionOptions opts = new ConnectionOptions();
+        final JsonElement props = getRequestField("props");
+        final ConnectionOptions opts = new ConnectionOptions();
         if (null != props) {
             opts.setJdbcProperties(props.getAsString());
         }

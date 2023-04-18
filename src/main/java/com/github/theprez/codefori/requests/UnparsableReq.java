@@ -5,23 +5,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
-import com.github.theprez.codefori.Version;
 import com.google.gson.JsonObject;
 
 public class UnparsableReq extends ClientRequest {
 
-    private String m_str;
     private static AtomicInteger m_int = new AtomicInteger(1);
 
-    public UnparsableReq(DataStreamProcessor _io, SystemConnection m_conn, String _str) {
-        super(_io, m_conn, getUnparseableJsonObject());
-        m_str = _str;
-    }
-
     private static JsonObject getUnparseableJsonObject() {
-        JsonObject ret = new JsonObject();
+        final JsonObject ret = new JsonObject();
         ret.addProperty("id", "unparseable_" + m_int.getAndIncrement());
         return ret;
+    }
+
+    private final String m_str;
+
+    public UnparsableReq(final DataStreamProcessor _io, final SystemConnection m_conn, final String _str) {
+        super(_io, m_conn, getUnparseableJsonObject());
+        m_str = _str;
     }
 
     @Override

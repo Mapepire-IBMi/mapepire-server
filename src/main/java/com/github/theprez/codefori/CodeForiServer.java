@@ -6,9 +6,9 @@ import java.util.LinkedList;
 import com.github.theprez.jcmdutils.AppLogger;
 
 public class CodeForiServer {
-    public static void main(String[] _args) {
+    public static void main(final String[] _args) {
 
-        LinkedList<String> args = new LinkedList<String>();
+        final LinkedList<String> args = new LinkedList<String>();
         args.addAll(Arrays.asList(_args));
         if (args.remove("--version")) {
             System.out.println("Version: " + Version.s_version);
@@ -16,13 +16,13 @@ public class CodeForiServer {
             System.exit(0);
         }
         final boolean isVerbose = args.remove("-v");
-        AppLogger logger = AppLogger.getSingleton(isVerbose); // TODO: custom AppLogger to ensure no System.out
-                                                              // contamination
+        final AppLogger logger = AppLogger.getSingleton(isVerbose); // TODO: custom AppLogger to ensure no System.out
+        // contamination
         try {
-            SystemConnection conn = new SystemConnection(logger);
-            DataStreamProcessor io = new DataStreamProcessor(logger, System.in, System.out, conn);
+            final SystemConnection conn = new SystemConnection(logger);
+            final DataStreamProcessor io = new DataStreamProcessor(logger, System.in, System.out, conn);
             io.run();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
         System.exit(-1);

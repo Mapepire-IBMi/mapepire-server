@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,29 +20,33 @@ import com.github.theprez.codefori.requests.RunSqlMore;
 import com.github.theprez.codefori.requests.UnknownReq;
 import com.github.theprez.codefori.requests.UnparsableReq;
 import com.github.theprez.jcmdutils.AppLogger;
-import com.github.theprez.jcmdutils.ConsoleQuestionAsker;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.JsonReader;
-import com.ibm.as400.access.AS400;
-import com.ibm.as400.access.AS400SecurityException;
 
 public class DataStreamProcessor implements Runnable {
 
-    private BufferedReader m_in;
-    private PrintStream m_out;
-    private AppLogger m_logger;
-    private Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
-    private SystemConnection m_conn;
+    private final SystemConnection m_conn;
+    private final BufferedReader m_in;
+    private final AppLogger m_logger;
+    private final PrintStream m_out;
+    private final Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
 
-    public DataStreamProcessor(AppLogger _logger, InputStream _in, PrintStream _out, SystemConnection _conn) throws UnsupportedEncodingException {
+    public DataStreamProcessor(final AppLogger _logger, final InputStream _in, final PrintStream _out, final SystemConnection _conn) throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
         m_out = _out;
         m_logger = _logger;
         m_conn = _conn;
+    }
+
+    private void dispatch(final ClientRequest _req) {
+        if (_req.isForcedSynchronous()) {
+            _req.run();
+        } else {
+            new Thread(_req).start();
+        }
     }
 
     @Override
@@ -59,7 +62,7 @@ public class DataStreamProcessor implements Runnable {
                 try {
                     reqElement = JsonParser.parseString(requestString);
                     reqObj = reqElement.getAsJsonObject();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     dispatch(new UnparsableReq(this, m_conn, requestString));
                     continue;
                 }
@@ -68,13 +71,13 @@ public class DataStreamProcessor implements Runnable {
                     dispatch(new IncompleteReq(this, m_conn, requestString));
                     continue;
                 }
-                String typeString = type.getAsString();
+                final String typeString = type.getAsString();
                 switch (typeString) {
                     case "ping":
                         dispatch(new Ping(this, m_conn, reqObj));
                         break;
                     case "sql":
-                        RunSql runSqlReq = new RunSql(this, m_conn, reqObj);
+                        final RunSql runSqlReq = new RunSql(this, m_conn, reqObj);
                         m_queriesMap.put(runSqlReq.getId(), runSqlReq);
                         dispatch(runSqlReq);
                         break;
@@ -105,15 +108,7 @@ public class DataStreamProcessor implements Runnable {
 
     }
 
-    private void dispatch(ClientRequest _req) {
-        if (_req.isForcedSynchronous()) {
-            _req.run();
-        } else {
-            new Thread(_req).start();
-        }
-    }
-
-    public void sendResponse(String _response) throws UnsupportedEncodingException, IOException {
+    public void sendResponse(final String _response) throws UnsupportedEncodingException, IOException {
         m_out.write((_response + "\n").getBytes("UTF-8"));
         m_out.flush();
     }

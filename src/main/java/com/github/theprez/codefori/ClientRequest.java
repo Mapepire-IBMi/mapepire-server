@@ -8,16 +8,15 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400;
 
 public abstract class ClientRequest implements Runnable {
-    private final Map<String, Object> replyData = new LinkedHashMap<String, Object>();
-    private final DataStreamProcessor m_io;
-    private JsonObject m_reqObj;
+    private final SystemConnection m_conn;
     private final String m_id;
-    private SystemConnection m_conn;
+    private final DataStreamProcessor m_io;
+    private final JsonObject m_reqObj;
+    private final Map<String, Object> replyData = new LinkedHashMap<String, Object>();
 
-    protected ClientRequest(DataStreamProcessor _io, SystemConnection _conn, JsonObject _reqObj) {
+    protected ClientRequest(final DataStreamProcessor _io, final SystemConnection _conn, final JsonObject _reqObj) {
         m_io = _io;
         m_reqObj = _reqObj;
         m_id = _reqObj.get("id").getAsString();
@@ -25,28 +24,47 @@ public abstract class ClientRequest implements Runnable {
         addReplyData("id", m_id);
     }
 
-    protected void addReplyData(String _key, Object _val) {
+    protected void addReplyData(final String _key, final Object _val) {
         replyData.put(_key, _val);
     }
 
-    protected JsonElement getRequestField(String _key) {
+    public String getId() {
+        return m_id;
+    }
+
+    protected JsonElement getRequestField(final String _key) {
         return m_reqObj.get(_key);
     }
 
-    protected void sendreply() throws UnsupportedEncodingException, IOException {
-        Gson l = new Gson();
-        String json = l.toJson(replyData);
-        m_io.sendResponse(json);
+    public int getRequestFieldInt(final String _key, final int _default) {
+        final JsonElement j = getRequestField(_key);
+        try {
+            return j.getAsInt();
+        } catch (final Exception e) {
+        }
+        return _default;
+    }
+
+    public SystemConnection getSystemConnection() {
+        return m_conn;
     }
 
     protected abstract void go() throws Exception;
+
+    public boolean isForcedSynchronous() {
+        return false;
+    }
+
+    protected void processAfterReplySent() {
+
+    }
 
     @Override
     public void run() {
         try {
             go();
             addReplyData("success", true);
-        } catch (Exception _e) {
+        } catch (final Exception _e) {
             if (Boolean.getBoolean("codeserver.verbose")) {
                 _e.printStackTrace();
             }
@@ -56,36 +74,17 @@ public abstract class ClientRequest implements Runnable {
             try {
                 sendreply();
                 processAfterReplySent();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 e.printStackTrace();
                 System.exit(-1);
             }
         }
     }
 
-    protected void processAfterReplySent() {
-
-    }
-
-    public int getRequestFieldInt(String _key, int _default) {
-        JsonElement j = getRequestField(_key);
-        try {
-            return j.getAsInt();
-        } catch (Exception e) {
-        }
-        return _default;
-    }
-
-    public String getId() {
-        return m_id;
-    }
-
-    public SystemConnection getSystemConnection() {
-        return m_conn;
-    }
-
-    public boolean isForcedSynchronous() {
-        return false;
+    protected void sendreply() throws UnsupportedEncodingException, IOException {
+        final Gson l = new Gson();
+        final String json = l.toJson(replyData);
+        m_io.sendResponse(json);
     }
 
 }

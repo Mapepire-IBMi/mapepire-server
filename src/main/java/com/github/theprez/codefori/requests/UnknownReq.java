@@ -3,14 +3,13 @@ package com.github.theprez.codefori.requests;
 import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
-import com.github.theprez.codefori.Version;
 import com.google.gson.JsonObject;
 
 public class UnknownReq extends ClientRequest {
 
-    private String m_reqType;
+    private final String m_reqType;
 
-    public UnknownReq(DataStreamProcessor _io, SystemConnection m_conn, JsonObject _reqObj, String _reqType) {
+    public UnknownReq(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj, final String _reqType) {
         super(_io, m_conn, _reqObj);
         m_reqType = _reqType;
     }

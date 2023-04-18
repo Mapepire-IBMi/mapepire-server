@@ -8,14 +8,14 @@ public class RunSqlMore extends ClientRequest {
 
     private final RunSql m_prev;
 
-    public RunSqlMore(DataStreamProcessor _io, JsonObject _reqObj, RunSql _prev) {
+    public RunSqlMore(final DataStreamProcessor _io, final JsonObject _reqObj, final RunSql _prev) {
         super(_io, _prev.getSystemConnection(), _reqObj);
         m_prev = _prev;
     }
 
     @Override
     protected void go() throws Exception {
-        int numRows = super.getRequestFieldInt("rows", 1000);
+        final int numRows = super.getRequestFieldInt("rows", 1000);
         addReplyData("data", m_prev.getNextDataBlock(numRows));
         addReplyData("is_done", m_prev.isDone());
     }
