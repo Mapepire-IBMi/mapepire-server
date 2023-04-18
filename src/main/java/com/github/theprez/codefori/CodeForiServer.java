@@ -3,8 +3,6 @@ package com.github.theprez.codefori;
 import java.util.Arrays;
 import java.util.LinkedList;
 
-import com.github.theprez.jcmdutils.AppLogger;
-
 public class CodeForiServer {
     public static void main(final String[] _args) {
 
@@ -20,10 +18,9 @@ public class CodeForiServer {
         if(isVerbose) {
             System.setProperty("codeserver.verbose", "true");
         }
-        final AppLogger logger = AppLogger.getSingleton(isVerbose);
         try {
-            final SystemConnection conn = new SystemConnection(logger);
-            final DataStreamProcessor io = new DataStreamProcessor(logger, System.in, System.out, conn);
+            final SystemConnection conn = new SystemConnection();
+            final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, conn);
             io.run();
         } catch (final Exception e) {
             e.printStackTrace();

@@ -28,13 +28,14 @@ public class SystemConnection {
 
     private AS400JDBCConnection m_conn;
 
-    public SystemConnection(final AppLogger _logger) throws IOException {
+    public SystemConnection() throws IOException {
         if (System.getProperty("os.name", "").equalsIgnoreCase("OS/400")) {
             m_as400 = new AS400("localhost", "*CURRENT", "*CURRENT".toCharArray());
         } else {
+            final AppLogger logger = AppLogger.getSingleton(false);
             final ConsoleQuestionAsker asker = new ConsoleQuestionAsker();
-            final String host = asker.askNonEmptyStringQuestion(_logger, null, "Enter system name: ");
-            final String uid = asker.askNonEmptyStringQuestion(_logger, null, "Enter user id: ");
+            final String host = asker.askNonEmptyStringQuestion(logger, null, "Enter system name: ");
+            final String uid = asker.askNonEmptyStringQuestion(logger, null, "Enter user id: ");
             final String pw = asker.askUserForPwd("Password: ");
             m_as400 = new AS400(host, uid, pw.toCharArray());
         }

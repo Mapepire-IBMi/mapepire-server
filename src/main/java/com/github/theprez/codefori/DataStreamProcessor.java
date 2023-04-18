@@ -19,7 +19,6 @@ import com.github.theprez.codefori.requests.RunSql;
 import com.github.theprez.codefori.requests.RunSqlMore;
 import com.github.theprez.codefori.requests.UnknownReq;
 import com.github.theprez.codefori.requests.UnparsableReq;
-import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -30,14 +29,12 @@ public class DataStreamProcessor implements Runnable {
 
     private final SystemConnection m_conn;
     private final BufferedReader m_in;
-    private final AppLogger m_logger;
     private final PrintStream m_out;
     private final Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
 
-    public DataStreamProcessor(final AppLogger _logger, final InputStream _in, final PrintStream _out, final SystemConnection _conn) throws UnsupportedEncodingException {
+    public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn) throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
         m_out = _out;
-        m_logger = _logger;
         m_conn = _conn;
     }
 
