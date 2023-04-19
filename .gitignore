@@ -1,2 +1,6 @@
 /target/
 src/main/java/com/github/theprez/codefori/Version.java
+.vscode/settings.json
+.project
+.classpath
+.settings/*

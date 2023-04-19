@@ -7,20 +7,31 @@ import com.github.theprez.jcmdutils.StringUtils;
 import com.ibm.as400.access.QSYSObjectPathName;
 
 public class IBMiObjectPathNormalizer {
-    private static Pattern m_libObjFormat = Pattern.compile("^(([^\\/\\(\\(\\s]{1,10})\\s*\\/)?\\s*([^\\/\\(\\(\\s]{1,10})\\s*(\\(\\s*([^\\/\\(\\(\\s]{1,10})\\s*\\)\\s*)?\\s*$");
     private static Pattern m_ifsFormat = Pattern.compile("^(/+qsys.lib)?/+([^\\/\\(\\(\\s]{1,10})\\.lib/+([^\\/\\(\\(\\s]{1,10})\\.([^\\/\\(\\(\\s]{1,10})(/+([^\\/\\(\\(\\s]{1,10})\\.mbr)?$", Pattern.CASE_INSENSITIVE);
-    private final String m_lib;
-    private final String m_obj;
-    private final String m_mbr;
+    private static Pattern m_libObjFormat = Pattern.compile("^(([^\\/\\(\\(\\s]{1,10})\\s*\\/)?\\s*([^\\/\\(\\(\\s]{1,10})\\s*(\\(\\s*([^\\/\\(\\(\\s]{1,10})\\s*\\)\\s*)?\\s*$");
+
+    public static Pattern getIfsFormat() {
+        return m_ifsFormat;
+    }
+
+    public static Pattern getM_libObjFormat() {
+        return m_libObjFormat;
+    }
+
     private final String m_ifsPath;
+    private final String m_lib;
+    private final String m_mbr;
+
+    private final String m_obj;
+
     private final String m_type;
 
     public IBMiObjectPathNormalizer(final String _path, final String _objType) {
         Matcher m = m_libObjFormat.matcher(_path);
         if (m.matches()) {
             m_type = _objType.replaceFirst("^(\\*|\\.)", "");
-            String lib = m.group(2);
-            boolean isLibEmpty = StringUtils.isEmpty(lib);
+            final String lib = m.group(2);
+            final boolean isLibEmpty = StringUtils.isEmpty(lib);
             m_lib = isLibEmpty ? "*LIBL" : lib;
             m_obj = m.group(3);
             m_mbr = m.group(5);
@@ -56,28 +67,20 @@ public class IBMiObjectPathNormalizer {
         }
     }
 
-    public static Pattern getM_libObjFormat() {
-        return m_libObjFormat;
-    }
-
-    public static Pattern getIfsFormat() {
-        return m_ifsFormat;
+    public String getIfsPath() {
+        return m_ifsPath;
     }
 
     public String getLibrary() {
         return m_lib;
     }
 
-    public String getObjName() {
-        return m_obj;
-    }
-
     public String getMbr() {
         return m_mbr;
     }
 
-    public String getIfsPath() {
-        return m_ifsPath;
+    public String getObjName() {
+        return m_obj;
     }
 
     public String getType() {
