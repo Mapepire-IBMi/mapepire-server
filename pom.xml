@@ -5,7 +5,7 @@
 
     <groupId>io.github.theprez</groupId>
     <artifactId>codeforibmiserver</artifactId>
-    <version>0.0.1</version>
+    <version>1.0.0-alpha-1</version>
     <name>CodeForIBMiServer</name>
     <description>Server-side support for "Code for IBM i" VSCode extension</description>
     <url>https://github.com/ThePrez/CodeForIBMiServer</url>
@@ -133,50 +133,10 @@
                         </descriptorRefs>
                     </configuration>
                 </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-gpg-plugin</artifactId>
-                    <version>3.0.1</version>
-                    <executions>
-                        <execution>
-                            <id>sign-artifacts</id>
-                            <phase>verify</phase>
-                            <goals>
-                                <goal>sign</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <gpgArguments>
-                            <arg>--pinentry-mode</arg>
-                            <arg>loopback</arg>
-                        </gpgArguments>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.sonatype.plugins</groupId>
-                    <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>1.6.7</version>
-                    <extensions>true</extensions>
-                    <configuration>
-                        <serverId>ossrh</serverId>
-                        <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                        <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                </plugin>
             </plugins>
         </pluginManagement>
 
         <plugins>
-            <!--   <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-javadoc-plugin</artifactId>
-          </plugin>
-          -->
             <plugin>
                 <groupId>com.google.code.maven-replacer-plugin</groupId>
                 <artifactId>maven-replacer-plugin</artifactId>
@@ -199,14 +159,6 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
         </plugins>
@@ -217,7 +169,8 @@
             <groupId>net.sf.jt400</groupId>
             <artifactId>jt400</artifactId>
             <version>11.2</version>
-            <!-- <scope>provided</scope> -->
+            <!-- comment the <scope> tag for local development -->
+            <scope>provided</scope>
         </dependency>
         <!-- <dependency>
             <groupId>org.json</groupId>
