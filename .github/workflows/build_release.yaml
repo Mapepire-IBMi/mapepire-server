@@ -13,9 +13,11 @@ jobs:
     - uses: actions/checkout@v3
       name: Check out
 
-    - name: Check DNS
-      run: | 
-        nslookup repo.maven.apache.org
+    - name: Override DNS for Sonatype repo
+      run: |
+        mkdir -p ~/.m2/
+        touch ~/.m2/settings.xml 
+        echo " <settings> <mirrors> <mirror> <id>centralhttps</id> <mirrorOf>central</mirrorOf> <name>Maven central https</name> <url>https://repo1.maven.org/maven2/</url> </mirror> </mirrors></settings>" >> ~/.m2/settings.xml 
 
     - name: Get Maven project version
       run: |
