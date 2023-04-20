@@ -30,14 +30,14 @@ public class SystemConnection {
 
     public SystemConnection() throws IOException {
         if (System.getProperty("os.name", "").equalsIgnoreCase("OS/400")) {
-            m_as400 = new AS400("localhost", "*CURRENT", "*CURRENT".toCharArray());
+            m_as400 = new AS400("localhost", "*CURRENT", "*CURRENT");
         } else {
             final AppLogger logger = AppLogger.getSingleton(false);
             final ConsoleQuestionAsker asker = new ConsoleQuestionAsker();
             final String host = asker.askNonEmptyStringQuestion(logger, null, "Enter system name: ");
             final String uid = asker.askNonEmptyStringQuestion(logger, null, "Enter user id: ");
             final String pw = asker.askUserForPwd("Password: ");
-            m_as400 = new AS400(host, uid, pw.toCharArray());
+            m_as400 = new AS400(host, uid, pw);
         }
     }
 
