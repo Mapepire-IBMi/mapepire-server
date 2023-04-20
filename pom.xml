@@ -5,7 +5,7 @@
 
     <groupId>io.github.theprez</groupId>
     <artifactId>codeforibmiserver</artifactId>
-    <version>1.0.0-alpha-1</version>
+    <version>1.0.0-alpha-2</version>
     <name>CodeForIBMiServer</name>
     <description>Server-side support for "Code for IBM i" VSCode extension</description>
     <url>https://github.com/ThePrez/CodeForIBMiServer</url>
@@ -177,7 +177,7 @@
             <artifactId>json</artifactId>
             <version>20230227</version>
         </dependency> -->
-                
+
         <!-- <dependency>
             <groupId>net.sf.jt400</groupId>
             <artifactId>jt400</artifactId>

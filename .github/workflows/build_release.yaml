@@ -13,9 +13,13 @@ jobs:
     - uses: actions/checkout@v3
       name: Check out
 
+    - name: Check DNS
+      run: | 
+        nslookup repo.maven.apache.org
+
     - name: Get Maven project version
       run: |
-        echo "project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec  --file pom.xml)" >> $GITHUB_ENV
+        echo "project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive org.codehaus.mojo:exec-maven-plugin:3.1.0:exec  --file pom.xml)" >> $GITHUB_ENV
         cat $GITHUB_ENV
 
     - name: Set up JDK 8
