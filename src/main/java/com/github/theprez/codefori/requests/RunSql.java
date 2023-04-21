@@ -1,5 +1,6 @@
 package com.github.theprez.codefori.requests;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -32,15 +33,21 @@ public class RunSql extends ClientRequest {
         for (int i = 0; i < numRows; ++i) {
             if (!m_rs.next()) {
                 m_isDone = true;
+                Statement s = m_rs.getStatement();
+                if (s instanceof PreparedStatement) {
+                    m_rs.close();
+                } else {
+                    m_rs.getStatement().close();
+                }
                 break;
             }
-            final LinkedHashMap<String, Object> rowData = new LinkedHashMap<String,Object>();
+            final LinkedHashMap<String, Object> rowData = new LinkedHashMap<String, Object>();
             final int numCols = m_rs.getMetaData().getColumnCount();
             for (int col = 1; col <= numCols; ++col) {
                 String column = m_rs.getMetaData().getColumnName(col);
                 Object cellData = m_rs.getObject(col);
-                if(cellData instanceof String) {
-                    cellData = ((String)cellData).trim();
+                if (cellData instanceof String) {
+                    cellData = ((String) cellData).trim();
                 }
                 rowData.put(column, cellData);
             }
@@ -54,7 +61,7 @@ public class RunSql extends ClientRequest {
         final String sql = getRequestField("sql").getAsString();
         final int numRows = super.getRequestFieldInt("rows", 1000);
         final AS400JDBCConnection jdbcConn = getSystemConnection().getJdbcConnection();
-        final Statement stmt = jdbcConn.createStatement();
+        final Statement stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
         final boolean hasRs = stmt.execute(sql);
         if (hasRs) {
             m_rs = stmt.getResultSet();

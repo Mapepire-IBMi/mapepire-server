@@ -1,5 +1,6 @@
 /target/
 src/main/java/com/github/theprez/codefori/Version.java
+*.sql
 .vscode/settings.json
 .project
 .classpath
