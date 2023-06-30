@@ -49,9 +49,9 @@ public class PreparedExecute extends BlockRetrievableRequest {
             addJsonArrayParameters(stmt, parms.getAsJsonArray());
         }
         if (stmt.execute()) {
-            m_prev.m_rs = stmt.getResultSet();
+            this.m_rs = stmt.getResultSet();
             final int numRows = super.getRequestFieldInt("rows", 1000);
-            super.getNextDataBlock(numRows);
+            addReplyData("data", super.getNextDataBlock(numRows));
         }
     }
 
