@@ -37,7 +37,8 @@ public class DataStreamProcessor implements Runnable {
     private final Map<String, PrepareSql> m_prepStmtMap = new HashMap<String, PrepareSql>();
     private final boolean m_isTestMode;
 
-    public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn, boolean _isTestMode)
+    public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn,
+            boolean _isTestMode)
             throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
         m_out = _out;
@@ -46,7 +47,11 @@ public class DataStreamProcessor implements Runnable {
     }
 
     private void dispatch(final ClientRequest _req) {
-        if (m_isTestMode || _req.isForcedSynchronous()) {
+        dispatch(_req, false);
+    }
+
+    private void dispatch(final ClientRequest _req, final boolean _isForcedSynchronous) {
+        if (m_isTestMode || _isForcedSynchronous || _req.isForcedSynchronous()) {
             _req.run();
         } else {
             new Thread(_req).start();
@@ -86,13 +91,18 @@ public class DataStreamProcessor implements Runnable {
                         dispatch(runSqlReq);
                         break;
                     case "prepare_sql":
-                        final PrepareSql prepSqlReq = new PrepareSql(this, m_conn, reqObj);
+                        final PrepareSql prepSqlReq = new PrepareSql(this, m_conn, reqObj, false);
                         m_prepStmtMap.put(prepSqlReq.getId(), prepSqlReq);
                         dispatch(prepSqlReq);
                         break;
+                    case "prepare_sql_execute":
+                        final PrepareSql prepSqlExecReq = new PrepareSql(this, m_conn, reqObj, true);
+                        m_prepStmtMap.put(prepSqlExecReq.getId(), prepSqlExecReq);
+                        dispatch(prepSqlExecReq);
+                        break;
                     case "sqlmore":
-                         BlockRetrievableRequest prev = m_queriesMap.get(reqObj.get("cont_id").getAsString());
-                        if(null == prev) {
+                        BlockRetrievableRequest prev = m_queriesMap.get(reqObj.get("cont_id").getAsString());
+                        if (null == prev) {
                             prev = m_prepStmtMap.get(reqObj.get("cont_id").getAsString());
                         }
                         dispatch(new RunSqlMore(this, reqObj, prev));
