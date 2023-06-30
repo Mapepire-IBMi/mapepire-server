@@ -44,6 +44,15 @@ public abstract class ClientRequest implements Runnable {
         }
         return _default;
     }
+    
+    public boolean getRequestFieldBoolean(String _key, boolean _default) {
+        final JsonElement j = getRequestField(_key);
+        try {
+            return j.getAsBoolean();
+        } catch (final Exception e) {
+        }
+        return _default;
+    }
 
     public SystemConnection getSystemConnection() {
         return m_conn;
@@ -86,5 +95,6 @@ public abstract class ClientRequest implements Runnable {
         final String json = l.toJson(replyData);
         m_io.sendResponse(json);
     }
+
 
 }

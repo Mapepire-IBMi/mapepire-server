@@ -6,9 +6,9 @@ import com.google.gson.JsonObject;
 
 public class RunSqlMore extends ClientRequest {
 
-    private final RunSql m_prev;
+    private final BlockRetrievableRequest m_prev;
 
-    public RunSqlMore(final DataStreamProcessor _io, final JsonObject _reqObj, final RunSql _prev) {
+    public RunSqlMore(final DataStreamProcessor _io, final JsonObject _reqObj, final BlockRetrievableRequest _prev) {
         super(_io, _prev.getSystemConnection(), _reqObj);
         m_prev = _prev;
     }

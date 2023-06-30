@@ -16,45 +16,12 @@ import com.github.theprez.codefori.SystemConnection;
 import com.google.gson.JsonObject;
 import com.ibm.as400.access.AS400JDBCConnection;
 
-public class RunSql extends ClientRequest {
-
-    private boolean m_isDone = false;
-    private ResultSet m_rs = null;
+public class RunSql extends BlockRetrievableRequest {
 
     public RunSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj) {
         super(_io, m_conn, _reqObj);
     }
 
-    List<Object> getNextDataBlock(final int numRows) throws SQLException {
-        final List<Object> data = new LinkedList<Object>();
-        if (m_isDone) {
-            return data;
-        }
-        for (int i = 0; i < numRows; ++i) {
-            if (!m_rs.next()) {
-                m_isDone = true;
-                Statement s = m_rs.getStatement();
-                if (s instanceof PreparedStatement) {
-                    m_rs.close();
-                } else {
-                    m_rs.getStatement().close();
-                }
-                break;
-            }
-            final LinkedHashMap<String, Object> rowData = new LinkedHashMap<String, Object>();
-            final int numCols = m_rs.getMetaData().getColumnCount();
-            for (int col = 1; col <= numCols; ++col) {
-                String column = m_rs.getMetaData().getColumnName(col);
-                Object cellData = m_rs.getObject(col);
-                if (cellData instanceof String) {
-                    cellData = ((String) cellData).trim();
-                }
-                rowData.put(column, cellData);
-            }
-            data.add(rowData);
-        }
-        return data;
-    }
 
     @Override
     public void go() throws Exception {
