@@ -9,11 +9,14 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.theprez.codefori.requests.BlockRetrievableRequest;
 import com.github.theprez.codefori.requests.Exit;
 import com.github.theprez.codefori.requests.GetDbJob;
 import com.github.theprez.codefori.requests.GetVersion;
 import com.github.theprez.codefori.requests.IncompleteReq;
 import com.github.theprez.codefori.requests.Ping;
+import com.github.theprez.codefori.requests.PrepareSql;
+import com.github.theprez.codefori.requests.PreparedExecute;
 import com.github.theprez.codefori.requests.Reconnect;
 import com.github.theprez.codefori.requests.RunSql;
 import com.github.theprez.codefori.requests.RunSqlMore;
@@ -31,15 +34,19 @@ public class DataStreamProcessor implements Runnable {
     private final BufferedReader m_in;
     private final PrintStream m_out;
     private final Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
+    private final Map<String, PrepareSql> m_prepStmtMap = new HashMap<String, PrepareSql>();
+    private final boolean m_isTestMode;
 
-    public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn) throws UnsupportedEncodingException {
+    public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn, boolean _isTestMode)
+            throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
         m_out = _out;
         m_conn = _conn;
+        m_isTestMode = _isTestMode;
     }
 
     private void dispatch(final ClientRequest _req) {
-        if (_req.isForcedSynchronous()) {
+        if (m_isTestMode || _req.isForcedSynchronous()) {
             _req.run();
         } else {
             new Thread(_req).start();
@@ -78,9 +85,21 @@ public class DataStreamProcessor implements Runnable {
                         m_queriesMap.put(runSqlReq.getId(), runSqlReq);
                         dispatch(runSqlReq);
                         break;
+                    case "prepare_sql":
+                        final PrepareSql prepSqlReq = new PrepareSql(this, m_conn, reqObj);
+                        m_prepStmtMap.put(prepSqlReq.getId(), prepSqlReq);
+                        dispatch(prepSqlReq);
+                        break;
                     case "sqlmore":
-                        final RunSql prev = m_queriesMap.get(reqObj.get("cont_id").getAsString());
+                         BlockRetrievableRequest prev = m_queriesMap.get(reqObj.get("cont_id").getAsString());
+                        if(null == prev) {
+                            prev = m_prepStmtMap.get(reqObj.get("cont_id").getAsString());
+                        }
                         dispatch(new RunSqlMore(this, reqObj, prev));
+                        break;
+                    case "execute":
+                        final PrepareSql prevP = m_prepStmtMap.get(reqObj.get("cont_id").getAsString());
+                        dispatch(new PreparedExecute(this, reqObj, prevP));
                         break;
                     case "connect":
                         dispatch(new Reconnect(this, m_conn, reqObj));

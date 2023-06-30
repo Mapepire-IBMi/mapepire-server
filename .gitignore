@@ -5,3 +5,5 @@ src/main/java/com/github/theprez/codefori/Version.java
 .project
 .classpath
 .settings/*
+.env
+test.txt
