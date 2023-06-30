@@ -17,9 +17,11 @@ import com.ibm.as400.access.AS400JDBCPreparedStatement;
 public class PrepareSql extends BlockRetrievableRequest {
 
     private AS400JDBCPreparedStatement m_stmt = null;
+    private final PreparedExecute m_executeTask;
 
-    public PrepareSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj) {
+    public PrepareSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj, final boolean _isImmediateExecute) {
         super(_io, m_conn, _reqObj);
+        m_executeTask = _isImmediateExecute? new PreparedExecute(_io, _reqObj, this) : null;
     }
 
     @Override
@@ -62,6 +64,9 @@ public class PrepareSql extends BlockRetrievableRequest {
         }
 
         addReplyData("metadata", metaData);
+        if(null != m_executeTask) {
+            m_executeTask.go();
+        }
     }
 
     private String getModeString(int _parameterMode) {
