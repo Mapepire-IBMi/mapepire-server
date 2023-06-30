@@ -41,15 +41,22 @@ public class RunCL extends BlockRetrievableRequest {
         int pos = posRs.getInt(1);
         posRs.close();
         jobLogPosStmt.close();
-
-        CallableStatement clStmt = jdbcConn.prepareCall("CALL QSYS2.QCMDEXC(?)");
-        clStmt.setString(1, cmd);
-        clStmt.execute();
-        clStmt.close();
+        Exception callException = null;
+        try (CallableStatement clStmt = jdbcConn.prepareCall("CALL QSYS2.QCMDEXC(?)")) {
+            clStmt.setString(1, cmd);
+            try {
+                clStmt.execute();
+            } catch (Exception e) {
+                callException = e;
+            }
+        }
 
         Statement resultsStmt = jdbcConn.createStatement();
         m_rs = resultsStmt.executeQuery("SELECT *  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A limit 99999 offset " + pos);
         addReplyData("joblog", super.getNextDataBlock(Integer.MAX_VALUE));
+        if(null != callException) {
+            throw callException;
+        }
 
     }
 
