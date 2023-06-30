@@ -18,6 +18,7 @@ import com.github.theprez.codefori.requests.Ping;
 import com.github.theprez.codefori.requests.PrepareSql;
 import com.github.theprez.codefori.requests.PreparedExecute;
 import com.github.theprez.codefori.requests.Reconnect;
+import com.github.theprez.codefori.requests.RunCL;
 import com.github.theprez.codefori.requests.RunSql;
 import com.github.theprez.codefori.requests.RunSqlMore;
 import com.github.theprez.codefori.requests.UnknownReq;
@@ -110,6 +111,9 @@ public class DataStreamProcessor implements Runnable {
                     case "execute":
                         final PrepareSql prevP = m_prepStmtMap.get(reqObj.get("cont_id").getAsString());
                         dispatch(new PreparedExecute(this, reqObj, prevP));
+                        break;
+                    case "cl":
+                        dispatch(new RunCL(this, m_conn, reqObj));
                         break;
                     case "connect":
                         dispatch(new Reconnect(this, m_conn, reqObj));
