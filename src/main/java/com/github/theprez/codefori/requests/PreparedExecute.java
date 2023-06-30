@@ -2,6 +2,7 @@ package com.github.theprez.codefori.requests;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.LinkedList;
 
 import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
@@ -52,6 +53,8 @@ public class PreparedExecute extends BlockRetrievableRequest {
             this.m_rs = stmt.getResultSet();
             final int numRows = super.getRequestFieldInt("rows", 1000);
             addReplyData("data", getNextDataBlock(numRows));
+        } else {
+            addReplyData("data", new LinkedList<Object>());
         }
     }
 
