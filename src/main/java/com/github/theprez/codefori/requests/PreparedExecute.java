@@ -51,7 +51,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         if (stmt.execute()) {
             this.m_rs = stmt.getResultSet();
             final int numRows = super.getRequestFieldInt("rows", 1000);
-            addReplyData("data", super.getNextDataBlock(numRows));
+            addReplyData("data", getNextDataBlock(numRows));
         }
     }
 
