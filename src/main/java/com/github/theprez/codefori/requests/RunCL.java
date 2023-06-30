@@ -27,6 +27,11 @@ public class RunCL extends BlockRetrievableRequest {
     }
 
     @Override
+    public boolean isForcedSynchronous() {
+        return true;
+    }
+
+    @Override
     public void go() throws Exception {
         final String cmd = getRequestField("cmd").getAsString();
         final AS400JDBCConnection jdbcConn = getSystemConnection().getJdbcConnection();
@@ -43,13 +48,12 @@ public class RunCL extends BlockRetrievableRequest {
         clStmt.close();
 
         Statement resultsStmt = jdbcConn.createStatement();
-        m_rs = resultsStmt.executeQuery  ("SELECT *  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A limit 99999 offset "+pos);
+        m_rs = resultsStmt.executeQuery("SELECT *  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A limit 99999 offset " + pos);
         addReplyData("joblog", super.getNextDataBlock(Integer.MAX_VALUE));
-        
+
     }
 
     AS400JDBCPreparedStatement getStatement() {
         return m_stmt;
     }
-
 }
