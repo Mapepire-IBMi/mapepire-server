@@ -66,6 +66,7 @@ public class PrepareSql extends BlockRetrievableRequest {
         addReplyData("metadata", metaData);
         if(null != m_executeTask) {
             m_executeTask.go();
+            mergeReplyData(m_executeTask);
         }
     }
 

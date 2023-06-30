@@ -28,6 +28,10 @@ public abstract class ClientRequest implements Runnable {
         replyData.put(_key, _val);
     }
 
+    protected void mergeReplyData(final ClientRequest _secondary) {
+        replyData.putAll(_secondary.replyData);
+    }
+
     public String getId() {
         return m_id;
     }
@@ -44,7 +48,7 @@ public abstract class ClientRequest implements Runnable {
         }
         return _default;
     }
-    
+
     public boolean getRequestFieldBoolean(String _key, boolean _default) {
         final JsonElement j = getRequestField(_key);
         try {
@@ -95,6 +99,5 @@ public abstract class ClientRequest implements Runnable {
         final String json = l.toJson(replyData);
         m_io.sendResponse(json);
     }
-
 
 }
