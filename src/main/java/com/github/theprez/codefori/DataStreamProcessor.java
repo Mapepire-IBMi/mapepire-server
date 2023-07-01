@@ -9,6 +9,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.theprez.codefori.requests.BadReq;
 import com.github.theprez.codefori.requests.BlockRetrievableRequest;
 import com.github.theprez.codefori.requests.Exit;
 import com.github.theprez.codefori.requests.GetDbJob;
@@ -106,10 +107,18 @@ public class DataStreamProcessor implements Runnable {
                         if (null == prev) {
                             prev = m_prepStmtMap.get(reqObj.get("cont_id").getAsString());
                         }
+                        if (null == prev) {
+                            dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                            break;
+                        }
                         dispatch(new RunSqlMore(this, reqObj, prev));
                         break;
                     case "execute":
                         final PrepareSql prevP = m_prepStmtMap.get(reqObj.get("cont_id").getAsString());
+                        if (null == prevP) {
+                            dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                            break;
+                        }
                         dispatch(new PreparedExecute(this, reqObj, prevP));
                         break;
                     case "cl":
