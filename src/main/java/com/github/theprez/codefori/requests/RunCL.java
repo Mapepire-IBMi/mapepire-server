@@ -54,6 +54,7 @@ public class RunCL extends BlockRetrievableRequest {
         Statement resultsStmt = jdbcConn.createStatement();
         m_rs = resultsStmt.executeQuery("SELECT *  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A limit 99999 offset " + pos);
         addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
+        addReplyData("is_done", true);
         if(null != callException) {
             throw callException;
         }
