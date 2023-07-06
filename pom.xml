@@ -5,7 +5,7 @@
 
     <groupId>io.github.theprez</groupId>
     <artifactId>codeforibmiserver</artifactId>
-    <version>1.0.0-alpha-17</version>
+    <version>1.0.0-alpha-18</version>
     <name>CodeForIBMiServer</name>
     <description>Server-side support for "Code for IBM i" VSCode extension</description>
     <url>https://github.com/ThePrez/CodeForIBMiServer</url>
