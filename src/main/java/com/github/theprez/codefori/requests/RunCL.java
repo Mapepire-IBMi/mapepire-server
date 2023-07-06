@@ -53,11 +53,6 @@ public class RunCL extends BlockRetrievableRequest {
 
         Statement resultsStmt = jdbcConn.createStatement();
         m_rs = resultsStmt.executeQuery(" SELECT MESSAGE_ID || ' [' || SUBSTR(MESSAGE_TYPE,0,5) || ']: ' || MESSAGE_TEXT as summary, SEVERITY, MESSAGE_SECOND_LEVEL_TEXT, MESSAGE_ID,MESSAGE_TYPE,MESSAGE_SUBTYPE,SEVERITY,MESSAGE_TIMESTAMP,FROM_LIBRARY,FROM_PROGRAM,FROM_MODULE,FROM_PROCEDURE,FROM_INSTRUCTION,TO_LIBRARY,TO_PROGRAM,TO_MODULE,TO_PROCEDURE,TO_INSTRUCTION,FROM_USER,MESSAGE_LIBRARY,MESSAGE_FILE,MESSAGE_TOKEN_LENGTH,MESSAGE_TOKENS,MESSAGE_TEXT,MESSAGE_SECOND_LEVEL_TEXT,MESSAGE_KEY,QUALIFIED_JOB_NAME  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A limit 99999 offset " + pos);
-
-        ResultSetMetaData md = m_rs.getMetaData();
-        for(int i=1; i<= md.getColumnCount(); ++i) {
-            System.out.print(md.getColumnName(i)+",");
-        }
         addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
         addReplyData("is_done", true);
         if(null != callException) {
