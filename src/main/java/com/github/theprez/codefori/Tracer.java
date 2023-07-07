@@ -69,12 +69,12 @@ public class Tracer {
     public static class Entry {
         private final Object m_data;
         private final Date m_date;
-        private final EventType m_severity;
+        private final EventType m_type;
         private String m_html = null;
 
-        public Entry(EventType _sev, Object _data) {
+        public Entry(EventType _type, Object _data) {
             m_date = new Date();
-            m_severity = _sev;
+            m_type = _type;
             m_data = _data;
         }
 
@@ -84,9 +84,9 @@ public class Tracer {
             }
             String rawTraceData = getRawTraceString();
             String ret = "\n<hr>\n";
-            ret += String.format("<b>[%s]: </b><i>%s</i>\n", m_severity.name(), getDateFormatter().format(m_date));
+            ret += String.format("<b>[%s]: </b><i>%s</i>\n", m_type.name(), getDateFormatter().format(m_date));
             ret += String.format("<font color=\"%s\">\n<blockquote>\n<pre>\n%s\n</pre>\n</blockquote>\n</font>",
-                    m_severity.getHtmlColor(), rawTraceData);
+                    m_type.getHtmlColor(), rawTraceData);
             return m_html = ret;
         }
 
@@ -189,7 +189,7 @@ public class Tracer {
             ((Throwable) _data).printStackTrace();
         }
         if (Dest.IN_MEM == m_dest) {
-            m_inMem.add(new Entry(null, _data));
+            m_inMem.add(new Entry(_t, _data));
             return this;
         }
         if (null == m_fileWriter) {
