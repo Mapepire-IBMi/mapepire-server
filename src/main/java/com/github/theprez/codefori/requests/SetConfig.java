@@ -18,26 +18,26 @@ public class SetConfig extends ClientRequest {
     @Override
     public void go() throws Exception {
         {
-            JsonElement traceLevelFld = getRequestField("tracelevel");
-            if (null != traceLevelFld) {
-                String traceLevel = traceLevelFld.getAsString();
-                TraceLevel newLevel = TraceLevel.valueOf(traceLevel.trim().toUpperCase());
-                if (null == newLevel) {
-                    throw new RuntimeException("Invalid trace level specified:");
+            JsonElement traceDestFld = getRequestField("tracedest");
+            if (null != traceDestFld) {
+                String traceDest = traceDestFld.getAsString();
+                Dest newDest = Dest.valueOf(traceDest.trim().toUpperCase());
+                if (null == newDest) {
+                    throw new RuntimeException("Invalid trace destination specified: " + traceDest);
                 }
-                Tracer.get().setTraceLevel(newLevel);
+                Tracer.get().setDest(newDest);
             }
+        }
+        JsonElement traceLevelFld = getRequestField("tracelevel");
+        if (null != traceLevelFld) {
+            String traceLevel = traceLevelFld.getAsString();
+            TraceLevel newLevel = TraceLevel.valueOf(traceLevel.trim().toUpperCase());
+            if (null == newLevel) {
+                throw new RuntimeException("Invalid trace level specified:");
+            }
+            Tracer.get().setTraceLevel(newLevel);
         }
 
-        JsonElement traceDestFld = getRequestField("tracedest");
-        if (null != traceDestFld) {
-            String traceDest = traceDestFld.getAsString();
-            Dest newDest = Dest.valueOf(traceDest.trim().toUpperCase());
-            if (null == newDest) {
-                throw new RuntimeException("Invalid trace destination specified: " + traceDest);
-            }
-            Tracer.get().setDest(newDest);
-        }
         addReplyData("tracedest", Tracer.get().getDestString());
         addReplyData("tracelevel", "" + Tracer.get().getTraceLevel().name());
     }
