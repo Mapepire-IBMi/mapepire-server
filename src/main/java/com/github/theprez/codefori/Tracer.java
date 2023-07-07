@@ -158,7 +158,7 @@ public class Tracer {
         if (m_dest == _dest) {
             return this;
         }
-        if (Dest.FILE == m_dest) {
+        if (Dest.FILE == m_dest && null != m_fileWriter) {
             try {
                 m_fileWriter.close();
             } catch (IOException e) {
@@ -173,9 +173,9 @@ public class Tracer {
     public String getDestString() {
         switch (m_dest) {
             case FILE:
-                return "file: " + (null == m_destFile ? null : m_destFile.getAbsolutePath());
+                return "FILE: " + (null == m_destFile ? null : m_destFile.getAbsolutePath());
             case IN_MEM:
-                return "in memory";
+                return "IN_MEM";
             default:
                 return "unknown";
         }
@@ -185,9 +185,7 @@ public class Tracer {
         if (!_t.isLoggedAt(m_traceLevel)) {
             return this;
         }
-        if ((_data instanceof Throwable) && Boolean.getBoolean("codeserver.verbose")) { // TODO: audit fallback cases
-                                                                                        // with use of printStackTrace()
-                                                                                        // throughout
+        if ((_data instanceof Throwable) &&  Boolean.getBoolean("codeserver.verbose")) { // TODO: audit fallback cases  with use of printStackTrace() throughout
             ((Throwable) _data).printStackTrace();
         }
         if (Dest.IN_MEM == m_dest) {

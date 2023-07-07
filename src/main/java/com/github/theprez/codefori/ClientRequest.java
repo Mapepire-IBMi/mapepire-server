@@ -79,8 +79,8 @@ public abstract class ClientRequest implements Runnable {
             addReplyData("success", true);
         } catch (final Exception _e) {
             Tracer.err(_e);
+            addReplyData("error", ""+_e.getMessage());
             addReplyData("success", false);
-            addReplyData("error", _e.getLocalizedMessage());
         } finally {
             try {
                 sendreply();
