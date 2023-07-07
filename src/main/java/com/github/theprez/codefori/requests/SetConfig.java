@@ -8,7 +8,6 @@ import com.github.theprez.codefori.Tracer.Dest;
 import com.github.theprez.codefori.Tracer.TraceLevel;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400JDBCConnection;
 
 public class SetConfig extends ClientRequest {
 
