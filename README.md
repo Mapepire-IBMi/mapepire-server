@@ -35,15 +35,24 @@ The following request types are currently supported
 | Type          | Description   | Additional input fields  | Additional output fields  |
 | ------------- | ------------- | ------------- | -------------  |
 | `connect`     | Connect to the database (implicitly disconnects any existing connection) | `props`: a semicolon-delimited list of connection properties | `job`: the server job | 
+| `cl`          | Run CL command  | `cmd`: the CL command | `data`: the resulting job log entries | 
 | `sql`         | Run SQL  | `sql`: the SQL statement <br/> `rows`: the maximum number of rows to return on the first request | `metadata`: metadata about the result set <br/> `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement | 
 | `execute`         | Execute prepared SQL statement  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` <br /> `batch`: when `true`, add SQL operations to batch only <br /> `parameters`: array parameter values corresponding to any parameter markers used (can be an array of arrays when `batch` is true). <br /><br />**NOTE: **If `batch` is `true` and no parameters are specified, or if `batch` is `false`, the batch of SQL operations is executed. | 
+| `prepare_sql_execute`         | Prepare and execute SQL statement  | `parameters`: array parameter values | 
 | `sqlmore`     | fetch more rows from a previous `sql` request  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` request <br/> `rows`: the maximum number of rows to return | `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `getdbjob`     | Get server job for database tasks  |  | `job`: the server job | 
 | `getversion`   | Get version info  |  | `build_date`: build date <br/> `version`: version | 
-| `ping`         | Liveness check |  | `alive`: this program is still responsive <br/> `db_alive`: there is an active connection to the database | 
+| `ping`         | Liveness check |  | `alive`: this program is still responsive <br/> `db_alive`: there is an active connection to the database |
+| `setconfig`    | Set configuration options | `tracelevel`: see valid trace levels, below <br/> `tracedest`: one of (`file`, `in_mem`) | `tracedest`, `tracelevel` | 
+| `gettracedata` | Get trace data |  | `tracedata`: the trace data (as a singular HTML string) |
 | `exit      `   | Exit  |  |  | 
 
+Valid trace levels:
+- `OFF`: off
+- `ON`: all except datastream
+- `ERRORS`: errors only
+- `DATASTREAM`: all including data stream
 
 # Examples
 
