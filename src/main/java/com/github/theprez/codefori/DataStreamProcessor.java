@@ -13,6 +13,7 @@ import com.github.theprez.codefori.requests.BadReq;
 import com.github.theprez.codefori.requests.BlockRetrievableRequest;
 import com.github.theprez.codefori.requests.Exit;
 import com.github.theprez.codefori.requests.GetDbJob;
+import com.github.theprez.codefori.requests.GetTraceData;
 import com.github.theprez.codefori.requests.GetVersion;
 import com.github.theprez.codefori.requests.IncompleteReq;
 import com.github.theprez.codefori.requests.Ping;
@@ -22,6 +23,7 @@ import com.github.theprez.codefori.requests.Reconnect;
 import com.github.theprez.codefori.requests.RunCL;
 import com.github.theprez.codefori.requests.RunSql;
 import com.github.theprez.codefori.requests.RunSqlMore;
+import com.github.theprez.codefori.requests.SetConfig;
 import com.github.theprez.codefori.requests.UnknownReq;
 import com.github.theprez.codefori.requests.UnparsableReq;
 import com.github.theprez.jcmdutils.StringUtils;
@@ -140,6 +142,12 @@ public class DataStreamProcessor implements Runnable {
                         break;
                     case "getversion":
                         dispatch(new GetVersion(this, m_conn, reqObj));
+                        break;
+                    case "setconfig":
+                        dispatch(new SetConfig(this, m_conn, reqObj));
+                        break;
+                    case "gettracedata":
+                        dispatch(new GetTraceData(this, m_conn, reqObj));
                         break;
                     case "exit":
                         dispatch(new Exit(this, m_conn, reqObj));

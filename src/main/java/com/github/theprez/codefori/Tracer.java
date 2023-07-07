@@ -1,11 +1,16 @@
 package com.github.theprez.codefori;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -15,8 +20,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 public class Tracer {
     public enum Dest {
         FILE,
-        IN_MEM,
-        DEV_NULL
+        IN_MEM
     }
 
     public enum TraceLevel {
@@ -68,7 +72,7 @@ public class Tracer {
         private final Object m_data;
         private final Date m_date;
         private final EventType m_severity;
-        private String m_html;
+        private String m_html = null;
 
         public Entry(EventType _sev, Object _data) {
             m_date = new Date();
@@ -82,7 +86,7 @@ public class Tracer {
             }
             String rawTraceData = getRawTraceString();
             String ret = "\n<hr>\n";
-            ret += String.format("<b>[%s]: </b><i>%s</i>\n", m_severity.name(), s_dateFormatter.format(m_date));
+            ret += String.format("<b>[%s]: </b><i>%s</i>\n", m_severity.name(), getDateFormatter().format(m_date));
             ret += String.format("<font color=\"%s\">\n<blockquote>\n<pre>\n%s\n</pre>\n</blockquote>\n</font>",
                     m_severity.getHtmlColor(), rawTraceData);
             return m_html = ret;
@@ -132,13 +136,21 @@ public class Tracer {
 
     private LinkedBlockingDeque<Entry> m_inMem = new LinkedBlockingDeque<>(100);
 
-    private Dest m_dest = Dest.DEV_NULL;
+    private Dest m_dest = Dest.FILE;
 
     private OutputStreamWriter m_fileWriter = null;
 
     private File m_destFile = null;
 
-    private TraceLevel m_traceLevel = TraceLevel.DATASTREAM;
+    private TraceLevel m_traceLevel = TraceLevel.OFF;
+
+    private static DateFormat getDateFormatter() {
+
+        if (null != s_dateFormatter) {
+            return s_dateFormatter;
+        }
+        return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss");
+    }
 
     public Tracer setTraceLevel(TraceLevel _l) {
         m_traceLevel = _l;
@@ -148,9 +160,6 @@ public class Tracer {
     public Tracer setDest(Dest _dest) {
         if (m_dest == _dest) {
             return this;
-        }
-        if (Dest.DEV_NULL != _dest && null == s_dateFormatter) {
-            s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss");
         }
         if (Dest.FILE == m_dest) {
             try {
@@ -167,9 +176,7 @@ public class Tracer {
     public String getDestString() {
         switch (m_dest) {
             case FILE:
-                return "file: " + m_destFile.getAbsolutePath();
-            case DEV_NULL:
-                return "off";
+                return "file: " + (null == m_destFile ? null : m_destFile.getAbsolutePath());
             case IN_MEM:
                 return "in memory";
             default:
@@ -186,9 +193,7 @@ public class Tracer {
                                                                                         // throughout
             ((Throwable) _data).printStackTrace();
         }
-        if (Dest.DEV_NULL == m_dest) {
-            return this;
-        } else if (Dest.IN_MEM == m_dest) {
+        if (Dest.IN_MEM == m_dest) {
             m_inMem.add(new Entry(null, _data));
             return this;
         }
@@ -221,11 +226,37 @@ public class Tracer {
             URL location = Tracer.class.getProtectionDomain().getCodeSource().getLocation();
             File f = new File(location.toURI());
             File dir = f.isDirectory() ? f : f.getParentFile();
-            String dateStr = s_dateFormatter.format(new Date());
+            String dateStr = getDateFormatter().format(new Date());
             String fileName = String.format("vsc-%s-%s.html", dateStr, s_pseudoPid);
             return m_destFile = new File(dir, fileName);
         } catch (Exception e) {
             return m_destFile = File.createTempFile("VSCode", ".html");
         }
+    }
+
+    public TraceLevel getTraceLevel() {
+        return m_traceLevel;
+    }
+
+    public StringBuffer getRawData() throws IOException {
+        StringBuffer buf = new StringBuffer();
+        if (Dest.IN_MEM == m_dest) {
+            synchronized (m_inMem) {
+                for (Entry l : m_inMem) {
+                    buf.append(l.asHtml());
+                    buf.append("\n");
+                }
+            }
+        } else {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(m_destFile), "UTF-8"))) {
+                String lineString = null;
+                while (null != (lineString = reader.readLine())) {
+                    buf.append(lineString);
+                    buf.append("\n");
+                }
+            }
+        }
+        return buf;
     }
 }
