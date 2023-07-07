@@ -1,11 +1,10 @@
 package com.github.theprez.codefori;
 
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 
+import com.github.theprez.codefori.Tracer.Dest;
 import com.github.theprez.jcmdutils.StringUtils;
 
 public class CodeForiServer {
@@ -18,11 +17,6 @@ public class CodeForiServer {
             System.out.println("Build time: " + Version.s_compileDateTime);
             System.exit(0);
         }
-        boolean isVerbose = args.remove("-v");
-        isVerbose = isVerbose || Boolean.getBoolean("codeserver.verbose");
-        if (isVerbose) {
-            System.setProperty("codeserver.verbose", "true");
-        }
         try {
             final SystemConnection conn = new SystemConnection();
             String testFile = System.getProperty("test.file", "");
@@ -34,7 +28,7 @@ public class CodeForiServer {
 
             io.run();
         } catch (final Exception e) {
-            e.printStackTrace();
+            Tracer.err(e);
         }
         System.exit(-1);
     }

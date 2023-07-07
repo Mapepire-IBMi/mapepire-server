@@ -78,9 +78,7 @@ public abstract class ClientRequest implements Runnable {
             go();
             addReplyData("success", true);
         } catch (final Exception _e) {
-            if (Boolean.getBoolean("codeserver.verbose")) {
-                _e.printStackTrace();
-            }
+            Tracer.err(_e);
             addReplyData("success", false);
             addReplyData("error", _e.getLocalizedMessage());
         } finally {
@@ -88,7 +86,7 @@ public abstract class ClientRequest implements Runnable {
                 sendreply();
                 processAfterReplySent();
             } catch (final Exception e) {
-                e.printStackTrace();
+                Tracer.err(e);
                 System.exit(-1);
             }
         }

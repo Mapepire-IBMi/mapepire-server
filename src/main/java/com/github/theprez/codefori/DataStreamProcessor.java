@@ -68,6 +68,7 @@ public class DataStreamProcessor implements Runnable {
                 if (StringUtils.isEmpty(requestString)) {
                     continue;
                 }
+                Tracer.datastreamIn(requestString);
                 final JsonElement reqElement;
                 final JsonObject reqObj;
                 try {
@@ -148,7 +149,7 @@ public class DataStreamProcessor implements Runnable {
                 }
             }
         } catch (JsonSyntaxException | IOException e) {
-            e.printStackTrace();
+            Tracer.err(e);
             System.exit(-1);
         }
 
@@ -156,6 +157,7 @@ public class DataStreamProcessor implements Runnable {
 
     public void sendResponse(final String _response) throws UnsupportedEncodingException, IOException {
         m_out.write((_response + "\n").getBytes("UTF-8"));
+        Tracer.datastreamOut(_response);
         m_out.flush();
     }
 
