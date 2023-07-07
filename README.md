@@ -38,8 +38,8 @@ The following request types are currently supported
 | `cl`          | Run CL command  | `cmd`: the CL command | `data`: the resulting job log entries | 
 | `sql`         | Run SQL  | `sql`: the SQL statement <br/> `rows`: the maximum number of rows to return on the first request | `metadata`: metadata about the result set <br/> `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement | 
-| `execute`         | Execute prepared SQL statement  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` <br /> `batch`: when `true`, add SQL operations to batch only <br /> `parameters`: array parameter values corresponding to any parameter markers used (can be an array of arrays when `batch` is true). <br /><br />**NOTE: **If `batch` is `true` and no parameters are specified, or if `batch` is `false`, the batch of SQL operations is executed. | 
-| `prepare_sql_execute`         | Prepare and execute SQL statement  | `parameters`: array parameter values | 
+| `execute`         | Execute prepared SQL statement  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` <br /> `batch`: when `true`, add SQL operations to batch only <br /> `parameters`: array parameter values corresponding to any parameter markers used (can be an array of arrays when `batch` is true). <br /><br />**NOTE: **If `batch` is `true` and no parameters are specified, or if `batch` is `false`, the batch of SQL operations is executed. |   `data`: the data |
+| `prepare_sql_execute`         | Prepare and execute SQL statement  | `parameters`: array parameter values |  `data`: the data |
 | `sqlmore`     | fetch more rows from a previous `sql` request  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` request <br/> `rows`: the maximum number of rows to return | `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `getdbjob`     | Get server job for database tasks  |  | `job`: the server job | 
 | `getversion`   | Get version info  |  | `build_date`: build date <br/> `version`: version | 
