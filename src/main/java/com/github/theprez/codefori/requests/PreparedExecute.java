@@ -4,7 +4,6 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.LinkedList;
 
-import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -26,7 +25,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         boolean isBatch = super.getRequestFieldBoolean("batch", false);
         AS400JDBCPreparedStatement stmt = m_prev.getStatement();
         if (isBatch) {
-            if(null == parms) {
+            if (null == parms) {
                 stmt.executeLargeBatch();
                 return;
             }
@@ -64,11 +63,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
             if (element.isJsonNull()) {
                 stmt.setNull(i, Types.NULL);
             } else {
-                try {
-                    stmt.setBigDecimal(i, element.getAsBigDecimal());
-                } catch (NumberFormatException e) {
-                    stmt.setString(i, element.getAsString());
-                }
+                stmt.setString(i, element.getAsString());
             }
         }
     }
