@@ -44,8 +44,8 @@ The following request types are currently supported
 | `getdbjob`     | Get server job for database tasks  |  | `job`: the server job | 
 | `getversion`   | Get version info  |  | `build_date`: build date <br/> `version`: version | 
 | `ping`         | Liveness check |  | `alive`: this program is still responsive <br/> `db_alive`: there is an active connection to the database |
-| `setconfig`    | Set configuration options | `tracelevel`: see valid trace levels, below <br/> `tracedest`: one of (`file`, `in_mem`) | `tracedest`, `tracelevel` | 
-| `gettracedata` | Get trace data |  | `tracedata`: the trace data (as a singular HTML string) |
+| `setconfig`    | Set configuration options | `tracelevel`: see valid trace levels, below <br/> `tracedest`: one of (`file`, `in_mem`) <br/> `jtopentracelevel`: see valid trace levels, below <br/> `jtopentracedest`: one of (`file`, `in_mem`) | `tracedest`, `tracelevel`,`jtopentracedest`, `jtopentracelevel`, | 
+| `gettracedata` | Get trace data |  | `tracedata`: the trace data (as a singular HTML string) <br/> `jtopentracedata`: the JtOpen trace data (plain text) |
 | `exit      `   | Exit  |  |  | 
 
 Valid trace levels:

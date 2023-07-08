@@ -15,8 +15,12 @@ public class GetTraceData extends ClientRequest {
     @Override
     public void go() throws Exception {
         StringBuffer rawData = Tracer.get().getRawData();
-        String l = rawData.toString();
+        StringBuffer jtOpenData = Tracer.get().getJtOpenRawData();
         addReplyData("tracedata", rawData);
+        addReplyData("jtopentracedata", jtOpenData);
     }
-
+    @Override
+    public boolean isForcedSynchronous() {
+        return true;
+    }
 }
