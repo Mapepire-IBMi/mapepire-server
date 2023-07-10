@@ -114,6 +114,50 @@ public class Tracer {
 
     private static DateFormat s_dateFormatter = null;
 
+    private Tracer() {
+        PrintWriter jt400PrintWriter = new PrintWriter(new Writer() {
+            @Override
+            public void write(char[] _cbuf, int _off, int _len) throws IOException {
+                String data = new String(_cbuf, _off, _len);
+                if (Dest.IN_MEM == m_jtopenDest) {
+                    m_jtOpenInMem.add(data);
+                    return;
+                }
+                if (null == m_jtOpenFileWriter) {
+                    try {
+                        m_jtOpenFileWriter = new PrintWriter(getJtOpenFile(), "UTF-8");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        m_jtopenDest = Dest.IN_MEM;
+                        m_jtOpenInMem.add(data);
+                    }
+                }
+                m_jtOpenFileWriter.write(data + "\r\n");
+                m_jtOpenFileWriter.flush();
+            }
+
+            @Override
+            public void flush() throws IOException {
+                if (null != m_jtOpenFileWriter) {
+                    m_jtOpenFileWriter.flush();
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                if (null != m_jtOpenFileWriter) {
+                    m_jtOpenFileWriter.close();
+                    m_jtOpenFileWriter = null;
+                }
+            }
+        });
+        try {
+            Trace.setPrintWriter(jt400PrintWriter);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static Tracer get() {
         return s_instance;
     }
@@ -144,9 +188,10 @@ public class Tracer {
         }
         return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss");
     }
+
     private LinkedBlockingDeque<Entry> m_inMem = new LinkedBlockingDeque<>(100);
 
-    private LinkedBlockingDeque<String> m_jtOpenInMem = new LinkedBlockingDeque<>(16*1024);
+    private LinkedBlockingDeque<String> m_jtOpenInMem = new LinkedBlockingDeque<>(16 * 1024);
 
     private Dest m_dest = Dest.IN_MEM;
     private OutputStreamWriter m_fileWriter = null;
@@ -216,26 +261,6 @@ public class Tracer {
             m_jtOpenFileWriter.close();
             m_jtOpenFileWriter = null;
         }
-        if (Dest.FILE == _dest) {
-            m_jtOpenFileWriter = new PrintWriter(getJtOpenFile(), "UTF-8");
-            Trace.setPrintWriter(m_jtOpenFileWriter);
-        } else if (Dest.IN_MEM == _dest) {
-            Trace.setPrintWriter(new PrintWriter(new Writer() {
-                @Override
-                public void write(char[] _cbuf, int _off, int _len) throws IOException {
-                    m_jtOpenInMem.add(new String(_cbuf, _off, _len));
-                }
-
-                @Override
-                public void flush() throws IOException {
-                }
-
-                @Override
-                public void close() throws IOException {
-                }
-            }));
-        }
-
         m_jtopenDest = _dest;
         return this;
     }
@@ -250,6 +275,7 @@ public class Tracer {
                 return "unknown";
         }
     }
+
     public String getJtOpenDestString() {
         switch (m_dest) {
             case FILE:
@@ -316,9 +342,8 @@ public class Tracer {
         if (!_t.isLoggedAt(m_traceLevel)) {
             return this;
         }
-        if ((_data instanceof Throwable) && Boolean.getBoolean("codeserver.verbose")) { // TODO: audit fallback cases
-                                                                                        // with use of printStackTrace()
-                                                                                        // throughout
+        // TODO: audit fallback cases with use of printStackTrace() throughout
+        if ((_data instanceof Throwable) && Boolean.getBoolean("codeserver.verbose")) {
             ((Throwable) _data).printStackTrace();
         }
         if (Dest.IN_MEM == m_dest) {
@@ -335,6 +360,8 @@ public class Tracer {
             } catch (Exception e) {
                 e.printStackTrace();
                 m_dest = Dest.IN_MEM;
+                m_inMem.add(new Entry(_t, _data));
+                return this;
             }
         }
         try {
