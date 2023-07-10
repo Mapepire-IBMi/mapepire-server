@@ -132,8 +132,10 @@ public class Tracer {
                         m_jtOpenInMem.add(data);
                     }
                 }
-                m_jtOpenFileWriter.write(data + "\r\n");
-                m_jtOpenFileWriter.flush();
+                m_jtOpenFileWriter.write(data);
+                if (data.contains("\n")) {
+                    m_jtOpenFileWriter.flush();
+                }
             }
 
             @Override
@@ -326,6 +328,7 @@ public class Tracer {
                 }
             }
         } else {
+            Trace.getPrintWriter().flush();
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(new FileInputStream(getJtOpenFile()), "UTF-8"))) {
                 String lineString = null;
