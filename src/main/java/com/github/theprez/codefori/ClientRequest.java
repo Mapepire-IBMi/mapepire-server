@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -93,9 +94,8 @@ public abstract class ClientRequest implements Runnable {
     }
 
     protected void sendreply() throws UnsupportedEncodingException, IOException {
-        final Gson l = new Gson();
+        final Gson l = new GsonBuilder().serializeNulls().create();
         final String json = l.toJson(replyData);
         m_io.sendResponse(json);
     }
-
 }
