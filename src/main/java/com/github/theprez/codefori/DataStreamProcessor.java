@@ -34,6 +34,8 @@ import com.google.gson.JsonSyntaxException;
 
 public class DataStreamProcessor implements Runnable {
 
+    private static final Object s_replyWriterLock = new String("Response Writer Lock");
+
     private final SystemConnection m_conn;
     private final BufferedReader m_in;
     private final PrintStream m_out;
@@ -164,9 +166,11 @@ public class DataStreamProcessor implements Runnable {
     }
 
     public void sendResponse(final String _response) throws UnsupportedEncodingException, IOException {
-        m_out.write((_response + "\n").getBytes("UTF-8"));
-        Tracer.datastreamOut(_response);
-        m_out.flush();
+        synchronized (s_replyWriterLock) {
+            m_out.write((_response + "\n").getBytes("UTF-8"));
+            Tracer.datastreamOut(_response);
+            m_out.flush();
+        }
     }
 
 }
