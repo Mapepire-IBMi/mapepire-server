@@ -46,10 +46,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 Object cellData = m_rs.getObject(col);
                 if (null == cellData) {
                     rowData.put(column, null);
-                    continue;
-                }
-                if (cellData instanceof String) {
-                    cellData = ((String) cellData).trim();
+                } else if (cellData instanceof String) {
+                    rowData.put(column, ((String) cellData).trim());
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     rowData.put(column, cellData);
                 } else {
