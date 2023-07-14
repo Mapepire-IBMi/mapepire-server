@@ -346,7 +346,7 @@ public class Tracer {
             return this;
         }
         // TODO: audit fallback cases with use of printStackTrace() throughout
-        if ((_data instanceof Throwable) && Boolean.getBoolean("codeserver.verbose")) {
+        if ((_data instanceof Throwable) && !System.getProperty("os.name", "").contains("400")) {
             ((Throwable) _data).printStackTrace();
         }
         if (Dest.IN_MEM == m_dest) {
