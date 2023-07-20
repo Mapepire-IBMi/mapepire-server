@@ -304,6 +304,7 @@ public class Tracer {
     public StringBuffer getRawData() throws IOException {
         StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_dest) {
+            buf.append("<html><body bgcolor=\"white\">\n\n");
             synchronized (m_inMem) {
                 for (Entry l : m_inMem) {
                     buf.append(l.asHtml());
@@ -320,6 +321,7 @@ public class Tracer {
                 }
             }
         }
+        buf.append("</body></html>");
         return buf;
     }
 
@@ -360,6 +362,7 @@ public class Tracer {
         if (null == m_fileWriter) {
             try {
                 m_fileWriter = new OutputStreamWriter(new FileOutputStream(getFile(), true), "UTF-8");
+                m_fileWriter.write("<html><body bgcolor=\"white\">\n\n");
                 m_fileWriter.write(
                         new Entry(EventType.INFO,
                                 String.format("Tracing enabled to file '%s'", m_destFile.getAbsolutePath()))
