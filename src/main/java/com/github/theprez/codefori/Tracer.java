@@ -98,7 +98,7 @@ public class Tracer {
 
         private String getRawTraceString() {
             if (m_data instanceof Throwable) {
-                return Tracer.exceptionToStackTrace((Throwable)m_data);
+                return Tracer.exceptionToStackTrace((Throwable) m_data);
             } else {
                 return "" + m_data;
             }
@@ -158,10 +158,10 @@ public class Tracer {
 
     public static String exceptionToStackTrace(Throwable m_data) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream stringStream = new PrintStream(baos, false);
-                ((Throwable) m_data).printStackTrace(stringStream);
-                stringStream.close();
-                return new String(baos.toByteArray());
+        PrintStream stringStream = new PrintStream(baos, false);
+        ((Throwable) m_data).printStackTrace(stringStream);
+        stringStream.close();
+        return new String(baos.toByteArray());
     }
 
     public static Tracer get() {
@@ -192,7 +192,7 @@ public class Tracer {
         if (null != s_dateFormatter) {
             return s_dateFormatter;
         }
-        return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss");
+        return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss.SSS");
     }
 
     private LinkedBlockingDeque<Entry> m_inMem = new LinkedBlockingDeque<>(100);
@@ -271,10 +271,10 @@ public class Tracer {
         return this;
     }
 
-    public String getDestString() {
+    public String getDestString() throws IOException {
         switch (m_dest) {
             case FILE:
-                return "FILE: " + (null == m_destFile ? null : m_destFile.getAbsolutePath());
+                return getFile().getAbsolutePath();
             case IN_MEM:
                 return "IN_MEM";
             default:
@@ -282,10 +282,10 @@ public class Tracer {
         }
     }
 
-    public String getJtOpenDestString() {
+    public String getJtOpenDestString() throws IOException {
         switch (m_dest) {
             case FILE:
-                return "FILE: " + (null == m_jtOpenDestFile ? null : m_jtOpenDestFile.getAbsolutePath());
+                return getJtOpenFile().getAbsolutePath();
             case IN_MEM:
                 return "IN_MEM";
             default:
@@ -390,7 +390,9 @@ public class Tracer {
             File dir = f.isDirectory() ? f : f.getParentFile();
             String dateStr = getDateFormatter().format(new Date());
             String fileName = String.format("vsc-%s-%s.html", dateStr, s_pseudoPid);
-            return m_destFile = new File(dir, fileName);
+            File ret = m_destFile = new File(dir, fileName);
+            ret.createNewFile();
+            return m_destFile = ret;
         } catch (Exception e) {
             return m_destFile = File.createTempFile("VSCode", ".html");
         }
@@ -406,7 +408,9 @@ public class Tracer {
             File dir = f.isDirectory() ? f : f.getParentFile();
             String dateStr = getDateFormatter().format(new Date());
             String fileName = String.format("vsc-jtopen-%s-%s.txt", dateStr, s_pseudoPid);
-            return m_jtOpenDestFile = new File(dir, fileName);
+            File ret = new File(dir, fileName);
+            ret.createNewFile();
+            return m_jtOpenDestFile = ret;
         } catch (Exception e) {
             return m_jtOpenDestFile = File.createTempFile("VSCode-jtopen", ".txt");
         }
