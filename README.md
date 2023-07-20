@@ -40,7 +40,8 @@ The following request types are currently supported
 | `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement | 
 | `execute`         | Execute prepared SQL statement  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` <br /> `batch`: when `true`, add SQL operations to batch only <br /> `parameters`: array parameter values corresponding to any parameter markers used (can be an array of arrays when `batch` is true). <br /><br />**NOTE: **If `batch` is `true` and no parameters are specified, or if `batch` is `false`, the batch of SQL operations is executed. |   `data`: the data |
 | `prepare_sql_execute`         | Prepare and execute SQL statement  | `parameters`: array parameter values |  `data`: the data |
-| `sqlmore`     | fetch more rows from a previous `sql` request  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` request <br/> `rows`: the maximum number of rows to return | `data`: the data <br/> `is_done`: whether all rows were fetched | 
+| `sqlmore`     | fetch more rows from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request <br/> `rows`: the maximum number of rows to return | `data`: the data <br/> `is_done`: whether all rows were fetched | 
+| `sqlclose`     | close cursor from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request |  | 
 | `getdbjob`     | Get server job for database tasks  |  | `job`: the server job | 
 | `getversion`   | Get version info  |  | `build_date`: build date <br/> `version`: version | 
 | `ping`         | Liveness check |  | `alive`: this program is still responsive <br/> `db_alive`: there is an active connection to the database |

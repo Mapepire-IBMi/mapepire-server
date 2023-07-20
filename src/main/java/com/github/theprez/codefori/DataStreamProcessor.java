@@ -11,6 +11,7 @@ import java.util.Map;
 
 import com.github.theprez.codefori.requests.BadReq;
 import com.github.theprez.codefori.requests.BlockRetrievableRequest;
+import com.github.theprez.codefori.requests.CloseSqlCursor;
 import com.github.theprez.codefori.requests.Exit;
 import com.github.theprez.codefori.requests.GetDbJob;
 import com.github.theprez.codefori.requests.GetTraceData;
@@ -108,7 +109,7 @@ public class DataStreamProcessor implements Runnable {
                         m_prepStmtMap.put(prepSqlExecReq.getId(), prepSqlExecReq);
                         dispatch(prepSqlExecReq);
                         break;
-                    case "sqlmore":
+                    case "sqlmore": {
                         if (null == cont_id) {
                             dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
                         }
@@ -122,6 +123,22 @@ public class DataStreamProcessor implements Runnable {
                         }
                         dispatch(new RunSqlMore(this, reqObj, prev));
                         break;
+                    }
+                    case "sqlclose": {
+                        if (null == cont_id) {
+                            dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
+                        }
+                        BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
+                        if (null == prev) {
+                            prev = m_prepStmtMap.get(cont_id.getAsString());
+                        }
+                        if (null == prev) {
+                            dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                            break;
+                        }
+                        dispatch(new CloseSqlCursor(this, reqObj, prev));
+                        break;
+                    }
                     case "execute":
                         if (null == cont_id) {
                             dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
