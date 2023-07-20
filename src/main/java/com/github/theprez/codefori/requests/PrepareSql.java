@@ -73,7 +73,7 @@ public class PrepareSql extends BlockRetrievableRequest {
 
     private static String getDb2ParameterName(PreparedStatement _stmt, int _i) {
         try {
-            return Class.forName("com.ibm.as400.access.AS400JDBCPreparedStatement")
+            return _stmt.getClass()
                     .getMethod("getDB2ParameterName", int.class).invoke(_stmt, _i).toString();
         } catch (Exception e) {
             Tracer.err(e);

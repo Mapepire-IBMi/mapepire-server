@@ -1,63 +1,131 @@
 package com.github.theprez.codefori;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
-import com.github.theprez.jcmdutils.AppLogger;
-import com.github.theprez.jcmdutils.ConsoleQuestionAsker;
-import com.ibm.as400.access.AS400;
-import com.ibm.as400.access.AS400JDBCConnection;
-import com.ibm.as400.access.AS400JDBCDataSource;
+import com.github.theprez.jcmdutils.StringUtils;
 
 public class SystemConnection {
     public static class ConnectionOptions {
 
-        private String m_jdbcProps;
+        public enum ConnectionMethod {
+            TCP,
+            UNIX,
+            CLI;
+
+            public String getJarURL() throws MalformedURLException {
+                if (!isRunningOnIBMi()) {
+                    return "";
+                }
+                switch (this) {
+                    case TCP:
+                        return "file:////QIBM/ProdData/OS400/jt400/lib/jt400.jar";
+                    case UNIX:
+                        return "file:////QIBM/ProdData/OS400/jt400/lib/jt400Native.jar";
+                    default:
+                        return "file:///QIBM/ProdData/Java400/ext/db2_classes.jar";
+                }
+            }
+
+            public String getDriverClassName() {
+                if (!isRunningOnIBMi()) {
+                    return "com.ibm.as400.access.AS400JDBCDriver";
+                }
+                switch (this) {
+                    case CLI:
+                        return "com.ibm.db2.jdbc.app.DB2Driver";
+                    default:
+                        return "com.ibm.as400.access.AS400JDBCDriver";
+                }
+            }
+
+            public String getConnectionString() {
+                if (!isRunningOnIBMi()) {
+                    String hostname = "mysystem";
+                    String username = "user";
+                    String password = "pw";
+                    return String.format("jdbc:as400:%s;user=%s;password=%s", hostname, username, password);
+                }
+                switch (this) {
+                    case CLI:
+                        return "jdbc:db2:localhost";
+                    default:
+                        return "jdbc:as400:localhost";
+                }
+            }
+        }
+
+        private String m_jdbcProps = "";
+        private ConnectionMethod m_connectionMethod = ConnectionMethod.TCP;
 
         String getJdbcProperties() {
             return m_jdbcProps;
+        }
+
+        public void setConnectionMethod(ConnectionMethod _m) {
+            m_connectionMethod = _m;
         }
 
         public void setJdbcProperties(final String _props) {
             m_jdbcProps = _props;
         }
 
-    }
-
-    private final AS400 m_as400;
-
-    private AS400JDBCConnection m_conn;
-
-    public SystemConnection() throws IOException {
-        if (System.getProperty("os.name", "").equalsIgnoreCase("OS/400")) {
-            m_as400 = new AS400("localhost", "*CURRENT", "*CURRENT");
-        } else {
-            final AppLogger logger = AppLogger.getSingleton(false);
-            final ConsoleQuestionAsker asker = new ConsoleQuestionAsker();
-            final String host = asker.askNonEmptyStringQuestion(logger, null, "Enter system name: ");
-            final String uid = asker.askNonEmptyStringQuestion(logger, null, "Enter user id: ");
-            final String pw = asker.askUserForPwd("Password: ");
-            m_as400 = new AS400(host, uid, pw);
+        public ConnectionMethod getConnectionMethod() {
+            return m_connectionMethod;
         }
+
     }
 
-    public AS400 getAs400() {
-        return m_as400;
+    private Connection m_conn;
+    private ConnectionOptions m_connectionOptions = null;
+    private static Map<String, URLClassLoader> s_classLoaderMap = new HashMap<String, URLClassLoader>(3);
+
+    public static boolean isRunningOnIBMi() {
+        return System.getProperty("os.name", "").contains("400");
     }
 
-    public synchronized AS400JDBCConnection getJdbcConnection() throws SQLException {
+    private static URLClassLoader getClassLoaderForFile(final String _fileUrl) throws MalformedURLException {
+        URLClassLoader ret = s_classLoaderMap.get(_fileUrl);
+        if (null != ret) {
+            return ret;
+        }
+        ret = new URLClassLoader(StringUtils.isEmpty(_fileUrl) ? new URL[] {} : new URL[] { new URL(_fileUrl) });
+        s_classLoaderMap.put(_fileUrl, ret);
+        return ret;
+    }
+
+    public synchronized Connection getJdbcConnection() throws SQLException {
         if (null != m_conn && !m_conn.isClosed()) {
             return m_conn;
         }
         if (Boolean.getBoolean("codeserver.jdbc.autoconnect")) {
-            final AS400JDBCDataSource ds = new AS400JDBCDataSource(m_as400);
-            return m_conn = (AS400JDBCConnection) ds.getConnection();
+            return reconnect(m_connectionOptions);
         }
         throw new SQLException("Not connected");
     }
 
     public String getJdbcJobName() throws SQLException {
-        return makePrettyJobName(getJdbcConnection().getServerJobIdentifier());
+        try {
+            Connection c = getJdbcConnection();
+            Class<Connection> connectionClass = (Class<Connection>) c.getClass();
+            boolean isNativeDriver = connectionClass.getSimpleName().equalsIgnoreCase("DB2Connection");
+            String methodName = isNativeDriver ? "getServerJobName" :"getServerJobIdentifier";
+            String driverSuppliedName =  c.getClass()
+                    .getMethod(methodName).invoke(c).toString();
+            return isNativeDriver ? driverSuppliedName: makePrettyJobName(driverSuppliedName);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Tracer.err(e);
+            return "??????/??????/??????";
+        }
     }
 
     private String makePrettyJobName(final String _jobString) {
@@ -67,14 +135,23 @@ public class SystemConnection {
         return String.format("%s/%s/%s", number, user, name);
     }
 
-    public synchronized AS400JDBCConnection reconnect(final ConnectionOptions _opts) throws SQLException {
+    public synchronized Connection reconnect(final ConnectionOptions _opts) throws SQLException {
         if (null != m_conn) {
-            final AS400JDBCConnection cpy = m_conn;
+            final Connection cpy = m_conn;
             m_conn = null;
             cpy.close();
         }
-        final AS400JDBCDataSource ds = new AS400JDBCDataSource(m_as400);
-        ds.setProperties(_opts.getJdbcProperties());
-        return m_conn = (AS400JDBCConnection) ds.getConnection();
+        try {
+            URLClassLoader cl = getClassLoaderForFile(_opts.getConnectionMethod().getJarURL());
+            cl.setDefaultAssertionStatus(false);
+            final Class<Driver> dsClass = (Class<Driver>) cl
+                    .loadClass(_opts.getConnectionMethod().getDriverClassName());
+            DriverManager.registerDriver(dsClass.getDeclaredConstructor().newInstance());
+            m_connectionOptions = _opts;
+            return m_conn = DriverManager
+                    .getConnection(_opts.getConnectionMethod().getConnectionString() + ";" + _opts.getJdbcProperties());
+        } catch (Exception e) {
+            throw new SQLException(e);
+        }
     }
 }

@@ -348,12 +348,12 @@ public class Tracer {
     }
 
     private Tracer Trace(EventType _t, Object _data) {
-        if (!_t.isLoggedAt(m_traceLevel)) {
-            return this;
-        }
         // TODO: audit fallback cases with use of printStackTrace() throughout
         if ((_data instanceof Throwable) && !System.getProperty("os.name", "").contains("400")) {
             ((Throwable) _data).printStackTrace();
+        }
+        if (!_t.isLoggedAt(m_traceLevel)) {
+            return this;
         }
         if (Dest.IN_MEM == m_dest) {
             m_inMem.add(new Entry(_t, _data));
