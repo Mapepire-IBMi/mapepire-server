@@ -18,7 +18,6 @@ public class RunSql extends BlockRetrievableRequest {
         super(_io, m_conn, _reqObj);
     }
 
-
     @Override
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
@@ -26,6 +25,7 @@ public class RunSql extends BlockRetrievableRequest {
         final AS400JDBCConnection jdbcConn = getSystemConnection().getJdbcConnection();
         final Statement stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
         final boolean hasRs = stmt.execute(sql);
+        addReplyData("has_results", hasRs);
         if (hasRs) {
             m_rs = stmt.getResultSet();
             final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
@@ -46,7 +46,8 @@ public class RunSql extends BlockRetrievableRequest {
             final List<Object> data = getNextDataBlock(numRows);
             addReplyData("data", data);
             addReplyData("is_done", m_isDone);
-
+        } else {
+            m_rs.close();
         }
     }
 
