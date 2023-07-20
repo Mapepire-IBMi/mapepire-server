@@ -1,5 +1,6 @@
 package com.github.theprez.codefori.requests;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.LinkedList;
@@ -8,7 +9,6 @@ import com.github.theprez.codefori.DataStreamProcessor;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400JDBCPreparedStatement;
 
 public class PreparedExecute extends BlockRetrievableRequest {
 
@@ -23,7 +23,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
     protected void go() throws Exception {
         JsonElement parms = super.getRequestField("parameters");
         boolean isBatch = super.getRequestFieldBoolean("batch", false);
-        AS400JDBCPreparedStatement stmt = m_prev.getStatement();
+        PreparedStatement stmt = m_prev.getStatement();
         if (isBatch) {
             if (null == parms) {
                 stmt.executeLargeBatch();
@@ -60,7 +60,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         }
     }
 
-    private void addJsonArrayParameters(AS400JDBCPreparedStatement stmt, JsonArray arr) throws SQLException {
+    private void addJsonArrayParameters(PreparedStatement stmt, JsonArray arr) throws SQLException {
         for (int i = 1; i <= arr.size(); ++i) {
             JsonElement element = arr.get(-1 + i);
             if (element.isJsonNull()) {

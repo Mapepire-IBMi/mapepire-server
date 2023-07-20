@@ -1,6 +1,8 @@
 package com.github.theprez.codefori.requests;
 
+import java.sql.Connection;
 import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -9,25 +11,25 @@ import java.util.Map;
 
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
+import com.github.theprez.codefori.Tracer;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400JDBCConnection;
-import com.ibm.as400.access.AS400JDBCPreparedStatement;
 
 public class PrepareSql extends BlockRetrievableRequest {
 
-    private AS400JDBCPreparedStatement m_stmt = null;
+    private PreparedStatement m_stmt = null;
     private final PreparedExecute m_executeTask;
 
-    public PrepareSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj, final boolean _isImmediateExecute) {
+    public PrepareSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj,
+            final boolean _isImmediateExecute) {
         super(_io, m_conn, _reqObj);
-        m_executeTask = _isImmediateExecute? new PreparedExecute(_io, _reqObj, this) : null;
+        m_executeTask = _isImmediateExecute ? new PreparedExecute(_io, _reqObj, this) : null;
     }
 
     @Override
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
-        final AS400JDBCConnection jdbcConn = getSystemConnection().getJdbcConnection();
-        m_stmt = (AS400JDBCPreparedStatement) jdbcConn.prepareStatement(sql);
+        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        m_stmt = (PreparedStatement) jdbcConn.prepareStatement(sql);
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
 
         final ResultSetMetaData rsMetaData = m_stmt.getMetaData();
@@ -56,16 +58,26 @@ public class PrepareSql extends BlockRetrievableRequest {
                 parmData.put("mode", getModeString(pMeta.getParameterMode(i)));
                 parmData.put("precision", pMeta.getPrecision(i));
                 parmData.put("scale", pMeta.getScale(i));
-                parmData.put("name", m_stmt.getDB2ParameterName(i));
+                parmData.put("name", getDb2ParameterName(m_stmt, i));
                 parameterList.add(parmData);
             }
             metaData.put("parameters", parameterList);
         }
 
         addReplyData("metadata", metaData);
-        if(null != m_executeTask) {
+        if (null != m_executeTask) {
             m_executeTask.go();
             mergeReplyData(m_executeTask);
+        }
+    }
+
+    private static String getDb2ParameterName(PreparedStatement _stmt, int _i) {
+        try {
+            return Class.forName("com.ibm.as400.access.AS400JDBCPreparedStatement")
+                    .getMethod("getDB2ParameterName", int.class).invoke(_stmt, _i).toString();
+        } catch (Exception e) {
+            Tracer.err(e);
+            return "?";
         }
     }
 
@@ -82,7 +94,7 @@ public class PrepareSql extends BlockRetrievableRequest {
         }
     }
 
-    AS400JDBCPreparedStatement getStatement() {
+    PreparedStatement getStatement() {
         return m_stmt;
     }
 

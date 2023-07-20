@@ -1,10 +1,11 @@
 package com.github.theprez.codefori.requests;
 
+import java.sql.Connection;
+
 import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400JDBCConnection;
 
 public class Ping extends ClientRequest {
 
@@ -15,7 +16,7 @@ public class Ping extends ClientRequest {
     @Override
     public void go() throws Exception {
         addReplyData("alive", true);
-        final AS400JDBCConnection dbConn =  getSystemConnection().getJdbcConnection();
+        final Connection dbConn =  getSystemConnection().getJdbcConnection();
         addReplyData("db_alive",null != dbConn && !dbConn.isClosed());
     }
 

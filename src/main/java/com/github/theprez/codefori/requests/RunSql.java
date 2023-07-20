@@ -1,5 +1,6 @@
 package com.github.theprez.codefori.requests;
 
+import java.sql.Connection;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
@@ -10,7 +11,6 @@ import java.util.Map;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400JDBCConnection;
 
 public class RunSql extends BlockRetrievableRequest {
 
@@ -22,7 +22,7 @@ public class RunSql extends BlockRetrievableRequest {
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
         final int numRows = super.getRequestFieldInt("rows", 1000);
-        final AS400JDBCConnection jdbcConn = getSystemConnection().getJdbcConnection();
+        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
         final Statement stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
         final boolean hasRs = stmt.execute(sql);
         addReplyData("has_results", hasRs);
