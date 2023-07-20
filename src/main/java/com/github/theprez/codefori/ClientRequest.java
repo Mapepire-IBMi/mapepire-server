@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -80,7 +81,7 @@ public abstract class ClientRequest implements Runnable {
             addReplyData("success", true);
         } catch (final Exception _e) {
             Tracer.err(_e);
-            addReplyData("error", ""+_e.getMessage());
+            addReplyData("error", "" + getErrorStringFromException(_e));
             addReplyData("success", false);
         } finally {
             try {
@@ -91,6 +92,24 @@ public abstract class ClientRequest implements Runnable {
                 System.exit(-1);
             }
         }
+    }
+
+    private static String getErrorStringFromException(Throwable _e) {
+        if (null == _e) {
+            return "crazy";
+        }
+        if (_e instanceof Error || _e instanceof NullPointerException) {
+            return "Internal Error: " + Tracer.exceptionToStackTrace(_e);
+        }
+        String msg = _e.getLocalizedMessage();
+        if (StringUtils.isNonEmpty(msg)) {
+            return msg;
+        }
+        msg = _e.getMessage();
+        if (StringUtils.isNonEmpty(msg)) {
+            return msg;
+        }
+        return "Internal Error: " + _e.getClass().getSimpleName();
     }
 
     protected void sendreply() throws UnsupportedEncodingException, IOException {

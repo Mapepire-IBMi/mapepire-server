@@ -98,11 +98,7 @@ public class Tracer {
 
         private String getRawTraceString() {
             if (m_data instanceof Throwable) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream stringStream = new PrintStream(baos, false);
-                ((Throwable) m_data).printStackTrace(stringStream);
-                stringStream.close();
-                return new String(baos.toByteArray());
+                return Tracer.exceptionToStackTrace((Throwable) m_data);
             } else {
                 return "" + m_data;
             }
@@ -158,6 +154,14 @@ public class Tracer {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static String exceptionToStackTrace(Throwable m_data) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream stringStream = new PrintStream(baos, false);
+        ((Throwable) m_data).printStackTrace(stringStream);
+        stringStream.close();
+        return new String(baos.toByteArray());
     }
 
     public static Tracer get() {
