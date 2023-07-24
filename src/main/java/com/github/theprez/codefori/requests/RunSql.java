@@ -46,8 +46,6 @@ public class RunSql extends BlockRetrievableRequest {
             final List<Object> data = getNextDataBlock(numRows);
             addReplyData("data", data);
             addReplyData("is_done", m_isDone);
-        } else {
-            m_rs.close();
         }
     }
 
