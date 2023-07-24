@@ -74,6 +74,9 @@ public class DataStreamProcessor implements Runnable {
                     continue;
                 }
                 Tracer.datastreamIn(requestString);
+                if(requestString.startsWith("//")) {
+                    continue;
+                }
                 final JsonElement reqElement;
                 final JsonObject reqObj;
                 try {
