@@ -34,7 +34,7 @@ The following request types are currently supported
 
 | Type          | Description   | Additional input fields  | Additional output fields  |
 | ------------- | ------------- | ------------- | -------------  |
-| `connect`     | Connect to the database (implicitly disconnects any existing connection) | `props`: a semicolon-delimited list of connection properties | `job`: the server job | 
+| `connect`     | Connect to the database (implicitly disconnects any existing connection) | `props`: a semicolon-delimited list of connection properties <br/> `application`: the application name (for use in Client Special Registers) <br/> `technique`: database connection technique (`cli` or `tcp`) | `job`: the server job | 
 | `cl`          | Run CL command  | `cmd`: the CL command | `data`: the resulting job log entries | 
 | `sql`         | Run SQL  | `sql`: the SQL statement <br/> `rows`: the maximum number of rows to return on the first request | `metadata`: metadata about the result set <br/> `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement | 

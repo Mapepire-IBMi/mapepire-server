@@ -1,6 +1,7 @@
 package com.github.theprez.codefori.requests;
 
 import com.github.theprez.codefori.ClientRequest;
+import com.github.theprez.codefori.ClientSpecialRegisters;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
 import com.github.theprez.codefori.Tracer;
@@ -19,6 +20,7 @@ public class Reconnect extends ClientRequest {
     protected void go() throws Exception {
         final JsonElement props = getRequestField("props");
         final JsonElement connectionType = getRequestField("technique");
+        final JsonElement applicationName = getRequestField("application");
         final ConnectionOptions opts = new ConnectionOptions();
 
         if (null != connectionType) {
@@ -31,6 +33,9 @@ public class Reconnect extends ClientRequest {
         }
         if (null != props) {
             opts.setJdbcProperties(props.getAsString());
+        }
+        if (null != applicationName) {
+            opts.setCSRApplicationName(applicationName.getAsString());
         }
         getSystemConnection().reconnect(opts);
         addReplyData("job", getSystemConnection().getJdbcJobName());
