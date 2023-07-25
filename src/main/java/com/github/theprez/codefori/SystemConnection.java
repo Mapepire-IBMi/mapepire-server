@@ -21,7 +21,9 @@ public class SystemConnection {
                 }
                 switch (this) {
                     case CLI:
-                        return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only") ? "jdbc:default:connection":"jdbc:db2:localhost";
+                        return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only")
+                                ? "jdbc:default:connection"
+                                : "jdbc:db2:localhost";
                     default:
                         return "jdbc:as400:localhost";
                 }
@@ -30,6 +32,7 @@ public class SystemConnection {
 
         private String m_jdbcProps = "";
         private ConnectionMethod m_connectionMethod = ConnectionMethod.CLI;
+        private ClientSpecialRegisters m_clientRegs = new ClientSpecialRegisters();
 
         String getJdbcProperties() {
             return m_jdbcProps;
@@ -47,6 +50,9 @@ public class SystemConnection {
             return m_connectionMethod;
         }
 
+        public void setCSRApplicationName(String _appName) {
+            m_clientRegs.setApplicationName(_appName);
+        }
     }
 
     private Connection m_conn;
@@ -97,7 +103,9 @@ public class SystemConnection {
         try {
             DriverManager.registerDriver(new AS400JDBCDriver());
             m_connectionOptions = _opts;
-            return m_conn = DriverManager.getConnection(_opts.getConnectionMethod().getConnectionString() + ";" + _opts.getJdbcProperties());
+            m_conn = DriverManager.getConnection(_opts.getConnectionMethod().getConnectionString() + ";" + _opts.getJdbcProperties());
+            m_conn.setClientInfo(_opts.m_clientRegs.getProperties());
+            return m_conn;
         } catch (Exception e) {
             throw new SQLException(e);
         }
