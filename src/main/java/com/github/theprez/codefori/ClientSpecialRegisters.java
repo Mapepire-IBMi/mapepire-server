@@ -1,14 +1,8 @@
 package com.github.theprez.codefori;
 
-import java.net.URL;
 import java.util.Properties;
 
 import com.github.theprez.jcmdutils.StringUtils;
-import com.ibm.as400.access.AS400JDBCConnection;
-
-// SSH_CONNECTION=9.67.57.7 57786 9.5.10.206 22
-// SSH_CLIENT=9.67.57.7 57786 22
-// SSH_TTY=/dev/pts/2
 
 public class ClientSpecialRegisters {
 
