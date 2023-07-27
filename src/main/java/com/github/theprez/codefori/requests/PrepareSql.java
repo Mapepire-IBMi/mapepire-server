@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,8 +12,8 @@ import java.util.Map;
 
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
-import com.github.theprez.codefori.Tracer;
 import com.google.gson.JsonObject;
+import com.ibm.as400.access.AS400JDBCPreparedStatement;
 
 public class PrepareSql extends BlockRetrievableRequest {
 
@@ -71,14 +72,11 @@ public class PrepareSql extends BlockRetrievableRequest {
         }
     }
 
-    private static String getDb2ParameterName(PreparedStatement _stmt, int _i) {
-        try {
-            return _stmt.getClass()
-                    .getMethod("getDB2ParameterName", int.class).invoke(_stmt, _i).toString();
-        } catch (Exception e) {
-            Tracer.err(e);
-            return "?";
+    private static String getDb2ParameterName(PreparedStatement _stmt, int _i) throws SQLException {
+        if (_stmt instanceof AS400JDBCPreparedStatement) {
+            return ((AS400JDBCPreparedStatement) _stmt).getDB2ParameterName(_i);
         }
+        return "?";
     }
 
     private String getModeString(int _parameterMode) {

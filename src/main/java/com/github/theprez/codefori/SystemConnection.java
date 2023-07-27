@@ -3,6 +3,8 @@ package com.github.theprez.codefori;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
+import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCDriver;
 
 public class SystemConnection {
@@ -75,12 +77,10 @@ public class SystemConnection {
     public String getJdbcJobName() throws SQLException {
         try {
             Connection c = getJdbcConnection();
-            Class<Connection> connectionClass = (Class<Connection>) c.getClass();
-            boolean isNativeDriver = connectionClass.getSimpleName().equalsIgnoreCase("DB2Connection");
-            String methodName = isNativeDriver ? "getServerJobName" : "getServerJobIdentifier";
-            String driverSuppliedName = c.getClass()
-                    .getMethod(methodName).invoke(c).toString();
-            return isNativeDriver ? driverSuppliedName : makePrettyJobNameFromJt400Name(driverSuppliedName);
+            if (c instanceof AS400JDBCConnection) {
+                return makePrettyJobNameFromJt400Name(((AS400JDBCConnection) c).getServerJobIdentifier());
+            }
+            return c.getClass().getMethod("getServerJobName").invoke(c).toString();
         } catch (Exception e) {
             Tracer.err(e);
             return "??????/??????/??????";
