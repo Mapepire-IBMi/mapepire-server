@@ -161,7 +161,7 @@ public class Tracer {
     private File m_destFile = null;
     private File m_jtOpenDestFile = null;
 
-    private TraceLevel m_traceLevel = TraceLevel.OFF;
+    private TraceLevel m_traceLevel = TraceLevel.ERRORS;
     private TraceLevel m_jtOpenTraceLevel = TraceLevel.OFF;
     private Dest m_jtopenDest = Dest.IN_MEM;
 
