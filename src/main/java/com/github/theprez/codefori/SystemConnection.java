@@ -103,8 +103,7 @@ public class SystemConnection {
         try {
             DriverManager.registerDriver(new AS400JDBCDriver());
             m_connectionOptions = _opts;
-            m_conn = DriverManager
-                    .getConnection(_opts.getConnectionMethod().getConnectionString() + ";" + _opts.getJdbcProperties());
+            m_conn = DriverManager.getConnection(_opts.getConnectionMethod().getConnectionString() + ";" + _opts.getJdbcProperties());
             m_conn.setClientInfo(_opts.m_clientRegs.getProperties());
             return m_conn;
         } catch (Exception e) {
