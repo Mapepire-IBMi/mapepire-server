@@ -110,6 +110,61 @@ public class Tracer {
 
     private static DateFormat s_dateFormatter = null;
 
+    public static String exceptionToStackTrace(Throwable m_data) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream stringStream = new PrintStream(baos, false);
+        ((Throwable) m_data).printStackTrace(stringStream);
+        stringStream.close();
+        return new String(baos.toByteArray());
+    }
+
+    public static Tracer get() {
+        return s_instance;
+    }
+
+    public static void info(Object _data) {
+        get().Trace(EventType.INFO, _data);
+    }
+
+    public static void warn(Object _data) {
+        get().Trace(EventType.WARN, _data);
+    }
+
+    public static void err(Object _data) {
+        get().Trace(EventType.ERR, _data);
+    }
+
+    public static void datastreamIn(Object _data) {
+        get().Trace(EventType.DATASTREAM_IN, _data);
+    }
+
+    public static void datastreamOut(Object _data) {
+        get().Trace(EventType.DATASTREAM_OUT, _data);
+    }
+
+    private static DateFormat getDateFormatter() {
+        if (null != s_dateFormatter) {
+            return s_dateFormatter;
+        }
+        return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss.SSS");
+    }
+
+    private LinkedBlockingDeque<Entry> m_inMem = new LinkedBlockingDeque<>(100);
+
+    private LinkedBlockingDeque<String> m_jtOpenInMem = new LinkedBlockingDeque<>(16 * 1024);
+
+    private Dest m_dest = Dest.IN_MEM;
+
+    private OutputStreamWriter m_fileWriter = null;
+    private PrintWriter m_jtOpenFileWriter = null;
+
+    private File m_destFile = null;
+    private File m_jtOpenDestFile = null;
+
+    private TraceLevel m_traceLevel = TraceLevel.OFF;
+    private TraceLevel m_jtOpenTraceLevel = TraceLevel.OFF;
+    private Dest m_jtopenDest = Dest.IN_MEM;
+
     private Tracer() {
         PrintWriter jt400PrintWriter = new PrintWriter(new Writer() {
             @Override
@@ -155,61 +210,6 @@ public class Tracer {
             e.printStackTrace();
         }
     }
-
-    public static String exceptionToStackTrace(Throwable m_data) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream stringStream = new PrintStream(baos, false);
-        ((Throwable) m_data).printStackTrace(stringStream);
-        stringStream.close();
-        return new String(baos.toByteArray());
-    }
-
-    public static Tracer get() {
-        return s_instance;
-    }
-
-    public static void info(Object _data) {
-        get().Trace(EventType.INFO, _data);
-    }
-
-    public static void warn(Object _data) {
-        get().Trace(EventType.WARN, _data);
-    }
-
-    public static void err(Object _data) {
-        get().Trace(EventType.ERR, _data);
-    }
-
-    public static void datastreamIn(Object _data) {
-        get().Trace(EventType.DATASTREAM_IN, _data);
-    }
-
-    public static void datastreamOut(Object _data) {
-        get().Trace(EventType.DATASTREAM_OUT, _data);
-    }
-
-    private static DateFormat getDateFormatter() {
-        if (null != s_dateFormatter) {
-            return s_dateFormatter;
-        }
-        return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss.SSS");
-    }
-
-    private LinkedBlockingDeque<Entry> m_inMem = new LinkedBlockingDeque<>(100);
-
-    private LinkedBlockingDeque<String> m_jtOpenInMem = new LinkedBlockingDeque<>(16 * 1024);
-
-    private Dest m_dest = Dest.IN_MEM;
-    private OutputStreamWriter m_fileWriter = null;
-
-    private PrintWriter m_jtOpenFileWriter = null;
-    private File m_destFile = null;
-
-    private File m_jtOpenDestFile = null;
-    private TraceLevel m_traceLevel = TraceLevel.OFF;
-    private TraceLevel m_jtOpenTraceLevel = TraceLevel.OFF;
-
-    private Dest m_jtopenDest = Dest.IN_MEM;
 
     public Tracer setTraceLevel(TraceLevel _l) {
         m_traceLevel = _l;
