@@ -59,8 +59,10 @@ public class DataStreamProcessor implements Runnable {
 
     private void dispatch(final ClientRequest _req, final boolean _isForcedSynchronous) {
         if (m_isTestMode || _isForcedSynchronous || _req.isForcedSynchronous()) {
+            Tracer.info("synchronously dispatcing a request of type: "+_req.getClass().getSimpleName());
             _req.run();
         } else {
+            Tracer.info("asynchronously dispatcing a request of type: "+_req.getClass().getSimpleName());
             new Thread(_req).start();
         }
     }
