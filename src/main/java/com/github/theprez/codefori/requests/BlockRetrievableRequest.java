@@ -17,9 +17,11 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
 
     protected boolean m_isDone = false;
     protected ResultSet m_rs = null;
+    private final boolean m_isTerseData;
 
     protected BlockRetrievableRequest(DataStreamProcessor _io, SystemConnection _conn, JsonObject _reqObj) {
         super(_io, _conn, _reqObj);
+        m_isTerseData = getRequestFieldBoolean("terse", false);
     }
 
     List<Object> getNextDataBlock(final int numRows) throws SQLException {
@@ -27,7 +29,9 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         if (m_isDone) {
             return data;
         }
-        // TODO: null check m_rs
+        if (null == m_rs) {
+            throw new SQLException("Result set was null");
+        }
         for (int i = 0; i < numRows; ++i) {
             if (!m_rs.next()) {
                 m_isDone = true;
@@ -39,22 +43,29 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 }
                 break;
             }
-            final LinkedHashMap<String, Object> rowData = new LinkedHashMap<String, Object>();
+            final LinkedHashMap<String, Object> mapRowData = new LinkedHashMap<String, Object>();
+            final LinkedList<Object> terseRowData = new LinkedList<Object>();
             final int numCols = m_rs.getMetaData().getColumnCount();
             for (int col = 1; col <= numCols; ++col) {
                 String column = m_rs.getMetaData().getColumnName(col);
                 Object cellData = m_rs.getObject(col);
+                Object cellDataForResponse = null;
                 if (null == cellData) {
-                    rowData.put(column, null);
+                    cellDataForResponse = null;
                 } else if (cellData instanceof String) {
-                    rowData.put(column, ((String) cellData).trim());
+                    cellDataForResponse=((String) cellData).trim();
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
-                    rowData.put(column, cellData);
+                    cellDataForResponse = cellData;
                 } else {
-                    rowData.put(column, m_rs.getString(col));
+                    cellDataForResponse = m_rs.getString(col);
+                }
+                if(m_isTerseData) {
+                    terseRowData.add(cellDataForResponse);
+                }else {
+                    mapRowData.put(column, cellDataForResponse);
                 }
             }
-            data.add(rowData);
+            data.add(m_isTerseData ? terseRowData: mapRowData);
         }
         return data;
     }

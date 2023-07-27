@@ -36,10 +36,10 @@ The following request types are currently supported
 | ------------- | ------------- | ------------- | -------------  |
 | `connect`     | Connect to the database (implicitly disconnects any existing connection) | `props`: a semicolon-delimited list of connection properties <br/> `application`: the application name (for use in Client Special Registers) <br/> `technique`: database connection technique (`cli` or `tcp`) | `job`: the server job | 
 | `cl`          | Run CL command  | `cmd`: the CL command | `data`: the resulting job log entries | 
-| `sql`         | Run SQL  | `sql`: the SQL statement <br/> `rows`: the maximum number of rows to return on the first request | `metadata`: metadata about the result set <br/> `data`: the data <br/> `is_done`: whether all rows were fetched | 
-| `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement | 
+| `sql`         | Run SQL  | `sql`: the SQL statement <br/> `rows`: the maximum number of rows to return on the first request <br/> `terse`: return data in terse format | `metadata`: metadata about the result set <br/> `data`: the data <br/> `is_done`: whether all rows were fetched | 
+| `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement <br/> `terse`: return data in terse format | 
 | `execute`         | Execute prepared SQL statement  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` <br /> `batch`: when `true`, add SQL operations to batch only <br /> `parameters`: array parameter values corresponding to any parameter markers used (can be an array of arrays when `batch` is true). <br /><br />**NOTE: **If `batch` is `true` and no parameters are specified, or if `batch` is `false`, the batch of SQL operations is executed. |   `data`: the data |
-| `prepare_sql_execute`         | Prepare and execute SQL statement  | `parameters`: array parameter values |  `data`: the data |
+| `prepare_sql_execute`         | Prepare and execute SQL statement  | `parameters`: array parameter values <br/> `terse`: return data in terse format |  `data`: the data |
 | `sqlmore`     | fetch more rows from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request <br/> `rows`: the maximum number of rows to return | `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `sqlclose`     | close cursor from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request |  | 
 | `getdbjob`     | Get server job for database tasks  |  | `job`: the server job | 
