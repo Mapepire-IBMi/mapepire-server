@@ -2,11 +2,13 @@ package com.github.theprez.codefori.requests;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
@@ -53,25 +55,43 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 if (null == cellData) {
                     cellDataForResponse = null;
                 } else if (cellData instanceof String) {
-                    cellDataForResponse=((String) cellData).trim();
+                    cellDataForResponse = ((String) cellData).trim();
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else {
                     cellDataForResponse = m_rs.getString(col);
                 }
-                if(m_isTerseData) {
+                if (m_isTerseData) {
                     terseRowData.add(cellDataForResponse);
-                }else {
+                } else {
                     mapRowData.put(column, cellDataForResponse);
                 }
             }
-            data.add(m_isTerseData ? terseRowData: mapRowData);
+            data.add(m_isTerseData ? terseRowData : mapRowData);
         }
         return data;
     }
 
     public Object isDone() {
         return m_isDone;
+    }
+
+    public Map<String, Object> getResultMetaDataForResponse() throws SQLException {
+        final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
+        final ResultSetMetaData rsMetaData = m_rs.getMetaData();
+        metaData.put("column_count", rsMetaData.getColumnCount());
+        metaData.put("job", getSystemConnection().getJdbcJobName());
+        final List<Object> columnMetaData = new LinkedList<Object>();
+        for (int i = 1; i <= rsMetaData.getColumnCount(); ++i) {
+            final Map<String, Object> columnAttrs = new LinkedHashMap<String, Object>();
+            columnAttrs.put("name", rsMetaData.getColumnName(i));
+            columnAttrs.put("type", rsMetaData.getColumnTypeName(i));
+            columnAttrs.put("display_size", rsMetaData.getColumnDisplaySize(i));
+            columnAttrs.put("label", rsMetaData.getColumnLabel(i));
+            columnMetaData.add(columnAttrs);
+        }
+        metaData.put("columns", columnMetaData);
+        return metaData;
     }
 
 }

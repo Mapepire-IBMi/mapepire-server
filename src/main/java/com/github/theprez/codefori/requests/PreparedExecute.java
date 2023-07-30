@@ -52,6 +52,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
             this.m_rs = stmt.getResultSet();
             final int numRows = super.getRequestFieldInt("rows", 1000);
             addReplyData("has_results", true);
+            addReplyData("metadata", getResultMetaDataForResponse());
             addReplyData("data", getNextDataBlock(numRows));
         } else {
             addReplyData("data", new LinkedList<Object>());
