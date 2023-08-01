@@ -26,6 +26,7 @@ public class RunSql extends BlockRetrievableRequest {
         final Statement stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
         final boolean hasRs = stmt.execute(sql);
         addReplyData("has_results", hasRs);
+        addReplyData("update_count", stmt.getLargeUpdateCount());
         if (hasRs) {
             m_rs = stmt.getResultSet();
             addReplyData("metadata", getResultMetaDataForResponse());

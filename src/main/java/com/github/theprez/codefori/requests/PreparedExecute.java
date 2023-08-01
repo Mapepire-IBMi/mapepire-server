@@ -27,6 +27,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         if (isBatch) {
             if (null == parms) {
                 stmt.executeLargeBatch();
+                addReplyData("update_count", stmt.getLargeUpdateCount());
                 return;
             }
             JsonArray arr = parms.getAsJsonArray();
@@ -52,11 +53,13 @@ public class PreparedExecute extends BlockRetrievableRequest {
             this.m_rs = stmt.getResultSet();
             final int numRows = super.getRequestFieldInt("rows", 1000);
             addReplyData("has_results", true);
+            addReplyData("update_count", stmt.getLargeUpdateCount());
             addReplyData("metadata", getResultMetaDataForResponse());
             addReplyData("data", getNextDataBlock(numRows));
         } else {
             addReplyData("data", new LinkedList<Object>());
             addReplyData("has_results", false);
+            addReplyData("update_count", stmt.getLargeUpdateCount());
             m_rs.close();
         }
     }
