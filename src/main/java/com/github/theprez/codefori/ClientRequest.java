@@ -2,6 +2,7 @@ package com.github.theprez.codefori;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -83,6 +84,11 @@ public abstract class ClientRequest implements Runnable {
             Tracer.err(_e);
             addReplyData("error", "" + getErrorStringFromException(_e));
             addReplyData("success", false);
+            if(_e instanceof SQLException) {
+                SQLException sqle = (SQLException) _e;
+                addReplyData("sql_state", sqle.getSQLState());
+                addReplyData("sql_rc", sqle.getErrorCode());
+            }
         } finally {
             try {
                 sendreply();

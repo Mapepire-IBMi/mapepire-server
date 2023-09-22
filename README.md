@@ -29,6 +29,12 @@ All responses will include these fields:
 - `id` (string): corresponding to the request ID
 - `success` (boolean): whether or not the request was successful
 
+If an error occurs, all responses will include these fields:
+- `error`: a description of the error
+
+Under certain error conditions, responses may contain one or more of these fields:
+- `sql_rc`: the SQL error code
+- `sql_state`: the SQL state
 
 The following request types are currently supported
 
