@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Arrays;
 
 import javax.naming.spi.DirStateFactory.Result;
 
@@ -34,10 +35,10 @@ public class DoVe extends BlockRetrievableRequest {
         try (Statement s = jdbcConn.createStatement()) {
             s.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
             try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
-               // tgt.execute();
+                tgt.execute();
             }
             s.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
-            try (ResultSet rs = s.executeQuery("SELECT QQJFLD, QQRID FROM QTEMP.DOVEOUT WHERE QQRID = 1000 limit 1")) {
+            try (ResultSet rs = s.executeQuery("SELECT QQJFLD FROM QTEMP.DOVEOUT WHERE QQRID = 3014 lImIt 1")) {
                 if (rs.next()) {
                     id = rs.getBytes(1);
                 }
@@ -59,13 +60,16 @@ public class DoVe extends BlockRetrievableRequest {
 
             if (!callStmt.execute()) {
                 String p5 = callStmt.getString(5);
-                if(StringUtils.isNonEmpty(p5)) {
+                if (null != p5) {
                     p5 = p5.trim();
+                    if (0 != p5.length()) {
+                        throw new RuntimeException("No result set available: " + p5);
+                    }
                 }
-                throw new RuntimeException("No result set available: "+p5);
             }
-            callStmt.execute();
-            m_rs = callStmt.getResultSet();
+        }
+        try (ResultSet resultsRs = jdbcConn.createStatement().executeQuery("select * from qtemp.QQ$DBVE_41")) {
+            m_rs = resultsRs;
             addReplyData("metadata", getResultMetaDataForResponse());
             addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
             addReplyData("is_done", isDone());
