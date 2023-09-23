@@ -12,6 +12,7 @@ import java.util.Map;
 import com.github.theprez.codefori.requests.BadReq;
 import com.github.theprez.codefori.requests.BlockRetrievableRequest;
 import com.github.theprez.codefori.requests.CloseSqlCursor;
+import com.github.theprez.codefori.requests.DoVe;
 import com.github.theprez.codefori.requests.Exit;
 import com.github.theprez.codefori.requests.GetDbJob;
 import com.github.theprez.codefori.requests.GetTraceData;
@@ -157,6 +158,9 @@ public class DataStreamProcessor implements Runnable {
                         break;
                     case "cl":
                         dispatch(new RunCL(this, m_conn, reqObj));
+                        break;
+                    case "dove":
+                        dispatch(new DoVe(this, m_conn, reqObj));
                         break;
                     case "connect":
                         dispatch(new Reconnect(this, m_conn, reqObj));
