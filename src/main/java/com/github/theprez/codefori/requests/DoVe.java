@@ -68,8 +68,8 @@ public class DoVe extends BlockRetrievableRequest {
                 }
             }
         }
-        try (ResultSet resultsRs = jdbcConn.createStatement().executeQuery("select * from qtemp.QQ$DBVE_41")) {
-            m_rs = resultsRs;
+        try (Statement resultsStmt = jdbcConn.createStatement()) {
+            m_rs = resultsStmt.executeQuery("select * from qtemp.QQ$DBVE_41");
             addReplyData("metadata", getResultMetaDataForResponse());
             addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
             addReplyData("is_done", isDone());
