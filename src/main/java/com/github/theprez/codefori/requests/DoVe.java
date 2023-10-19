@@ -6,14 +6,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.Arrays;
-
-import javax.naming.spi.DirStateFactory.Result;
-
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
 import com.github.theprez.codefori.Tracer;
-import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonObject;
 
 public class DoVe extends BlockRetrievableRequest {
@@ -32,11 +27,19 @@ public class DoVe extends BlockRetrievableRequest {
         final String sql = getRequestField("sql").getAsString();
         final Connection jdbcConn = getSystemConnection().getJdbcConnection();
         boolean isRunning = getRequestFieldBoolean("run", false);
+        final int numRows = super.getRequestFieldInt("rows", 1000);
         byte[] id = new byte[0];
         try (Statement s = jdbcConn.createStatement()) {
             s.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
-            try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
-                tgt.execute();
+            if (isRunning) {
+                PreparedStatement tgt = jdbcConn.prepareStatement(sql);
+                if (tgt.execute()) {
+                    this.m_rs = tgt.getResultSet();
+                }
+            } else {
+                try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
+                    tgt.execute();
+                }
             }
             s.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
             try (ResultSet rs = s.executeQuery("SELECT QQJFLD FROM QTEMP.DOVEOUT WHERE QQRID = 3014 lImIt 1")) {
@@ -70,10 +73,16 @@ public class DoVe extends BlockRetrievableRequest {
             }
         }
         try (Statement resultsStmt = jdbcConn.createStatement()) {
-            m_rs = resultsStmt.executeQuery("select * from qtemp.QQ$DBVE_41");
-            addReplyData("metadata", getResultMetaDataForResponse(m_rs.getMetaData(), getSystemConnection()));
-            addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
-            addReplyData("is_done", isDone());
+            ResultSet veData = resultsStmt.executeQuery("select * from qtemp.QQ$DBVE_41");
+            addReplyData("vemetadata", getResultMetaDataForResponse(veData.getMetaData(), getSystemConnection()));
+            addReplyData("vedata", super.getNextDataBlock(veData, Integer.MAX_VALUE, m_isTerseData).getData());
+            if (null != this.m_rs) {
+                addReplyData("metadata", getResultMetaDataForResponse());
+                addReplyData("data", super.getNextDataBlock(numRows));
+                addReplyData("is_done", isDone());
+            } else {
+                addReplyData("is_done", true);
+            }
         }
     }
 }

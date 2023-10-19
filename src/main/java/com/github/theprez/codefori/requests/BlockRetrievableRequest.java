@@ -19,7 +19,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
 
     protected boolean m_isDone = false;
     protected ResultSet m_rs = null;
-    private final boolean m_isTerseData;
+    protected final boolean m_isTerseData;
 
     protected BlockRetrievableRequest(DataStreamProcessor _io, SystemConnection _conn, JsonObject _reqObj) {
         super(_io, _conn, _reqObj);
@@ -39,7 +39,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         private final List<Object> m_data = new LinkedList<Object>();
         private boolean m_isDone = false;
 
-        public DataBlockFetchResult setDone(final boolean _b) {
+        private DataBlockFetchResult setDone(final boolean _b) {
             m_isDone = _b;
             return this;
         }
@@ -48,8 +48,12 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             return m_isDone;
         }
 
-        public void add(final Object _o) {
+        private void add(final Object _o) {
             m_data.add(_o);
+        }
+
+        public Object getData() {
+            return m_data;
         }
     }
 
