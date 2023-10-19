@@ -1,10 +1,8 @@
 package com.github.theprez.codefori.requests;
 
 import com.github.theprez.codefori.ClientRequest;
-import com.github.theprez.codefori.ClientSpecialRegisters;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
-import com.github.theprez.codefori.Tracer;
 import com.github.theprez.codefori.SystemConnection.ConnectionOptions;
 import com.github.theprez.codefori.SystemConnection.ConnectionOptions.ConnectionMethod;
 import com.google.gson.JsonElement;
