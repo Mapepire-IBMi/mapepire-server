@@ -31,6 +31,7 @@ public class DoVe extends BlockRetrievableRequest {
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
         final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        boolean isRunning = getRequestFieldBoolean("run", false);
         byte[] id = new byte[0];
         try (Statement s = jdbcConn.createStatement()) {
             s.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
@@ -70,7 +71,7 @@ public class DoVe extends BlockRetrievableRequest {
         }
         try (Statement resultsStmt = jdbcConn.createStatement()) {
             m_rs = resultsStmt.executeQuery("select * from qtemp.QQ$DBVE_41");
-            addReplyData("metadata", getResultMetaDataForResponse());
+            addReplyData("metadata", getResultMetaDataForResponse(m_rs.getMetaData(), getSystemConnection()));
             addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
             addReplyData("is_done", isDone());
         }
