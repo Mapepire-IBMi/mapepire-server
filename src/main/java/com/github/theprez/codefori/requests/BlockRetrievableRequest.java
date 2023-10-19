@@ -26,31 +26,60 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         m_isTerseData = getRequestFieldBoolean("terse", false);
     }
 
-    List<Object> getNextDataBlock(final int numRows) throws SQLException {
-        final List<Object> data = new LinkedList<Object>();
+    List<Object> getNextDataBlock(final int _numRows) throws SQLException {
         if (m_isDone) {
-            return data;
+            return new LinkedList<Object>();
         }
-        if (null == m_rs) {
+        DataBlockFetchResult result = getNextDataBlock(m_rs, _numRows, m_isTerseData);
+        m_isDone = result.isDone();
+        return result.m_data;
+    }
+
+    protected static class DataBlockFetchResult {
+        private final List<Object> m_data = new LinkedList<Object>();
+        private boolean m_isDone = false;
+
+        public DataBlockFetchResult setDone(final boolean _b) {
+            m_isDone = _b;
+            return this;
+        }
+
+        public boolean isDone() {
+            return m_isDone;
+        }
+
+        public void add(final Object _o) {
+            m_data.add(_o);
+        }
+    }
+
+    protected static DataBlockFetchResult getNextDataBlock(final ResultSet _rs, final int _numRows,
+            final boolean _isTerseDataFormat) throws SQLException {
+        final DataBlockFetchResult ret = new DataBlockFetchResult();
+
+        if (null == _rs) {
             throw new SQLException("Result set was null");
         }
-        for (int i = 0; i < numRows; ++i) {
-            if (!m_rs.next()) {
-                m_isDone = true;
-                Statement s = m_rs.getStatement();
+        if (_rs.isClosed()) {
+            return ret.setDone(true);
+        }
+        for (int i = 0; i < _numRows; ++i) {
+            if (!_rs.next()) {
+                ret.setDone(true);
+                Statement s = _rs.getStatement();
                 if (s instanceof PreparedStatement) {
-                    m_rs.close();
+                    _rs.close();
                 } else {
-                    m_rs.getStatement().close();
+                    _rs.getStatement().close();
                 }
                 break;
             }
             final LinkedHashMap<String, Object> mapRowData = new LinkedHashMap<String, Object>();
             final LinkedList<Object> terseRowData = new LinkedList<Object>();
-            final int numCols = m_rs.getMetaData().getColumnCount();
+            final int numCols = _rs.getMetaData().getColumnCount();
             for (int col = 1; col <= numCols; ++col) {
-                String column = m_rs.getMetaData().getColumnName(col);
-                Object cellData = m_rs.getObject(col);
+                String column = _rs.getMetaData().getColumnName(col);
+                Object cellData = _rs.getObject(col);
                 Object cellDataForResponse = null;
                 if (null == cellData) {
                     cellDataForResponse = null;
@@ -59,35 +88,37 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else {
-                    cellDataForResponse = m_rs.getString(col);
+                    cellDataForResponse = _rs.getString(col);
                 }
-                if (m_isTerseData) {
+                if (_isTerseDataFormat) {
                     terseRowData.add(cellDataForResponse);
                 } else {
                     mapRowData.put(column, cellDataForResponse);
                 }
             }
-            data.add(m_isTerseData ? terseRowData : mapRowData);
+            ret.add(_isTerseDataFormat ? terseRowData : mapRowData);
         }
-        return data;
+        return ret;
     }
 
     public Object isDone() {
         return m_isDone;
     }
 
-    public Map<String, Object> getResultMetaDataForResponse() throws SQLException {
+    protected Map<String,Object> getResultMetaDataForResponse() throws SQLException {
+        return getResultMetaDataForResponse(this.m_rs.getMetaData(), getSystemConnection());
+    }
+    public static Map<String, Object> getResultMetaDataForResponse(ResultSetMetaData _md, SystemConnection _conn) throws SQLException {
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
-        final ResultSetMetaData rsMetaData = m_rs.getMetaData();
-        metaData.put("column_count", rsMetaData.getColumnCount());
-        metaData.put("job", getSystemConnection().getJdbcJobName());
+        metaData.put("column_count", _md.getColumnCount());
+        metaData.put("job", _conn.getJdbcJobName());
         final List<Object> columnMetaData = new LinkedList<Object>();
-        for (int i = 1; i <= rsMetaData.getColumnCount(); ++i) {
+        for (int i = 1; i <= _md.getColumnCount(); ++i) {
             final Map<String, Object> columnAttrs = new LinkedHashMap<String, Object>();
-            columnAttrs.put("name", rsMetaData.getColumnName(i));
-            columnAttrs.put("type", rsMetaData.getColumnTypeName(i));
-            columnAttrs.put("display_size", rsMetaData.getColumnDisplaySize(i));
-            columnAttrs.put("label", rsMetaData.getColumnLabel(i));
+            columnAttrs.put("name", _md.getColumnName(i));
+            columnAttrs.put("type", _md.getColumnTypeName(i));
+            columnAttrs.put("display_size", _md.getColumnDisplaySize(i));
+            columnAttrs.put("label", _md.getColumnLabel(i));
             columnMetaData.add(columnAttrs);
         }
         metaData.put("columns", columnMetaData);
