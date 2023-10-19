@@ -4,6 +4,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import com.github.theprez.codefori.DataStreamProcessor;
@@ -29,26 +30,37 @@ public class DoVe extends BlockRetrievableRequest {
         boolean isRunning = getRequestFieldBoolean("run", false);
         final int numRows = super.getRequestFieldInt("rows", 1000);
         byte[] id = new byte[0];
-        try (Statement s = jdbcConn.createStatement()) {
-            s.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
+
+        try (Statement dbMonStmt = jdbcConn.createStatement()) {
+            dbMonStmt.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
+
             if (isRunning) {
                 PreparedStatement tgt = jdbcConn.prepareStatement(sql);
                 if (tgt.execute()) {
                     this.m_rs = tgt.getResultSet();
                 }
             } else {
+                final Statement qaqqiniStmt = jdbcConn.createStatement();
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1)");
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
                 try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
                     tgt.execute();
+                } catch (SQLException e) {
+                    if (!"57005".equals(e.getSQLState())) {
+                        throw e;
+                    }
+                } finally {
+                    qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3)");
                 }
             }
-            s.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
-            try (ResultSet rs = s.executeQuery("SELECT QQJFLD FROM QTEMP.DOVEOUT WHERE QQRID = 3014 lImIt 1")) {
+            dbMonStmt.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
+            try (ResultSet rs = dbMonStmt.executeQuery("SELECT QQJFLD FROM QTEMP.DOVEOUT WHERE QQRID = 3014 lImIt 1")) {
                 if (rs.next()) {
                     id = rs.getBytes(1);
                 }
             }
             try {
-                s.execute("drop table qtemp.QQ$DBVE_41");
+                dbMonStmt.execute("drop table qtemp.QQ$DBVE_41");
             } catch (Exception e) {
                 Tracer.info(e.getMessage());
             }
