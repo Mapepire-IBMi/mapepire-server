@@ -32,33 +32,26 @@ public class DoVe extends BlockRetrievableRequest {
         byte[] id = new byte[0];
 
         try (Statement dbMonStmt = jdbcConn.createStatement()) {
-            try {
-                dbMonStmt.execute("drop table QTEMP.DOVEOUT");
-            } catch (Exception e) {
-                Tracer.info(e.getMessage());
-            }
             dbMonStmt.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
 
-            if (isRunning) {
-                PreparedStatement tgt = jdbcConn.prepareStatement(sql);
-                if (tgt.execute()) {
-                    this.m_rs = tgt.getResultSet();
-                }
-            } else {
-                try (final Statement qaqqiniStmt = jdbcConn.createStatement()) {
-                    qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1)");
+            try (final Statement qaqqiniStmt = jdbcConn.createStatement()) {
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1)");
+                if (!isRunning) {
                     qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
-                    try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
-                        tgt.execute();
-                    } catch (SQLException e) {
-                        if (!"57005".equals(e.getSQLState())) {
-                            throw e;
-                        }
-                    } finally {
-                        qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3)");
+                }
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_THRESHOLD','-1')");
+                try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
+                    tgt.execute();
+                    this.m_rs = tgt.getResultSet();
+                } catch (SQLException e) {
+                    if (!"57005".equals(e.getSQLState())) {
+                        throw e;
                     }
+                } finally {
+                    qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3)");
                 }
             }
+
             dbMonStmt.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
             try (ResultSet rs = dbMonStmt.executeQuery("SELECT QQJFLD FROM QTEMP.DOVEOUT WHERE QQRID = 3014 lImIt 1")) {
                 if (rs.next()) {
@@ -90,7 +83,8 @@ public class DoVe extends BlockRetrievableRequest {
                 }
             }
         }
-        try (Statement resultsStmt = jdbcConn.createStatement()) {
+        try (
+                Statement resultsStmt = jdbcConn.createStatement()) {
             ResultSet veData = resultsStmt.executeQuery("select * from qtemp.QQ$DBVE_41");
             addReplyData("vemetadata", getResultMetaDataForResponse(veData.getMetaData(), getSystemConnection()));
             addReplyData("vedata", super.getNextDataBlock(veData, Integer.MAX_VALUE, m_isTerseData).getData());
@@ -101,6 +95,12 @@ public class DoVe extends BlockRetrievableRequest {
             } else {
                 addReplyData("is_done", true);
             }
+        }
+
+        try (Statement dbMonStmt = jdbcConn.createStatement()) {
+            dbMonStmt.execute("drop table QTEMP.DOVEOUT");
+        } catch (Exception e) {
+            Tracer.info(e.getMessage());
         }
     }
 }
