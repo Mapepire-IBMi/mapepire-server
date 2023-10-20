@@ -60,6 +60,7 @@ Valid trace levels:
 - `ON`: all except datastream
 - `ERRORS`: errors only
 - `DATASTREAM`: all including data stream
+- `INPUT_AND_ERRORS`: errors and data stream inputs
 
 # Examples
 

@@ -31,7 +31,8 @@ public class Tracer {
         OFF, // off
         ON, // all except datastream
         ERRORS, // errors only
-        DATASTREAM // all including data stream
+        DATASTREAM, // all including data stream
+        INPUT_AND_ERRORS // input data stream and errors
     }
 
     public enum EventType {
@@ -51,6 +52,8 @@ public class Tracer {
                     return this == ERR;
                 case DATASTREAM:
                     return true;
+                case INPUT_AND_ERRORS:
+                    return this == DATASTREAM_IN || this == ERR;
                 default:
                     return false;
             }
@@ -161,7 +164,7 @@ public class Tracer {
     private File m_destFile = null;
     private File m_jtOpenDestFile = null;
 
-    private TraceLevel m_traceLevel = TraceLevel.ERRORS;
+    private TraceLevel m_traceLevel = TraceLevel.INPUT_AND_ERRORS;
     private TraceLevel m_jtOpenTraceLevel = TraceLevel.OFF;
     private Dest m_jtopenDest = Dest.IN_MEM;
 
