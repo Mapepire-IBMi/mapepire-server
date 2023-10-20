@@ -42,7 +42,9 @@ public class DoVe extends BlockRetrievableRequest {
                 qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_THRESHOLD','-1')");
                 try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
                     tgt.execute();
-                    this.m_rs = tgt.getResultSet();
+                    if(isRunning) {
+                        this.m_rs = tgt.getResultSet();
+                    }
                 } catch (SQLException e) {
                     if (!"57005".equals(e.getSQLState())) {
                         throw e;
