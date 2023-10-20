@@ -32,6 +32,11 @@ public class DoVe extends BlockRetrievableRequest {
         byte[] id = new byte[0];
 
         try (Statement dbMonStmt = jdbcConn.createStatement()) {
+            try {
+                dbMonStmt.execute("drop table QTEMP.DOVEOUT");
+            } catch (Exception e) {
+                Tracer.info(e.getMessage());
+            }
             dbMonStmt.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
 
             if (isRunning) {
