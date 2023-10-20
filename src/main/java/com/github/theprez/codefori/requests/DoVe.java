@@ -40,17 +40,18 @@ public class DoVe extends BlockRetrievableRequest {
                     this.m_rs = tgt.getResultSet();
                 }
             } else {
-                final Statement qaqqiniStmt = jdbcConn.createStatement();
-                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1)");
-                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
-                try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
-                    tgt.execute();
-                } catch (SQLException e) {
-                    if (!"57005".equals(e.getSQLState())) {
-                        throw e;
+                try (final Statement qaqqiniStmt = jdbcConn.createStatement()) {
+                    qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1)");
+                    qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
+                    try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
+                        tgt.execute();
+                    } catch (SQLException e) {
+                        if (!"57005".equals(e.getSQLState())) {
+                            throw e;
+                        }
+                    } finally {
+                        qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3)");
                     }
-                } finally {
-                    qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3)");
                 }
             }
             dbMonStmt.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
