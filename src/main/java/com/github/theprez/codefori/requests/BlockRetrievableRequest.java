@@ -105,7 +105,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         return ret;
     }
 
-    public Object isDone() {
+    public boolean isDone() {
         return m_isDone;
     }
 

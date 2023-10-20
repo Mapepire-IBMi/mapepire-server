@@ -39,10 +39,12 @@ public class DoVe extends BlockRetrievableRequest {
                 if (!isRunning) {
                     qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
                 }
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_CLOSE_COUNT','65535')");
                 qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_THRESHOLD','-1')");
-                try (PreparedStatement tgt = jdbcConn.prepareStatement(sql)) {
+                PreparedStatement tgt = jdbcConn.prepareStatement(sql);
+                try {
                     tgt.execute();
-                    if(isRunning) {
+                    if (isRunning) {
                         this.m_rs = tgt.getResultSet();
                     }
                 } catch (SQLException e) {
@@ -50,6 +52,13 @@ public class DoVe extends BlockRetrievableRequest {
                         throw e;
                     }
                 } finally {
+                    if (!isRunning) {
+                        try {
+                            tgt.close();
+                        } catch (Exception e) {
+                            Tracer.warn(e);
+                        }
+                    }
                     qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3)");
                 }
             }
@@ -85,8 +94,7 @@ public class DoVe extends BlockRetrievableRequest {
                 }
             }
         }
-        try (
-                Statement resultsStmt = jdbcConn.createStatement()) {
+        try (Statement resultsStmt = jdbcConn.createStatement()) {
             ResultSet veData = resultsStmt.executeQuery("select * from qtemp.QQ$DBVE_41");
             addReplyData("vemetadata", getResultMetaDataForResponse(veData.getMetaData(), getSystemConnection()));
             addReplyData("vedata", super.getNextDataBlock(veData, Integer.MAX_VALUE, m_isTerseData).getData());

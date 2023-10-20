@@ -30,9 +30,4 @@ public class RunSql extends BlockRetrievableRequest {
             addReplyData("is_done", m_isDone);
         }
     }
-
-    public Object isDone() {
-        return m_isDone;
-    }
-
 }
