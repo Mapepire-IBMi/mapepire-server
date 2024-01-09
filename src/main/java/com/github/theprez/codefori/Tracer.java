@@ -16,8 +16,12 @@ import java.io.Writer;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ibm.as400.access.Trace;
 
@@ -152,9 +156,33 @@ public class Tracer {
         return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss.SSS");
     }
 
-    private LinkedBlockingDeque<Entry> m_inMem = new LinkedBlockingDeque<>(100);
+    private static class InMemCache<T> {
+        private final AtomicInteger m_ctr = new AtomicInteger(0);
+        private final int m_capacity;
+        private final LinkedHashMap<Integer, T> m_data;
 
-    private LinkedBlockingDeque<String> m_jtOpenInMem = new LinkedBlockingDeque<>(16 * 1024);
+        public InMemCache(int _capacity) {
+            m_capacity = _capacity;
+            m_data = new LinkedHashMap<Integer, T>() {
+                @Override
+                protected boolean removeEldestEntry(java.util.Map.Entry<Integer, T> eldest) {
+                    return m_capacity < size();
+                }
+            };
+        }
+
+        public void add(T _data) {
+            m_data.put(m_ctr.incrementAndGet(), _data);
+        }
+
+        public Collection<T> getEntries() {
+            return m_data.values();
+        }
+    }
+
+    private InMemCache<Entry> m_inMem = new InMemCache<Entry>(100);
+
+    private InMemCache<String> m_jtOpenInMem = new InMemCache<String>(16 * 1024);
 
     private Dest m_dest = Dest.IN_MEM;
 
@@ -309,7 +337,7 @@ public class Tracer {
         if (Dest.IN_MEM == m_dest) {
             buf.append("<html><body bgcolor=\"white\">\n\n");
             synchronized (m_inMem) {
-                for (Entry l : m_inMem) {
+                for (Entry l : m_inMem.getEntries()) {
                     buf.append(l.asHtml());
                     buf.append("\n");
                 }
@@ -332,7 +360,7 @@ public class Tracer {
         StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_jtopenDest) {
             synchronized (m_jtOpenInMem) {
-                for (String l : m_jtOpenInMem) {
+                for (String l : m_jtOpenInMem.getEntries()) {
                     buf.append(l);
                 }
             }
