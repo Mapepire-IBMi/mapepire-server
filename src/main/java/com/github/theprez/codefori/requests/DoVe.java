@@ -69,11 +69,6 @@ public class DoVe extends BlockRetrievableRequest {
                     id = rs.getBytes(1);
                 }
             }
-            try {
-                dbMonStmt.execute("drop table qtemp.QQ$DBVE_41");
-            } catch (Exception e) {
-                Tracer.info(e.getMessage());
-            }
         }
 
         try (CallableStatement callStmt = jdbcConn.prepareCall(
@@ -93,9 +88,7 @@ public class DoVe extends BlockRetrievableRequest {
                     }
                 }
             }
-        }
-        try (Statement resultsStmt = jdbcConn.createStatement()) {
-            ResultSet veData = resultsStmt.executeQuery("select * from qtemp.QQ$DBVE_41");
+            ResultSet veData = callStmt.getResultSet();
             addReplyData("vemetadata", getResultMetaDataForResponse(veData.getMetaData(), getSystemConnection()));
             addReplyData("vedata", super.getNextDataBlock(veData, Integer.MAX_VALUE, m_isTerseData).getData());
             if (null != this.m_rs) {
