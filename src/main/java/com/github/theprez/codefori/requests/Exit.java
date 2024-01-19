@@ -3,6 +3,7 @@ package com.github.theprez.codefori.requests;
 import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
+import com.github.theprez.codefori.Tracer;
 import com.google.gson.JsonObject;
 
 public class Exit extends ClientRequest {
@@ -17,6 +18,7 @@ public class Exit extends ClientRequest {
 
     @Override
     protected void processAfterReplySent() {
+        Tracer.info("exiting as requested");
         System.exit(0);
     }
 }

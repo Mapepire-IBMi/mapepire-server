@@ -184,9 +184,9 @@ public class DataStreamProcessor implements Runnable {
                         dispatch(new UnknownReq(this, m_conn, reqObj, typeString));
                 }
             }
-        } catch (JsonSyntaxException | IOException e) {
+        } catch (Exception e) {
             Tracer.err(e);
-            System.exit(-1);
+            System.exit(6);
         }
 
     }

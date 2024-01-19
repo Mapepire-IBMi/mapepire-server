@@ -30,6 +30,8 @@ public class CodeForiServer {
         } catch (final Exception e) {
             Tracer.err(e);
         }
-        System.exit(-1);
+        Tracer.warn("data stream processing completed (end of request stream?)");
+        System.err.println("bye");
+        System.exit(12);
     }
 }
