@@ -95,7 +95,7 @@ public abstract class ClientRequest implements Runnable {
                 processAfterReplySent();
             } catch (final Exception e) {
                 Tracer.err(e);
-                System.exit(-1);
+                System.exit(4);
             }
         }
     }
@@ -105,7 +105,8 @@ public abstract class ClientRequest implements Runnable {
             return "crazy";
         }
         if (_e instanceof Error || _e instanceof NullPointerException) {
-            return "Internal Error: " + Tracer.exceptionToStackTrace(_e);
+            //return "Internal Error: " + Tracer.exceptionToStackTrace(_e);
+            return "Internal Error: " + _e.getClass().getSimpleName()+": "+ _e.getLocalizedMessage();
         }
         String msg = _e.getLocalizedMessage();
         if (StringUtils.isNonEmpty(msg)) {
