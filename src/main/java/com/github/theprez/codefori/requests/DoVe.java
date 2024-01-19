@@ -40,7 +40,7 @@ public class DoVe extends BlockRetrievableRequest {
                 if (!isRunning) {
                     qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
                 }
-                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'SQL_STMT_REUSE','255')");
+                //qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'SQL_STMT_REUSE','255')");
                 qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_CLOSE_COUNT','65535')");
                 qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_THRESHOLD','-1')");
                 PreparedStatement tgt = jdbcConn.prepareStatement(sql);
