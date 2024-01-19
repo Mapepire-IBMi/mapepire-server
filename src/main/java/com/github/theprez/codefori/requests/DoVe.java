@@ -4,6 +4,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -39,6 +40,7 @@ public class DoVe extends BlockRetrievableRequest {
                 if (!isRunning) {
                     qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
                 }
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'SQL_STMT_REUSE','255')");
                 qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_CLOSE_COUNT','65535')");
                 qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'OPEN_CURSOR_THRESHOLD','-1')");
                 PreparedStatement tgt = jdbcConn.prepareStatement(sql);
@@ -74,17 +76,21 @@ public class DoVe extends BlockRetrievableRequest {
         try (CallableStatement callStmt = jdbcConn.prepareCall(
                 "call QIWS.QQQDBVE2(?,?,?,?,?)")) {
             callStmt.setBytes(1, id);
-            callStmt.setString(2, "DOVEOUT   QTEMP     ISO-ISO..ENUBM0                           09");
+            callStmt.setString(2, "DOVEOUT   QTEMP     ISO-ISO..ENUBM0                           01");
             callStmt.registerOutParameter(3, Types.INTEGER);
             callStmt.registerOutParameter(4, Types.INTEGER);
             callStmt.registerOutParameter(5, Types.CHAR, 72);
 
-            if (!callStmt.execute()) {
+            boolean isRs = callStmt.execute();
+            if (!isRs) {
                 String p5 = callStmt.getString(5);
                 if (null != p5) {
                     p5 = p5.trim();
                     if (0 != p5.length()) {
                         throw new RuntimeException("No result set available: " + p5);
+                    }
+                    else {
+                        throw new RuntimeException("No result set available");
                     }
                 }
             }
