@@ -33,7 +33,7 @@ public class DoVe extends BlockRetrievableRequest {
         byte[] id = new byte[0];
 
         try (Statement dbMonStmt = jdbcConn.createStatement()) {
-            dbMonStmt.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/DOVEOUT)')");
+            dbMonStmt.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/QDOVEOUT)')");
 
             try (final Statement qaqqiniStmt = jdbcConn.createStatement()) {
                 qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1)");
@@ -66,7 +66,7 @@ public class DoVe extends BlockRetrievableRequest {
             } finally {
                dbMonStmt.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
             }
-            try (ResultSet rs = dbMonStmt.executeQuery("SELECT QQJFLD FROM QTEMP.DOVEOUT WHERE QQRID = 3014 lImIt 1")) {
+            try (ResultSet rs = dbMonStmt.executeQuery("SELECT QQJFLD FROM QTEMP.QDOVEOUT WHERE QQRID = 3014 lImIt 1")) {
                 if (rs.next()) {
                     id = rs.getBytes(1);
                 }
