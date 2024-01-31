@@ -7,7 +7,23 @@ Locate the `SystemConnection.ConnectionOptions.getConnectionString()` method and
 hostname, username, and password in the non-IBMi leg of code.
 **For the love of all things good, do not commit your changes**
 
-### 2. Create file with test inputs
+### Change the scope of jt400 from `provided` to default in pom.xml
+
+In pom.xml, look for the `jt400` dependency declaration, which will look something like this:
+
+```xml
+<dependency>
+    <groupId>net.sf.jt400</groupId>
+    <artifactId>jt400</artifactId>
+    <version>11.2</version>
+    <!-- comment the <scope> tag for local development -->
+    <scope>provided</scope>
+</dependency>
+```
+
+As the comment suggests, comment out the scope tag.
+
+### 3. Create file with test inputs
 
 The test input file is simple a set of JSON requests as you would expect to receive from a client, for instance:
 ```json
@@ -15,7 +31,7 @@ The test input file is simple a set of JSON requests as you would expect to rece
 {"id": "dovetail", "type":"dove", "sql": "select * from sample.employee", "run": true}
 ```
 
-### 3. Start the server to use the test input file
+### 4. Start the server to use the test input file
 
 Either by:
   a. Setting the `test.file` system property in your debug configuration
