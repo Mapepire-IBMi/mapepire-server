@@ -74,12 +74,11 @@ public class DoVe extends BlockRetrievableRequest {
         }
 
         try (CallableStatement callStmt = jdbcConn.prepareCall(
-                "call QSYS.QQQDBVE(?,?,?,?,?)")) {
+                "call QSYS.QQQDBVE(?,?,?,?)")) {
             callStmt.setBytes(1, id);
             callStmt.setString(2, "QDOVEOUT  QTEMP     ISO-ISO..ENUBM0                           01");
             callStmt.registerOutParameter(3, Types.INTEGER);
             callStmt.registerOutParameter(4, Types.INTEGER);
-            callStmt.registerOutParameter(5, Types.CHAR, 72);
 
             if (!callStmt.execute()) {
                 throw new RuntimeException("No result set available");
