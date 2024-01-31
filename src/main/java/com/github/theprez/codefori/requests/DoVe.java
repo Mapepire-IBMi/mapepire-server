@@ -76,7 +76,7 @@ public class DoVe extends BlockRetrievableRequest {
         try (CallableStatement callStmt = jdbcConn.prepareCall(
                 "call QSYS.QQQDBVE(?,?,?,?,?)")) {
             callStmt.setBytes(1, id);
-            callStmt.setString(2, "DOVEOUT   QTEMP     ISO-ISO..ENUBM0                           01");
+            callStmt.setString(2, "QDOVEOUT  QTEMP     ISO-ISO..ENUBM0                           01");
             callStmt.registerOutParameter(3, Types.INTEGER);
             callStmt.registerOutParameter(4, Types.INTEGER);
             callStmt.registerOutParameter(5, Types.CHAR, 72);
@@ -97,7 +97,7 @@ public class DoVe extends BlockRetrievableRequest {
         }
 
         try (Statement dbMonStmt = jdbcConn.createStatement()) {
-            dbMonStmt.execute("drop table QTEMP.DOVEOUT");
+            dbMonStmt.execute("drop table QTEMP.QDOVEOUT");
         } catch (Exception e) {
             Tracer.info(e.getMessage());
         }
