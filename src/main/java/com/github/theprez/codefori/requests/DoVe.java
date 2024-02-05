@@ -36,7 +36,7 @@ public class DoVe extends BlockRetrievableRequest {
                 Statement qaqqiniStmt = jdbcConn.createStatement()) {
             dbMonStmt.execute("CALL QSYS2.QCMDEXC('STRDBMON OUTFILE(QTEMP/QDOVEOUT)')");
             try {
-                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1)");
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(1, '', '')");
                 if (!isRunning) {
                     qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(2, 'QUERY_TIME_LIMIT', '0')");
                 }
