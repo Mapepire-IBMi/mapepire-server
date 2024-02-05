@@ -63,7 +63,7 @@ public class DoVe extends BlockRetrievableRequest {
                     }
                 }
             } finally {
-                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3)");
+                qaqqiniStmt.execute("CALL QSYS2.OVERRIDE_QAQQINI(3, '', '')");
                 dbMonStmt.execute("CALL QSYS2.QCMDEXC('ENDDBMON')");
             }
             try (ResultSet rs = dbMonStmt.executeQuery("SELECT QQJFLD FROM QTEMP.QDOVEOUT WHERE QQRID = 3014 lImIt 1")) {
