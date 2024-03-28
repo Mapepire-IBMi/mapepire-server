@@ -60,10 +60,10 @@ public class DataStreamProcessor implements Runnable {
 
     private void dispatch(final ClientRequest _req, final boolean _isForcedSynchronous) {
         if (m_isTestMode || _isForcedSynchronous || _req.isForcedSynchronous()) {
-            Tracer.info("synchronously dispatcing a request of type: "+_req.getClass().getSimpleName());
+            Tracer.info("synchronously dispatcing a request of type: " + _req.getClass().getSimpleName());
             _req.run();
         } else {
-            Tracer.info("asynchronously dispatcing a request of type: "+_req.getClass().getSimpleName());
+            Tracer.info("asynchronously dispatcing a request of type: " + _req.getClass().getSimpleName());
             new Thread(_req).start();
         }
     }
@@ -77,116 +77,121 @@ public class DataStreamProcessor implements Runnable {
                     continue;
                 }
                 Tracer.datastreamIn(requestString);
-                if(requestString.startsWith("//")) {
+                if (requestString.startsWith("//")) {
                     continue;
                 }
-                final JsonElement reqElement;
-                final JsonObject reqObj;
-                try {
-                    reqElement = JsonParser.parseString(requestString);
-                    reqObj = reqElement.getAsJsonObject();
-                } catch (final Exception e) {
-                    dispatch(new UnparsableReq(this, m_conn, requestString));
-                    continue;
-                }
-                final JsonElement type = reqObj.get("type");
-                if (null == type || null == reqObj.get("id")) {
-                    dispatch(new IncompleteReq(this, m_conn, requestString));
-                    continue;
-                }
-                JsonElement cont_id = reqObj.get("cont_id");
-                final String typeString = type.getAsString();
-                switch (typeString) {
-                    case "ping":
-                        dispatch(new Ping(this, m_conn, reqObj));
-                        break;
-                    case "sql":
-                        final RunSql runSqlReq = new RunSql(this, m_conn, reqObj);
-                        m_queriesMap.put(runSqlReq.getId(), runSqlReq);
-                        dispatch(runSqlReq);
-                        break;
-                    case "prepare_sql":
-                        final PrepareSql prepSqlReq = new PrepareSql(this, m_conn, reqObj, false);
-                        m_prepStmtMap.put(prepSqlReq.getId(), prepSqlReq);
-                        dispatch(prepSqlReq);
-                        break;
-                    case "prepare_sql_execute":
-                        final PrepareSql prepSqlExecReq = new PrepareSql(this, m_conn, reqObj, true);
-                        m_prepStmtMap.put(prepSqlExecReq.getId(), prepSqlExecReq);
-                        dispatch(prepSqlExecReq);
-                        break;
-                    case "sqlmore": {
-                        if (null == cont_id) {
-                            dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
-                        }
-                        BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
-                        if (null == prev) {
-                            prev = m_prepStmtMap.get(cont_id.getAsString());
-                        }
-                        if (null == prev) {
-                            dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
-                            break;
-                        }
-                        dispatch(new RunSqlMore(this, reqObj, prev));
-                        break;
-                    }
-                    case "sqlclose": {
-                        if (null == cont_id) {
-                            dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
-                        }
-                        BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
-                        if (null == prev) {
-                            prev = m_prepStmtMap.get(cont_id.getAsString());
-                        }
-                        if (null == prev) {
-                            dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
-                            break;
-                        }
-                        dispatch(new CloseSqlCursor(this, reqObj, prev));
-                        break;
-                    }
-                    case "execute":
-                        if (null == cont_id) {
-                            dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
-                        }
-                        final PrepareSql prevP = m_prepStmtMap.get(cont_id.getAsString());
-                        if (null == prevP) {
-                            dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
-                            break;
-                        }
-                        dispatch(new PreparedExecute(this, reqObj, prevP));
-                        break;
-                    case "cl":
-                        dispatch(new RunCL(this, m_conn, reqObj));
-                        break;
-                    case "dove":
-                        dispatch(new DoVe(this, m_conn, reqObj));
-                        break;
-                    case "connect":
-                        dispatch(new Reconnect(this, m_conn, reqObj));
-                        break;
-                    case "getdbjob":
-                        dispatch(new GetDbJob(this, m_conn, reqObj));
-                        break;
-                    case "getversion":
-                        dispatch(new GetVersion(this, m_conn, reqObj));
-                        break;
-                    case "setconfig":
-                        dispatch(new SetConfig(this, m_conn, reqObj));
-                        break;
-                    case "gettracedata":
-                        dispatch(new GetTraceData(this, m_conn, reqObj));
-                        break;
-                    case "exit":
-                        dispatch(new Exit(this, m_conn, reqObj));
-                        break;
-                    default:
-                        dispatch(new UnknownReq(this, m_conn, reqObj, typeString));
-                }
+
+                run(requestString);
             }
         } catch (Exception e) {
             Tracer.err(e);
             System.exit(6);
+        }
+    }
+
+    public void run(String requestString) {
+        final JsonElement reqElement;
+        final JsonObject reqObj;
+        try {
+            reqElement = JsonParser.parseString(requestString);
+            reqObj = reqElement.getAsJsonObject();
+        } catch (final Exception e) {
+            dispatch(new UnparsableReq(this, m_conn, requestString));
+            return;
+        }
+        final JsonElement type = reqObj.get("type");
+        if (null == type || null == reqObj.get("id")) {
+            dispatch(new IncompleteReq(this, m_conn, requestString));
+            return;
+        }
+        JsonElement cont_id = reqObj.get("cont_id");
+        final String typeString = type.getAsString();
+        switch (typeString) {
+            case "ping":
+                dispatch(new Ping(this, m_conn, reqObj));
+                break;
+            case "sql":
+                final RunSql runSqlReq = new RunSql(this, m_conn, reqObj);
+                m_queriesMap.put(runSqlReq.getId(), runSqlReq);
+                dispatch(runSqlReq);
+                break;
+            case "prepare_sql":
+                final PrepareSql prepSqlReq = new PrepareSql(this, m_conn, reqObj, false);
+                m_prepStmtMap.put(prepSqlReq.getId(), prepSqlReq);
+                dispatch(prepSqlReq);
+                break;
+            case "prepare_sql_execute":
+                final PrepareSql prepSqlExecReq = new PrepareSql(this, m_conn, reqObj, true);
+                m_prepStmtMap.put(prepSqlExecReq.getId(), prepSqlExecReq);
+                dispatch(prepSqlExecReq);
+                break;
+            case "sqlmore": {
+                if (null == cont_id) {
+                    dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
+                }
+                BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
+                if (null == prev) {
+                    prev = m_prepStmtMap.get(cont_id.getAsString());
+                }
+                if (null == prev) {
+                    dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                    break;
+                }
+                dispatch(new RunSqlMore(this, reqObj, prev));
+                break;
+            }
+            case "sqlclose": {
+                if (null == cont_id) {
+                    dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
+                }
+                BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
+                if (null == prev) {
+                    prev = m_prepStmtMap.get(cont_id.getAsString());
+                }
+                if (null == prev) {
+                    dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                    break;
+                }
+                dispatch(new CloseSqlCursor(this, reqObj, prev));
+                break;
+            }
+            case "execute":
+                if (null == cont_id) {
+                    dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
+                }
+                final PrepareSql prevP = m_prepStmtMap.get(cont_id.getAsString());
+                if (null == prevP) {
+                    dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                    break;
+                }
+                dispatch(new PreparedExecute(this, reqObj, prevP));
+                break;
+            case "cl":
+                dispatch(new RunCL(this, m_conn, reqObj));
+                break;
+            case "dove":
+                dispatch(new DoVe(this, m_conn, reqObj));
+                break;
+            case "connect":
+                dispatch(new Reconnect(this, m_conn, reqObj));
+                break;
+            case "getdbjob":
+                dispatch(new GetDbJob(this, m_conn, reqObj));
+                break;
+            case "getversion":
+                dispatch(new GetVersion(this, m_conn, reqObj));
+                break;
+            case "setconfig":
+                dispatch(new SetConfig(this, m_conn, reqObj));
+                break;
+            case "gettracedata":
+                dispatch(new GetTraceData(this, m_conn, reqObj));
+                break;
+            case "exit":
+                dispatch(new Exit(this, m_conn, reqObj));
+                break;
+            default:
+                dispatch(new UnknownReq(this, m_conn, reqObj, typeString));
         }
 
     }
