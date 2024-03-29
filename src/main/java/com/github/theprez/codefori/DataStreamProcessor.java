@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +33,6 @@ import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 
 public class DataStreamProcessor implements Runnable {
 
@@ -201,6 +201,15 @@ public class DataStreamProcessor implements Runnable {
             m_out.write((_response + "\n").getBytes("UTF-8"));
             Tracer.datastreamOut(_response);
             m_out.flush();
+        }
+    }
+
+    public void end() {
+        try {
+            m_conn.getJdbcConnection().close();
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 

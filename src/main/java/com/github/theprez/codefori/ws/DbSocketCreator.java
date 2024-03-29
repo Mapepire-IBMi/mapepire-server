@@ -12,7 +12,16 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 
 public class DbSocketCreator implements WebSocketCreator
 {
+    private static boolean isDaemon = false;
     private static String host = "localhost";
+
+    public static void enableDaemon() {
+        isDaemon = true;
+    }
+
+    public static boolean isDaemon() {
+        return isDaemon;
+    }
 
     public static void setHost(String _host) {
         host = _host;

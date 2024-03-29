@@ -137,6 +137,17 @@ public class SystemConnection {
         return String.format("%s/%s/%s", number, user, name);
     }
 
+    public synchronized void close() {
+        if (null != m_conn) {
+            try {
+                m_conn.close();
+            } catch (SQLException e) {
+                Tracer.err(e);
+            }
+            m_conn = null;
+        }
+    }
+
     public synchronized Connection reconnect(final ConnectionOptions _opts) throws SQLException {
         if (null != m_conn) {
             final Connection cpy = m_conn;

@@ -4,6 +4,7 @@ import com.github.theprez.codefori.ClientRequest;
 import com.github.theprez.codefori.DataStreamProcessor;
 import com.github.theprez.codefori.SystemConnection;
 import com.github.theprez.codefori.Tracer;
+import com.github.theprez.codefori.ws.DbSocketCreator;
 import com.google.gson.JsonObject;
 
 public class Exit extends ClientRequest {
@@ -14,11 +15,16 @@ public class Exit extends ClientRequest {
 
     @Override
     protected void go() throws Exception {
+        addReplyData("success", getSystemConnection().getJdbcJobName());
     }
 
     @Override
     protected void processAfterReplySent() {
-        Tracer.info("exiting as requested");
-        System.exit(0);
+        if (DbSocketCreator.isDaemon()) {
+            this.getConnection().close();
+        } else {
+            Tracer.info("exiting as requested");
+            System.exit(0);
+        }
     }
 }
