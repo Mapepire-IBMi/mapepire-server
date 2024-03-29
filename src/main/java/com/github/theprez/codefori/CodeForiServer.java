@@ -6,11 +6,13 @@ import java.util.LinkedList;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.websocket.server.NativeWebSocketServletContainerInitializer;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
 import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.eclipse.jetty.io.ssl.SslConnection;
 
 import com.github.theprez.codefori.ws.DbSocketCreator;
 import com.github.theprez.jcmdutils.StringUtils;
@@ -43,6 +45,11 @@ public class CodeForiServer {
                 DbSocketCreator.enableDaemon();
                 
                 server = new Server();
+
+                // SslConnectionFactory sslConnectionFactory = new SslConnectionFactory();
+                // sslConnectionFactory.getSslContextFactory().set
+                // https://stackoverflow.com/questions/64442156/how-to-create-a-pkcs12-keystore
+
                 ServerConnector connector = new ServerConnector(server);
                 connector.setPort(8085);
                 server.addConnector(connector);
