@@ -40,14 +40,15 @@ public class DbWebsocketClient extends WebSocketAdapter {
 
   @Override
   public void onWebSocketClose(int statusCode, String reason) {
+    io.end();
     super.onWebSocketClose(statusCode, reason);
     closureLatch.countDown();
   }
 
   @Override
   public void onWebSocketError(Throwable cause) {
-    super.onWebSocketError(cause);
     io.end();
+    super.onWebSocketError(cause);
     // cause.printStackTrace(System.err);
   }
 
