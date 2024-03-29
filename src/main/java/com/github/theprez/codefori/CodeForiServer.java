@@ -40,6 +40,8 @@ public class CodeForiServer {
 
                 io.run();
             } else {
+                DbSocketCreator.enableDaemon();
+                
                 server = new Server();
                 ServerConnector connector = new ServerConnector(server);
                 connector.setPort(8085);
@@ -51,7 +53,8 @@ public class CodeForiServer {
                 context.setContextPath("/");
                 server.setHandler(context);
 
-                String remoteServer = System.getProperty("remoteServer", "");
+                // String remoteServer = System.getProperty("remoteServer", "");
+                String remoteServer = "UT201P18.RCH.STGLABS.IBM.COM";
                 if (StringUtils.isNonEmpty(remoteServer)) {
                     DbSocketCreator.setHost(remoteServer);
                 }

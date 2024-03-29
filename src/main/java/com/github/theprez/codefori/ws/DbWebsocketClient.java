@@ -47,7 +47,8 @@ public class DbWebsocketClient extends WebSocketAdapter {
   @Override
   public void onWebSocketError(Throwable cause) {
     super.onWebSocketError(cause);
-    cause.printStackTrace(System.err);
+    io.end();
+    // cause.printStackTrace(System.err);
   }
 
   public void awaitClosure() throws InterruptedException {

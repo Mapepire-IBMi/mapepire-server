@@ -27,6 +27,10 @@ public abstract class ClientRequest implements Runnable {
         addReplyData("id", m_id);
     }
 
+    public SystemConnection getConnection() {
+        return m_conn;
+    }
+
     protected void addReplyData(final String _key, final Object _val) {
         replyData.put(_key, _val);
     }
