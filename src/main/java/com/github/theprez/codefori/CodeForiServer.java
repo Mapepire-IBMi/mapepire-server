@@ -60,8 +60,7 @@ public class CodeForiServer {
                 context.setContextPath("/");
                 server.setHandler(context);
 
-                // String remoteServer = System.getProperty("remoteServer", "");
-                String remoteServer = "UT201P18.RCH.STGLABS.IBM.COM";
+                String remoteServer = System.getenv("DB_SERVER");
                 if (StringUtils.isNonEmpty(remoteServer)) {
                     DbSocketCreator.setHost(remoteServer);
                 }
