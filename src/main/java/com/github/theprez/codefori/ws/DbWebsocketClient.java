@@ -72,7 +72,12 @@ public class DbWebsocketClient extends WebSocketAdapter {
 
       @Override
       public void flush() throws IOException {
-        endpoint.getRemote().sendString(this.toString());
+        if (endpoint.getRemote() != null) {
+          String content = this.toString();
+          if (content != null) {
+            endpoint.getRemote().sendString(content);
+          }
+        }
         this.string.setLength(0);
       }
     };
