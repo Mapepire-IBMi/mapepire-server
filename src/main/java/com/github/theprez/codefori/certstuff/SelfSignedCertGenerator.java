@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 
@@ -16,17 +15,17 @@ public class SelfSignedCertGenerator {
     public SelfSignedCertGenerator() {
     }
 
-    public ServerCertInfo generate(String _keyPassword, String _storePassword, File _keyStore, String _alias)
+    public ServerCertInfo generate(final String _keyPassword, final String _storePassword, final File _keyStore, final String _alias)
             throws IOException, InterruptedException {
 
-        File javaHome = new File(System.getProperty("java.home"));
-        File keytoolDir = new File(javaHome, "bin");
+        final File javaHome = new File(System.getProperty("java.home"));
+        final File keytoolDir = new File(javaHome, "bin");
 
-        InetAddress localHost = InetAddress.getLocalHost();
-        String fqdn = localHost.getHostName();
-        String dname =  String.format("cn=%s, ou=Web Socket Server, o=Db2 for IBM i, c=Unknown, st=Unknown", fqdn);
-        File keytoolPath = new File(keytoolDir, getKeytoolBinaryName());
-        String[] cmdArray = new String[] {
+        final InetAddress localHost = InetAddress.getLocalHost();
+        final String fqdn = localHost.getHostName();
+        final String dname =  String.format("cn=%s, ou=Web Socket Server, o=Db2 for IBM i, c=Unknown, st=Unknown", fqdn);
+        final File keytoolPath = new File(keytoolDir, getKeytoolBinaryName());
+        final String[] cmdArray = new String[] {
                 keytoolPath.getAbsolutePath(),
                 "-genkey",
                 "-dname",
@@ -47,13 +46,13 @@ public class SelfSignedCertGenerator {
 
         final Process p = Runtime.getRuntime().exec(cmdArray);
 
-        Thread stdoutLogger = new StreamLogger(p.getInputStream(), false);
-        Thread stderrLogger = new StreamLogger(p.getErrorStream(), true);
+        final Thread stdoutLogger = new StreamLogger(p.getInputStream(), false);
+        final Thread stderrLogger = new StreamLogger(p.getErrorStream(), true);
         stderrLogger.start();
         stdoutLogger.start();
 
         p.getOutputStream().close();
-        int exitCode = p.waitFor();
+        final int exitCode = p.waitFor();
         if (0 == exitCode) {
             Tracer.info("Created keystore at " + _keyStore.getAbsolutePath());
         } else {
@@ -68,9 +67,7 @@ public class SelfSignedCertGenerator {
 
     private class StreamLogger extends Thread {
         public StreamLogger(final InputStream _stream, final boolean _isError) {
-            super(new Runnable() {
-                @Override
-                public void run() {
+            super(() -> {
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(_stream, "UTF-8"))) {
                         String line = null;
                         while (null != (line = reader.readLine())) {
@@ -80,16 +77,15 @@ public class SelfSignedCertGenerator {
                                 Tracer.info(line);
                             }
                         }
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         Tracer.err(e);
                     }
-                }
             }, "Stream logger, errorstream=" + _isError);
         }
     }
 
     private String getKeytoolBinaryName() {
-        String osName = ManagementFactory.getOperatingSystemMXBean().getName();
+        final String osName = ManagementFactory.getOperatingSystemMXBean().getName();
         if (osName.toLowerCase().contains("windows")) {
             return "keytool.exe";
         }
