@@ -21,10 +21,16 @@ public class SelfSignedCertGenerator {
 
         File javaHome = new File(System.getProperty("java.home"));
         File keytoolDir = new File(javaHome, "bin");
+
+        InetAddress localHost = InetAddress.getLocalHost();
+        String fqdn = localHost.getHostName();
+        String dname =  String.format("cn=%s, ou=Web Socket Server, o=Db2 for IBM i, c=Unknown, st=Unknown", fqdn);
         File keytoolPath = new File(keytoolDir, getKeytoolBinaryName());
         String[] cmdArray = new String[] {
                 keytoolPath.getAbsolutePath(),
                 "-genkey",
+                "-dname",
+                dname,
                 "-alias",
                 _alias,
                 "-keyalg",
@@ -34,7 +40,9 @@ public class SelfSignedCertGenerator {
                 "-storepass",
                 _storePassword,
                 "-keystore",
-                _keyStore.getAbsolutePath()
+                _keyStore.getAbsolutePath(),
+                "-validity",
+                "3654"
         };
 
         final Process p = Runtime.getRuntime().exec(cmdArray);
@@ -44,26 +52,12 @@ public class SelfSignedCertGenerator {
         stderrLogger.start();
         stdoutLogger.start();
 
-        try (OutputStreamWriter stream = new OutputStreamWriter(p.getOutputStream(), "UTF-8")) {
-            InetAddress localHost = InetAddress.getLocalHost();
-            String fqdn = localHost.getHostName();
-            String[] keytoolInputs = new String[] {
-                    fqdn, "Web Socket Server", "Db2 for IBM i", "", "", "", "Y\nY\nY\nY\nY"
-            };
-            for (String keytoolInput : keytoolInputs) {
-                stream.write(keytoolInput);
-                stream.write("\n");
-                stream.flush();
-            }
-
-            int exitCode = p.waitFor();
-            if (0 == exitCode) {
-                Tracer.info("Created keystore at " + _keyStore.getAbsolutePath());
-            } else {
-                Tracer.err("Failed to create keystore");
-            }
-        } finally {
-            p.destroy();
+        p.getOutputStream().close();
+        int exitCode = p.waitFor();
+        if (0 == exitCode) {
+            Tracer.info("Created keystore at " + _keyStore.getAbsolutePath());
+        } else {
+            Tracer.err("Failed to create keystore");
         }
 
         stderrLogger.join();
