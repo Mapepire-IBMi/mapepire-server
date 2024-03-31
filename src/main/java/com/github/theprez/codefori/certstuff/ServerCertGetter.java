@@ -17,8 +17,8 @@ public class ServerCertGetter {
 
 
     public ServerCertGetter() {
-        File userHomeDir = new File(System.getProperty("user.home"));
-        File dotDir = new File(userHomeDir, ".wsdb");
+        final File userHomeDir = new File(System.getProperty("user.home"));
+        final File dotDir = new File(userHomeDir, ".wsdb");
         dotDir.mkdirs();
         m_userCertFile = new File(dotDir, "user.jks");
         m_defaultCertFile = new File(dotDir, "default.jks");
@@ -34,7 +34,7 @@ public class ServerCertGetter {
             return new ServerCertInfo(m_defaultCertFile, StoreDefaults.STORE_PASS, StoreDefaults.KEY_PASS, StoreDefaults.ALIAS);
         } else  {
             Tracer.warn("Generating self-signed certificate");
-            SelfSignedCertGenerator gen = new SelfSignedCertGenerator();
+            final SelfSignedCertGenerator gen = new SelfSignedCertGenerator();
             return gen.generate(StoreDefaults.KEY_PASS, StoreDefaults.KEY_PASS, m_defaultCertFile, StoreDefaults.ALIAS);
         }
     }

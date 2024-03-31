@@ -17,7 +17,7 @@ public class ServerCertInfo {
     private final String m_keyPass;
     private final String m_alias;
 
-    public ServerCertInfo(File _keyStore, String _storePassword, String _keyPassword, String _alias) {
+    public ServerCertInfo(final File _keyStore, final String _storePassword, final String _keyPassword, final String _alias) {
         m_storePath = _keyStore;
         m_storePass = _storePassword;
         m_keyPass = _keyPassword;
@@ -29,7 +29,7 @@ public class ServerCertInfo {
         if (null != m_keystore) {
             return m_keystore;
         }
-        KeyStore ks = KeyStore.getInstance("JKS");
+        final KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(new FileInputStream(m_storePath), m_storePass.toCharArray());
         return m_keystore = ks;
     }
