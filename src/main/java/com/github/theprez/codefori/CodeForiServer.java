@@ -6,16 +6,16 @@ import java.util.LinkedList;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.server.NativeWebSocketServletContainerInitializer;
-import org.eclipse.jetty.websocket.server.WebSocketHandler;
 import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
-import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
-import org.eclipse.jetty.io.ssl.SslConnection;
-
+import com.github.theprez.codefori.certstuff.ServerCertGetter;
+import com.github.theprez.codefori.certstuff.ServerCertInfo;
 import com.github.theprez.codefori.ws.DbSocketCreator;
+import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
+import com.github.theprez.jcmdutils.StringUtils.TerminalColor;
 
 public class CodeForiServer {
     private static Server server;
@@ -24,6 +24,7 @@ public class CodeForiServer {
 
         final LinkedList<String> args = new LinkedList<String>();
         args.addAll(Arrays.asList(_args));
+
         if (args.remove("--version")) {
             System.out.println("Version: " + Version.s_version);
             System.out.println("Build time: " + Version.s_compileDateTime);
@@ -46,11 +47,24 @@ public class CodeForiServer {
                 
                 server = new Server();
 
-                // SslConnectionFactory sslConnectionFactory = new SslConnectionFactory();
-                // sslConnectionFactory.getSslContextFactory().set
-                // https://stackoverflow.com/questions/64442156/how-to-create-a-pkcs12-keystore
+                final ServerConnector connector;
+                if (Boolean.getBoolean("wsdb.unsecure")) {
+                    String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
+                    System.err.println(StringUtils.colorizeForTerminal("\n\n" + uhOhWarning + "\n\n",
+                            TerminalColor.BRIGHT_RED));
+                    Tracer.warn(uhOhWarning);
+                    connector = new ServerConnector(server);
+                } else {
+                    SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
+                    ServerCertInfo serverCertInfo = new ServerCertGetter().get();
+                    sslContextFactory.setKeyStore(serverCertInfo.getKeyStore());
+                    sslContextFactory.setKeyStorePassword(serverCertInfo.getStorePass());
+                    sslContextFactory.setCertAlias(serverCertInfo.getAlias());
+                    sslContextFactory.setKeyManagerPassword(serverCertInfo.getKeyPass());
+                    Tracer.info("Using key store " + serverCertInfo.getKeyStoreFile().getAbsolutePath());
+                    connector = new ServerConnector(server, sslContextFactory);
+                }
 
-                ServerConnector connector = new ServerConnector(server);
                 connector.setPort(8085);
                 server.addConnector(connector);
 
