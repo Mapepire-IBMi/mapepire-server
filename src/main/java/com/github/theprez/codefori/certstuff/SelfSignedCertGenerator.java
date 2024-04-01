@@ -15,7 +15,7 @@ public class SelfSignedCertGenerator {
     public SelfSignedCertGenerator() {
     }
 
-    public ServerCertInfo generate(final String _keyPassword, final String _storePassword, final File _keyStore, final String _alias)
+    public ServerCertInfo generate(final String _storePassword, final String _keyPassword, final File _keyStore, final String _alias)
             throws IOException, InterruptedException {
 
         final File javaHome = new File(System.getProperty("java.home"));
