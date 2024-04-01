@@ -8,13 +8,29 @@ import com.github.theprez.codefori.Tracer;
 public class ServerCertGetter {
 
     private static class StoreDefaults {
-        public static String STORE_PASS = "hyrule";
-        public static String KEY_PASS = "hyrule";
+        private static String STORE_PASS = "hyrule";
+        private static String KEY_PASS = "hyrule";
         public static String ALIAS = "wsdb";
+
+        public static String getStorePass() {
+            String envVar = System.getenv("WSDB_STORE_PASS");
+            if (envVar != null)
+                return envVar;
+            else
+                return StoreDefaults.STORE_PASS;
+        }
+
+        public static String getKeyPass() {
+            String envVar = System.getenv("WSDB_KEY_PASS");
+            if (envVar != null)
+                return envVar;
+            else
+                return StoreDefaults.KEY_PASS;
+        }
     }
+
     private final File m_userCertFile; 
     private final File m_defaultCertFile;
-
 
     public ServerCertGetter() {
         final File userHomeDir = new File(System.getProperty("user.home"));
@@ -26,16 +42,15 @@ public class ServerCertGetter {
 
     public ServerCertInfo get() throws IOException, InterruptedException {
         if(m_userCertFile.isFile()) {
-            //TODO: allow user to set passwords and such
             Tracer.info("Using user-defined certificate file "+m_userCertFile.getAbsolutePath());
-            return new ServerCertInfo(m_userCertFile, StoreDefaults.STORE_PASS, StoreDefaults.KEY_PASS, StoreDefaults.ALIAS);
+            return new ServerCertInfo(m_userCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(), StoreDefaults.ALIAS);
         } else if(m_defaultCertFile.isFile()) {
             Tracer.info("Reusing previously-generated default certificate in "+m_defaultCertFile.getAbsolutePath());
-            return new ServerCertInfo(m_defaultCertFile, StoreDefaults.STORE_PASS, StoreDefaults.KEY_PASS, StoreDefaults.ALIAS);
+            return new ServerCertInfo(m_defaultCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(), StoreDefaults.ALIAS);
         } else  {
             Tracer.warn("Generating self-signed certificate");
             final SelfSignedCertGenerator gen = new SelfSignedCertGenerator();
-            return gen.generate(StoreDefaults.KEY_PASS, StoreDefaults.KEY_PASS, m_defaultCertFile, StoreDefaults.ALIAS);
+            return gen.generate(StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(), m_defaultCertFile, StoreDefaults.ALIAS);
         }
     }
 }
