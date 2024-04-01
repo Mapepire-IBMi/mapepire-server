@@ -14,6 +14,7 @@ public class DbSocketCreator implements WebSocketCreator
 {
     private static boolean isDaemon = false;
     private static String host = "localhost";
+    private static int port = 8076;
 
     public static void enableDaemon() {
         isDaemon = true;
@@ -23,12 +24,20 @@ public class DbSocketCreator implements WebSocketCreator
         return isDaemon;
     }
 
-    public static void setHost(String _host) {
+    public static void setDatabaseHost(String _host) {
         host = _host;
     }
 
     public static String getHost() {
         return host;
+    }
+
+    public static void setServerPort(int _port) {
+        port = _port;
+    }
+
+    public static int getPort() {
+        return port;
     }
 
     @Override

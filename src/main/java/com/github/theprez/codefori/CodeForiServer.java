@@ -76,7 +76,12 @@ public class CodeForiServer {
 
                 String remoteServer = System.getenv("DB_SERVER");
                 if (StringUtils.isNonEmpty(remoteServer)) {
-                    DbSocketCreator.setHost(remoteServer);
+                    DbSocketCreator.setDatabaseHost(remoteServer);
+                }
+
+                String remotePort = System.getenv("WSDB_PORT");
+                if (StringUtils.isNonEmpty(remotePort)) {
+                    DbSocketCreator.setServerPort(Integer.parseInt(remotePort));
                 }
 
                 // Configure specific websocket behavior
