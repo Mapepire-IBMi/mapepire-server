@@ -1,4 +1,6 @@
 
+<img src="mapepire-logo.png" alt="logo" width="200"/>
+
 # Mapepire Server
 
 Server side component for the Mapepire project. 
