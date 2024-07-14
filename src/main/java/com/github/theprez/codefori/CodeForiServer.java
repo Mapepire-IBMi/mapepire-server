@@ -74,7 +74,7 @@ public class CodeForiServer {
                 context.setContextPath("/");
                 server.setHandler(context);
 
-                String remoteServer = System.getenv("DB_SERVER");
+                String remoteServer = System.getenv("DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
                 if (StringUtils.isNonEmpty(remoteServer)) {
                     DbSocketCreator.setDatabaseHost(remoteServer);
                 }
