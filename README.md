@@ -3,7 +3,7 @@
 
 # Mapepire Server
 
-Server side component for the Mapepire project. 
+Server side component for the Mapepire project, which provides a new, convenient way to access Db2 on IBM i.
 
 This provides server-side support for Code for IBM i, more specifically database support.
 Intended for programmatic interaction.
