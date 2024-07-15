@@ -6,10 +6,19 @@
   "configurations": [
     {
       "type": "java",
-      "name": "CodeForiServer",
+      "name": "Daemon Mode",
       "request": "launch",
       "mainClass": "com.github.theprez.codefori.CodeForiServer",
       "projectName": "codeforibmiserver",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "CLI mode",
+      "request": "launch",
+      "mainClass": "com.github.theprez.codefori.CodeForiServer",
+      "projectName": "codeforibmiserver",
+      "args": "--single",
       "envFile": "${workspaceFolder}/.env"
     }
   ]

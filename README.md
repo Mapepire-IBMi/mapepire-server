@@ -5,12 +5,12 @@
 
 Server side component for the Mapepire project, which provides a new, convenient way to access Db2 on IBM i.
 
-This provides server-side support for Code for IBM i, more specifically database support.
-Intended for programmatic interaction.
+This provides server-side support for Code for IBM i, more specifically database support. Intended for programmatic interaction.
 
 Client SDKs for Java, JavaScript, and Python are in the works! 
 
-# Usage
+## Usage
+
 ```bash
 /QOpenSys/QIBM/ProdData/JavaVM/jdk80/64bit/bin/java -jar codeforibmiserver.jar 
 ```
@@ -70,7 +70,7 @@ Valid trace levels:
 - `DATASTREAM`: all including data stream
 - `INPUT_AND_ERRORS`: errors and data stream inputs
 
-# Examples
+## Examples
 
 Example request to exit gracefully:
 ```json
@@ -93,7 +93,7 @@ Example to fetch more data (4 more rows) from previous query
 ```
 
 
-# Options for customizing behavior
+## Options for customizing behavior
 
 Operation `sql` supports the following Java system properties:
 - `codeserver.jdbc.autoconnect`: Enable SQL to be run without first issuing a `connect` request (uses default values)
@@ -104,3 +104,11 @@ So, for instance:
 ```bash
 /QOpenSys/QIBM/ProdData/JavaVM/jdk80/64bit/bin/java -Dcodeserver.jdbc.autoconnect=true -jar codeforibmiserver.jar
 ```
+
+## Developing and testing the server
+
+1. Clone repository
+2. Maven install
+3. Run and Debug inside of Visual Studio Code:
+   * Debug CLI: debugging CLI mode of the server. JSON stream passed via standard I/O.
+   * Daemon Mode: debugging Daemon Server via websockets. Use one of the available Node.js, Python, etc, libraries in combination of this.
