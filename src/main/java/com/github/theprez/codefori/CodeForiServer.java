@@ -48,7 +48,8 @@ public class CodeForiServer {
                 server = new Server();
 
                 final ServerConnector connector;
-                if (Boolean.getBoolean("wsdb.unsecure")) {
+                String isUnsecure = System.getenv("MP_UNSECURE");
+                if (StringUtils.isNonEmpty(isUnsecure) && isUnsecure.equals("true")) {
                     String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
                     System.err.println(StringUtils.colorizeForTerminal("\n\n" + uhOhWarning + "\n\n",
                             TerminalColor.BRIGHT_RED));
@@ -74,12 +75,12 @@ public class CodeForiServer {
                 context.setContextPath("/");
                 server.setHandler(context);
 
-                String remoteServer = System.getenv("DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
+                String remoteServer = System.getenv("MP_DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
                 if (StringUtils.isNonEmpty(remoteServer)) {
                     DbSocketCreator.setDatabaseHost(remoteServer);
                 }
 
-                String remotePort = System.getenv("WSDB_PORT");
+                String remotePort = System.getenv("PORT");
                 if (StringUtils.isNonEmpty(remotePort)) {
                     DbSocketCreator.setServerPort(Integer.parseInt(remotePort));
                 }
