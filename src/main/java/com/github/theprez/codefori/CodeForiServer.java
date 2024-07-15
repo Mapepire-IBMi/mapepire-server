@@ -66,7 +66,6 @@ public class CodeForiServer {
                     connector = new ServerConnector(server, sslContextFactory);
                 }
 
-                connector.setPort(8085);
                 server.addConnector(connector);
 
                 // Setup the basic application "context" for this application at "/"
@@ -75,7 +74,7 @@ public class CodeForiServer {
                 context.setContextPath("/");
                 server.setHandler(context);
 
-                String remoteServer = System.getenv("MP_DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
+                String remoteServer = System.getenv("DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
                 if (StringUtils.isNonEmpty(remoteServer)) {
                     DbSocketCreator.setDatabaseHost(remoteServer);
                 }
@@ -84,6 +83,10 @@ public class CodeForiServer {
                 if (StringUtils.isNonEmpty(remotePort)) {
                     DbSocketCreator.setServerPort(Integer.parseInt(remotePort));
                 }
+
+                connector.setPort(DbSocketCreator.getPort());
+
+                System.out.println("Starting server for " + DbSocketCreator.getHost() + " on port " + DbSocketCreator.getPort());
 
                 // Configure specific websocket behavior
                 NativeWebSocketServletContainerInitializer.configure(context,
