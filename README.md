@@ -1,6 +1,14 @@
-# CodeForIBMiServer
-Server-side support for Code for IBM i, more specifically database support.
+
+<img src="mapepire-logo.png" alt="logo" width="200"/>
+
+# Mapepire Server
+
+Server side component for the Mapepire project, which provides a new, convenient way to access Db2 on IBM i.
+
+This provides server-side support for Code for IBM i, more specifically database support.
 Intended for programmatic interaction.
+
+Client SDKs for Java, JavaScript, and Python are in the works! 
 
 # Usage
 ```bash
