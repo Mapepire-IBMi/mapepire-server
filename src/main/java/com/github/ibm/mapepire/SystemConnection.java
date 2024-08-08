@@ -1,9 +1,11 @@
 package com.github.ibm.mapepire;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import com.github.theprez.jcmdutils.StringUtils;
 import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCDriver;
 
@@ -96,9 +98,15 @@ public class SystemConnection {
         super();
     }
     
-    public SystemConnection(String host, String user, String pass) {
+    public SystemConnection(String host, String user, String pass) throws IOException {
         super();
         this.host = host;
+        if (StringUtils.isEmpty(user) || user.contains("*")) {
+            throw new IOException("Invalid Username");
+        }
+        if (StringUtils.isEmpty(pass)) {
+            throw new IOException("Invalid Password");
+        }
         this.userProfile = user;
         this.password = pass;
     }

@@ -6,21 +6,20 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
+import com.github.theprez.jcmdutils.StringUtils;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
 
-  DbWebsocketClient(String host, String user, String pass) throws UnsupportedEncodingException {
+  DbWebsocketClient(String host, String user, String pass) throws IOException {
     super();
     SystemConnection conn = new SystemConnection(host, user, pass);
     io = getDataStream(this, conn);

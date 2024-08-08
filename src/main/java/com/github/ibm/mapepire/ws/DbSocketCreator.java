@@ -83,7 +83,7 @@ public class DbSocketCreator implements WebSocketCreator
         
         try {
             return new DbWebsocketClient(DbSocketCreator.getHost(), parts[0], parts[1]);
-        } catch (UnsupportedEncodingException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
             return null;
