@@ -43,6 +43,8 @@ public class MapepireServer {
 
                 io.run();
             } else {
+                AppLogger logger = AppLogger.getSingleton(args.remove("-v"));
+                logger.printf("Starting daemon...");
                 DbSocketCreator.enableDaemon();
                 
                 server = new Server();
@@ -51,8 +53,7 @@ public class MapepireServer {
                 String isUnsecure = System.getenv("MP_UNSECURE");
                 if (StringUtils.isNonEmpty(isUnsecure) && isUnsecure.equals("true")) {
                     String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
-                    System.err.println(StringUtils.colorizeForTerminal("\n\n" + uhOhWarning + "\n\n",
-                            TerminalColor.BRIGHT_RED));
+                    logger.println_err("\n\n" + uhOhWarning + "\n\n");
                     Tracer.warn(uhOhWarning);
                     connector = new ServerConnector(server);
                 } else {
@@ -86,7 +87,7 @@ public class MapepireServer {
 
                 connector.setPort(DbSocketCreator.getPort());
 
-                System.out.println("Starting server for " + DbSocketCreator.getHost() + " on port " + DbSocketCreator.getPort());
+                logger.println("Starting server for " + DbSocketCreator.getHost() + " on port " + DbSocketCreator.getPort());
 
                 // Configure specific websocket behavior
                 NativeWebSocketServletContainerInitializer.configure(context,
@@ -104,8 +105,9 @@ public class MapepireServer {
                 try {
                     server.start();
                     server.join();
+                    logger.println_warn("Server ending gracefully");
                 } catch (Throwable t) {
-                    t.printStackTrace(System.err);
+                    logger.exception(t);
                 }
             }
         } catch (final Exception e) {
