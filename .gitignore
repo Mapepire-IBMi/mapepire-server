@@ -7,3 +7,4 @@ src/main/java/com/github/theprez/codefori/Version.java
 .settings/*
 .env
 test.txt
+src/main/java/com/github/ibm/mapepire/Version.java
