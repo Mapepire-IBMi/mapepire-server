@@ -4,10 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.theprez</groupId>
-    <artifactId>codeforibmiserver</artifactId>
+    <artifactId>mapepire-server</artifactId>
     <version>2.0.0-rc1</version>
-    <name>CodeForIBMiServer</name>
-    <description>Server-side support for "Code for IBM i" VSCode extension</description>
+    <name>Mapepire (IBM i) Server Component</name>
+    <description>Server-side support for Mapepire cloud-native database access layer.</description>
     <url>https://github.com/ThePrez/CodeForIBMiServer</url>
     <packaging>jar</packaging>
     <scm>
