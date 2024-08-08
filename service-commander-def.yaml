@@ -1,0 +1,7 @@
+name: Mapepire Server
+dir: /opt/mapepire/bin
+start_cmd: mapepire
+check_alive: mapepire,8076
+batch_mode: 'false'
+environment_vars:
+- PATH=/QOpenSys/pkgs/bin:/QOpenSys/usr/bin:/usr/ccs/bin:/QOpenSys/usr/bin/X11:/usr/sbin:.:/usr/bin
