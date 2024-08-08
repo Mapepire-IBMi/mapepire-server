@@ -37,12 +37,32 @@ jobs:
     - name: List target directory
       run: ls -l target
 
-    - name: Copy dist artifacts to staging directory
-      run: mkdir staging && cp target/*with-dependencies.jar staging/mapepire-server-${{ env.project_version }}.jar
+    - name: create jt400 pseudo-directory
+      run: sudo mkdir -p /QIBM/ProdData/OS400/jt400/lib/
+    - name: change ownership of jt400 psudo-directory
+      run: sudo chown $USER /QIBM/ProdData/OS400/jt400/lib/
+    - name: fetch jt400.jar
+      run: sudo curl https://repo1.maven.org/maven2/net/sf/jt400/jt400/10.7/jt400-10.7.jar -o /QIBM/ProdData/OS400/jt400/lib/jt400.jar
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+    - name: create staging directory
+      run: |
+        mkdir -p staging/opt/mapepire/lib/
+        mkdir -p staging/opt/mapepire/bin/
+    - name: Populate staging directory
+      run: |
+        mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
+        mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire.jar
+
+    - name: Create distribution .zip
+      run: |
+        pushd staging/opt/
+        zip -r ../../mapepire-server-${{ env.project_version }}.zip mapepire
+        popd
 
     - name: Create the tag and release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ env.project_version }}
         name: v${{ env.project_version }}
-        files: staging/codeforiserver-${{ env.project_version }}.jar
+        files: mapepire-server-${{ env.project_version }}.zip
