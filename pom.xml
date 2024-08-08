@@ -94,7 +94,7 @@
                     </executions>
                     <configuration>
                         <file>Version.java.tpl</file>
-                        <outputFile>src/main/java/com/github/theprez/codefori/Version.java</outputFile>
+                        <outputFile>src/main/java/com/github/ibm/mapepire/Version.java</outputFile>
                         <replacements>
                             <replacement>
                                 <token>@version@</token>
@@ -123,7 +123,7 @@
                         <archive>
                             <manifest>
                                 <addClasspath>true</addClasspath>
-                                <mainClass>com.github.theprez.codefori.CodeForiServer</mainClass>
+                                <mainClass>com.github.ibm.mapepire.MapepireServer</mainClass>
                             </manifest>
                             <manifestEntries>
                                 <Class-Path>/QIBM/ProdData/OS400/jt400/lib/jt400.jar</Class-Path>
