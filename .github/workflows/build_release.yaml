@@ -38,7 +38,7 @@ jobs:
       run: ls -l target
 
     - name: Copy dist artifacts to staging directory
-      run: mkdir staging && cp target/*with-dependencies.jar staging/codeforiserver-${{ env.project_version }}.jar
+      run: mkdir staging && cp target/*with-dependencies.jar staging/mapepire-server-${{ env.project_version }}.jar
 
     - name: Create the tag and release
       uses: softprops/action-gh-release@v1
