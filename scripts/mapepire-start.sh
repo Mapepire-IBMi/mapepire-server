@@ -1,2 +1,2 @@
-#!/QOpenSys/pkgs/bin/bash
-exec /QOpenSys/QIBM/ProdData/JavaVM/jdk80/64bit/bin/java -jar /opt/mapepire/lib/mapepire-server.jar
+#!/QOpenSys/usr/bin/sh
+exec /QOpenSys/QIBM/ProdData/JavaVM/jdk80/64bit/bin/java -jar $(/QOpenSys/usr/bin/dirname $0)/../lib/mapepire-server.jar
