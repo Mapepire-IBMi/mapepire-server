@@ -1,4 +1,4 @@
-name: Zip dist CI
+vername: Zip dist CI
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
     - name: Populate staging directory
       run: |
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
-        mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire.jar
+        mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire-server.jar
 
     - name: Create distribution .zip
       run: |
