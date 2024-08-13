@@ -13,7 +13,7 @@ import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
-import com.github.theprez.jcmdutils.StringUtils;
+import org.eclipse.jetty.websocket.api.WebSocketException;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
@@ -75,7 +75,11 @@ public class DbWebsocketClient extends WebSocketAdapter {
         if (endpoint.getRemote() != null) {
           String content = this.toString();
           if (content != null) {
-            endpoint.getRemote().sendString(content);
+            try {
+              endpoint.getRemote().sendString(content);
+            } catch (WebSocketException e){
+              System.out.println("Could not send message: " + content + e.getMessage());
+            }
           }
         }
         this.string.setLength(0);
