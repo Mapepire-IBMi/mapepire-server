@@ -1,6 +1,6 @@
 name: Mapepire Server
-#dir: /QOpenSys/etc/mapepire/logs
-start_cmd: /QOpenSys/pkgs/bin/mapepire
+dir: .
+start_cmd: ../../bin/mapepire
 check_alive: mapepire,8076
 batch_mode: 'false'
 environment_vars:
