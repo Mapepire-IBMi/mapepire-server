@@ -1,4 +1,4 @@
-vername: Zip dist CI
+name: Zip dist CI
 
 on:
   push:
@@ -38,17 +38,17 @@ jobs:
       run: mvn -B package --file pom.xml
     - name: create staging directory
       run: |
-        mkdir -p staging/opt/mapepire/lib/
+        mkdir -p staging/opt/mapepire/lib/mapepire/
         mkdir -p staging/opt/mapepire/bin/
     - name: Populate staging directory
       run: |
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
-        mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire-server.jar
+        mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
 
     - name: Create distribution .zip
       run: |
-        pushd staging/opt/
-        zip -r ../../mapepire-server-${{ env.project_version }}.zip mapepire
+        pushd staging/opt/mapepire
+        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib
         popd
 
     - name: Upload dist artifact
