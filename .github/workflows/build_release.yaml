@@ -86,7 +86,7 @@ jobs:
           --cmd "jar xvf /opt/download/mapepire-server-dist.zip" \
           --cmd "chown -R qsys ." \
           --rcwd "/opt/mapepire/lib/mapepire" \
-          --ignore --cmd "sc check mapepire.yaml" \
+          --cmd "sc check mapepire.yaml" \
           --ignore --cmd "sc stop mapepire.yaml" \
           --cmd "sc start mapepire.yaml" \
       env:
