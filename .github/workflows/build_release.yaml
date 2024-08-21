@@ -9,6 +9,8 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    environment: OSSBUILD
+
     steps:
     - uses: actions/checkout@v3
       name: Check out
@@ -67,3 +69,27 @@ jobs:
         tag_name: v${{ env.project_version }}
         name: v${{ env.project_version }}
         files: mapepire-server-${{ env.project_version }}.zip
+
+    - name: Install NPM Dependencies
+      run: npm i -g @ibm/ibmi-ci
+
+    - name: Deploy Server to IBM i
+      run: | 
+        ici \
+          --rcwd "/home/${{ secrets.IBMI_USER }}" \
+          --cmd "mkdir -p /opt/download" \
+          --rcwd "/opt/download" \
+          --cmd "wget -O mapepire-server-dist.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/download/v${{ env.project_version }}/mapepire-server-${{ env.project_version }}.zip" \
+          --cmd "mkdir -p /opt/mapepire" \
+          --rcwd "/opt/mapepire" \
+          --cmd "jar xvf /opt/download/mapepire-server-dist.zip" \
+          --cmd "chown -R qsys ." \
+          --rcwd "/opt/mapepire/lib/mapepire" \
+          --ignore --cmd "sc check mapepire.yaml" \
+          --ignore --cmd "sc stop mapepire.yaml" \
+          --cmd "sc start mapepire.yaml" \
+      env:
+        IBMI_HOST: ${{ secrets.IBMI_HOST }}
+        IBMI_USER: ${{ secrets.IBMI_USER }}
+        IBMI_PASSWORD: ${{ secrets.IBMI_PASSWORD }}
+        IBMI_SSH_PORT: ${{ secrets.IBMI_SSH_PORT }}
