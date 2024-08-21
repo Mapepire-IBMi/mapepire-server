@@ -79,6 +79,7 @@ jobs:
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
           --cmd "mkdir -p /opt/download" \
           --rcwd "/opt/download" \
+          --cmd "rm -f mapepire-server-dist.zip" \
           --cmd "wget -O mapepire-server-dist.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/download/v${{ env.project_version }}/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "mkdir -p /opt/mapepire" \
           --rcwd "/opt/mapepire" \
