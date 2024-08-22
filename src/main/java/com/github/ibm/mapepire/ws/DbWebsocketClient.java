@@ -28,6 +28,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
   @Override
   public void onWebSocketConnect(Session sess) {
     super.onWebSocketConnect(sess);
+    sess.setIdleTimeout(Integer.MAX_VALUE);
     System.out.println("Socket Connected: " + sess);
   }
 
