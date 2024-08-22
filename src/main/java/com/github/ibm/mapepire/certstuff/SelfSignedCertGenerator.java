@@ -62,7 +62,7 @@ public class SelfSignedCertGenerator {
         stderrLogger.join();
         stdoutLogger.join();
 
-        return new ServerCertInfo(_keyStore, _storePassword, _keyPassword, _alias);
+        return new ServerCertJKS(_keyStore, _storePassword, _keyPassword, _alias);
     }
 
     private class StreamLogger extends Thread {
