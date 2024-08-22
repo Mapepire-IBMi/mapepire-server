@@ -1,5 +1,7 @@
 package com.github.ibm.mapepire.requests;
 
+import java.sql.CallableStatement;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -14,6 +16,7 @@ import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
+import com.ibm.as400.access.AS400JDBCParameterMetaData;
 
 public abstract class BlockRetrievableRequest extends ClientRequest {
 
@@ -33,6 +36,43 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         DataBlockFetchResult result = getNextDataBlock(m_rs, _numRows, m_isTerseData);
         m_isDone = result.isDone();
         return result.m_data;
+    }
+
+    List<Object> getOutputParms(PreparedStatement _stmt) throws SQLException {
+        LinkedList<Object> ret = new LinkedList<Object>();
+        if (!(_stmt instanceof CallableStatement)) {
+            return ret;
+        }
+        CallableStatement stmt = (CallableStatement) _stmt;
+        ParameterMetaData parmMeta = stmt.getParameterMetaData();
+        int numParams = parmMeta.getParameterCount();
+        for (int i = 1; i <= numParams; ++i) {
+            Map<String, Object> parmInfo = new LinkedHashMap<String, Object>();
+            parmInfo.put("index", i);
+            parmInfo.put("type", parmMeta.getParameterTypeName(i));
+            parmInfo.put("precision", parmMeta.getPrecision(i));
+            parmInfo.put("scale", parmMeta.getScale(numParams));
+            if (parmMeta instanceof AS400JDBCParameterMetaData) {
+                AS400JDBCParameterMetaData db2ParmMeta = (AS400JDBCParameterMetaData) parmMeta;
+                parmInfo.put("name", db2ParmMeta.getDB2ParameterName(i));
+                parmInfo.put("ccsid", db2ParmMeta.getParameterCCSID(i));
+            }
+            Object jsonValue = null;
+            Object value = stmt.getObject(i);
+            if (value == null) {
+                jsonValue = null;
+            } else if (value instanceof CharSequence) {
+                jsonValue = value.toString().trim();
+            } else if (value instanceof Number || value instanceof Boolean) {
+                jsonValue = value;
+            } else {
+                jsonValue = stmt.getString(i);
+            }
+            parmInfo.put("value", jsonValue);
+            ret.add(parmInfo);
+        }
+
+        return ret;
     }
 
     protected static class DataBlockFetchResult {
@@ -87,8 +127,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 Object cellDataForResponse = null;
                 if (null == cellData) {
                     cellDataForResponse = null;
-                } else if (cellData instanceof String) {
-                    cellDataForResponse = ((String) cellData).trim();
+                } else if (cellData instanceof CharSequence) {
+                    cellDataForResponse = cellData.toString().trim();
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else {
