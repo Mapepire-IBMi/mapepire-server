@@ -43,8 +43,19 @@ public class MapepireServer {
 
                 io.run();
             } else {
+                Tracer.get().setDest(Dest.FILE);
+                if(args.remove("--traceErrors")) {
+                    Tracer.get().setTraceLevel(TraceLevel.ERRORS);
+                }
+                if(args.remove("--traceOn")) {
+                    Tracer.get().setTraceLevel(TraceLevel.ON);
+                }
+                if(args.remove("--traceDs")) {
+                    Tracer.get().setTraceLevel(TraceLevel.DATASTREAM);
+                }
                 AppLogger logger = AppLogger.getSingleton(args.remove("-v"));
                 logger.printf("Starting daemon...");
+                Tracer.info("Starting daemon...");
                 DbSocketCreator.enableDaemon();
                 
                 server = new Server();
