@@ -59,7 +59,6 @@ public class PreparedExecute extends BlockRetrievableRequest {
             addReplyData("metadata", getResultMetaDataForResponse());
             addReplyData("data", getNextDataBlock(numRows));
             addReplyData("output_parms", getOutputParms(stmt));
-            m_rs.close();
         } else {
             addReplyData("data", new LinkedList<Object>());
             addReplyData("has_results", false);

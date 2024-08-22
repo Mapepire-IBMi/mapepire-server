@@ -57,18 +57,21 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 parmInfo.put("name", db2ParmMeta.getDB2ParameterName(i));
                 parmInfo.put("ccsid", db2ParmMeta.getParameterCCSID(i));
             }
-            Object jsonValue = null;
-            Object value = stmt.getObject(i);
-            if (value == null) {
-                jsonValue = null;
-            } else if (value instanceof CharSequence) {
-                jsonValue = value.toString().trim();
-            } else if (value instanceof Number || value instanceof Boolean) {
-                jsonValue = value;
-            } else {
-                jsonValue = stmt.getString(i);
+            int parmMode = parmMeta.getParameterMode(i);
+            if (ParameterMetaData.parameterModeOut == parmMode || ParameterMetaData.parameterModeInOut == parmMode) {
+                Object jsonValue = null;
+                Object value = stmt.getObject(i);
+                if (value == null) {
+                    jsonValue = null;
+                } else if (value instanceof CharSequence) {
+                    jsonValue = value.toString().trim();
+                } else if (value instanceof Number || value instanceof Boolean) {
+                    jsonValue = value;
+                } else {
+                    jsonValue = stmt.getString(i);
+                }
+                parmInfo.put("value", jsonValue);
             }
-            parmInfo.put("value", jsonValue);
             ret.add(parmInfo);
         }
 
@@ -149,10 +152,12 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         return m_isDone;
     }
 
-    protected Map<String,Object> getResultMetaDataForResponse() throws SQLException {
+    protected Map<String, Object> getResultMetaDataForResponse() throws SQLException {
         return getResultMetaDataForResponse(this.m_rs.getMetaData(), getSystemConnection());
     }
-    public static Map<String, Object> getResultMetaDataForResponse(ResultSetMetaData _md, SystemConnection _conn) throws SQLException {
+
+    public static Map<String, Object> getResultMetaDataForResponse(ResultSetMetaData _md, SystemConnection _conn)
+            throws SQLException {
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
         metaData.put("column_count", _md.getColumnCount());
         metaData.put("job", _conn.getJdbcJobName());
