@@ -77,6 +77,10 @@ public class PreparedExecute extends BlockRetrievableRequest {
                 if (stmt instanceof CallableStatement
                         && ParameterMetaData.parameterModeOut == stmt.getParameterMetaData().getParameterMode(i)) {
                     ((CallableStatement) stmt).registerOutParameter(i, stmt.getParameterMetaData().getParameterType(i));
+                } else if (stmt instanceof CallableStatement
+                        && ParameterMetaData.parameterModeInOut == stmt.getParameterMetaData().getParameterMode(i)) {
+                    ((CallableStatement) stmt).registerOutParameter(i, stmt.getParameterMetaData().getParameterType(i));
+                    stmt.setString(i, element.getAsString());
                 } else {
                     stmt.setString(i, element.getAsString());
                 }
