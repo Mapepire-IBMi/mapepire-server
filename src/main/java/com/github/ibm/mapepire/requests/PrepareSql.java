@@ -13,6 +13,7 @@ import java.util.Map;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
+import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCPreparedStatement;
 
 public class PrepareSql extends BlockRetrievableRequest {
@@ -30,7 +31,12 @@ public class PrepareSql extends BlockRetrievableRequest {
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
         final Connection jdbcConn = getSystemConnection().getJdbcConnection();
-        m_stmt = (PreparedStatement) jdbcConn.prepareStatement(sql);
+        if(sql.trim().toLowerCase().startsWith("call")){
+            m_stmt = jdbcConn.prepareCall(sql);
+        }else {
+            m_stmt = jdbcConn.prepareStatement(sql);
+        }
+        
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
 
         final ResultSetMetaData rsMetaData = m_stmt.getMetaData();
@@ -80,7 +86,7 @@ public class PrepareSql extends BlockRetrievableRequest {
         return "?";
     }
 
-    private String getModeString(int _parameterMode) {
+    private static String getModeString(int _parameterMode) {
         switch (_parameterMode) {
             case ParameterMetaData.parameterModeIn:
                 return "IN";

@@ -1,5 +1,7 @@
 package com.github.ibm.mapepire.requests;
 
+import java.sql.CallableStatement;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -56,11 +58,13 @@ public class PreparedExecute extends BlockRetrievableRequest {
             addReplyData("update_count", stmt.getLargeUpdateCount());
             addReplyData("metadata", getResultMetaDataForResponse());
             addReplyData("data", getNextDataBlock(numRows));
+            addReplyData("output_parms", getOutputParms(stmt));
+            m_rs.close();
         } else {
             addReplyData("data", new LinkedList<Object>());
             addReplyData("has_results", false);
             addReplyData("update_count", stmt.getLargeUpdateCount());
-            m_rs.close();
+            addReplyData("output_parms", getOutputParms(stmt));
         }
     }
 
@@ -70,7 +74,12 @@ public class PreparedExecute extends BlockRetrievableRequest {
             if (element.isJsonNull()) {
                 stmt.setNull(i, Types.NULL);
             } else {
-                stmt.setString(i, element.getAsString());
+                if (stmt instanceof CallableStatement
+                        && ParameterMetaData.parameterModeOut == stmt.getParameterMetaData().getParameterMode(i)) {
+                    ((CallableStatement) stmt).registerOutParameter(i, stmt.getParameterMetaData().getParameterType(i));
+                } else {
+                    stmt.setString(i, element.getAsString());
+                }
             }
         }
     }
