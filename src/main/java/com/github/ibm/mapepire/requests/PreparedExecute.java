@@ -3,6 +3,7 @@ package com.github.ibm.mapepire.requests;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
@@ -21,35 +22,31 @@ public class PreparedExecute extends BlockRetrievableRequest {
 
     @Override
     protected void go() throws Exception {
-        JsonElement parms = super.getRequestField("parameters");
-        boolean isBatch = super.getRequestFieldBoolean("batch", false);
+        JsonArray parms = super.getRequestField("parameters").getAsJsonArray();
+        boolean isBatch = !parms.isEmpty() && parms.get(0).isJsonArray();
+        boolean hasResultSet = false;
+        int batchUpdateCount = 0;
+
         PreparedStatement stmt = m_prev.getStatement();
         if (isBatch) {
-            if (null == parms) {
-                stmt.executeLargeBatch();
-                addReplyData("update_count", stmt.getLargeUpdateCount());
-                return;
-            }
             JsonArray arr = parms.getAsJsonArray();
-            JsonElement firstElement = arr.get(0);
             int batch_ops_added = 0;
-            if (firstElement.isJsonArray()) {
-                for (int i = 1; i <= arr.size(); ++i) {
-                    addJsonArrayParameters(stmt, arr.get(-1 + i).getAsJsonArray());
-                    m_prev.getStatement().addBatch();
-                }
-                batch_ops_added += arr.size();
-            } else {
-                addJsonArrayParameters(stmt, arr);
+            for (int i = 0; i < arr.size(); i++) {
+                addJsonArrayParameters(stmt, arr.get(i).getAsJsonArray());
                 m_prev.getStatement().addBatch();
-                batch_ops_added++;
             }
+            batch_ops_added += arr.size();
             addReplyData("batch_added", batch_ops_added);
-            return;
-        } else if (null != parms) {
-            addJsonArrayParameters(stmt, parms.getAsJsonArray());
+            int updateCount[] = stmt.executeBatch();
+            batchUpdateCount = Arrays.stream(updateCount).sum();
+        } else{
+            if (parms != null) {
+                addJsonArrayParameters(stmt, parms.getAsJsonArray());
+            }
+            hasResultSet = stmt.execute();
         }
-        if (stmt.execute()) {
+
+        if (hasResultSet) {
             this.m_rs = stmt.getResultSet();
             final int numRows = super.getRequestFieldInt("rows", 1000);
             addReplyData("has_results", true);
@@ -59,8 +56,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         } else {
             addReplyData("data", new LinkedList<Object>());
             addReplyData("has_results", false);
-            addReplyData("update_count", stmt.getLargeUpdateCount());
-            m_rs.close();
+            addReplyData("update_count", batchUpdateCount);
         }
     }
 
