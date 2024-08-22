@@ -31,7 +31,6 @@ public class ServerCertPEM implements ServerCertInfo {
         m_file = _pemFile;
         m_privateKeyFile = _privKeyFile;
         m_storePass = UUID.randomUUID().toString().replace("-", "").substring(0, 9);
-        System.out.println("password is " + m_storePass);
         m_keyPass = m_storePass;
         m_alias = "mapepire";
 
