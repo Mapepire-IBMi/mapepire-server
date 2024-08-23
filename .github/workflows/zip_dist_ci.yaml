@@ -54,6 +54,12 @@ jobs:
         mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
         mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepiredev.yaml
 
+    - name: Create distribution .zip
+      run: |
+        pushd staging/opt/mapepire
+        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib
+        popd
+
     - name: Upload dist artifact
       uses: actions/upload-artifact@v4
       id: artifact-upload
@@ -71,12 +77,12 @@ jobs:
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
           --cmd "mkdir -p /opt/download/dev" \
           --rcwd "/opt/download/dev" \
-          --cmd "rm -f mapepire-server-dist.zip" \
-          --cmd "wget --header=\"Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}\" -O mapepire-server-dist.zip ${{ steps.artifact-upload.outputs.artifact-url }}/zip" \
+          --cmd "rm -f mapepire-server-*.zip" \
+          --push "mapepire-server-${{ env.project_version }}.zip" \
           --cmd "mkdir -p /opt/mapepire/dev" \
           --rcwd "/opt/mapepire/dev" \
           --cmd "rm -f bin lib" \
-          --cmd "jar xvf /opt/download/dev/mapepire-server-dist.zip" \
+          --cmd "jar xvf /opt/download/dev/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "chown -R qsys ." \
           --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepiredev.yaml /QOpenSys/etc/sc/services/mapepiredev.yaml" \
           --cmd "sc check mapepiredev" \
