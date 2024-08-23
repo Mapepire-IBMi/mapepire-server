@@ -39,18 +39,23 @@ jobs:
     - name: List target directory
       run: ls -l target
 
-    - name: create jt400 pseudo-directory
+    - name: Create jt400 pseudo-directory
       run: sudo mkdir -p /QIBM/ProdData/OS400/jt400/lib/
-    - name: change ownership of jt400 psudo-directory
+
+    - name: Change ownership of jt400 psudo-directory
       run: sudo chown $USER /QIBM/ProdData/OS400/jt400/lib/
-    - name: fetch jt400.jar
+
+    - name: Fetch jt400.jar
       run: sudo curl https://repo1.maven.org/maven2/net/sf/jt400/jt400/10.7/jt400-10.7.jar -o /QIBM/ProdData/OS400/jt400/lib/jt400.jar
+
     - name: Build with Maven
       run: mvn -B package --file pom.xml
-    - name: create staging directory
+
+    - name: Create staging directory
       run: |
         mkdir -p staging/opt/mapepire/lib/mapepire/
         mkdir -p staging/opt/mapepire/bin/
+
     - name: Populate staging directory
       run: |
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
@@ -77,17 +82,17 @@ jobs:
       run: | 
         ici \
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
-          --cmd "mkdir -p /opt/download" \
-          --rcwd "/opt/download" \
+          --cmd "mkdir -p /opt/download/release" \
+          --rcwd "/opt/download/release" \
           --cmd "rm -f mapepire-server-dist.zip" \
           --cmd "wget -O mapepire-server-dist.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/download/v${{ env.project_version }}/mapepire-server-${{ env.project_version }}.zip" \
-          --cmd "mkdir -p /opt/mapepire" \
-          --rcwd "/opt/mapepire" \
-          --cmd "jar xvf /opt/download/mapepire-server-dist.zip" \
+          --cmd "mkdir -p /opt/mapepire/release" \
+          --rcwd "/opt/mapepire/release" \
+          --cmd "jar xvf /opt/download/release/mapepire-server-dist.zip" \
           --cmd "chown -R qsys ." \
-          --rcwd "/opt/mapepire/lib/mapepire" \
+          --rcwd "/opt/mapepire/release/lib/mapepire" \
           --cmd "sc check mapepire.yaml" \
-          --ignore --cmd "sc stop mapepire.yaml" \
+          --cmd "sc stop mapepire.yaml" \
           --cmd "sc start mapepire.yaml" \
       env:
         IBMI_HOST: ${{ secrets.IBMI_HOST }}
