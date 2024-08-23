@@ -84,6 +84,7 @@ jobs:
           --cmd "rm -rf bin lib" \
           --cmd "jar xvf /opt/download/dev/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "chown -R qsys ." \
+          --cmd "rm -rf /QOpenSys/etc/sc/services/mapepired.yaml" \
           --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepired.yaml /QOpenSys/etc/sc/services/mapepired.yaml" \
           --cmd "sc check mapepired" \
           --cmd "sc stop mapepired" \
