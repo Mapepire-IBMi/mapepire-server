@@ -88,7 +88,7 @@ jobs:
           --cmd "wget -O mapepire-server-dist.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/download/v${{ env.project_version }}/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "mkdir -p /opt/mapepire/release" \
           --rcwd "/opt/mapepire/release" \
-          --cmd "rm -f bin lib" \
+          --cmd "rm -rf bin lib" \
           --cmd "jar xvf /opt/download/release/mapepire-server-dist.zip" \
           --cmd "chown -R qsys ." \
           --cmd "ln -sf /opt/mapepire/release/lib/mapepire/mapepire.yaml /QOpenSys/etc/sc/services/mapepire.yaml" \

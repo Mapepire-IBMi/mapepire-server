@@ -81,7 +81,7 @@ jobs:
           --push "." \
           --cmd "mkdir -p /opt/mapepire/dev" \
           --rcwd "/opt/mapepire/dev" \
-          --cmd "rm -f bin lib" \
+          --cmd "rm -rf bin lib" \
           --cmd "jar xvf /opt/download/dev/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "chown -R qsys ." \
           --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepired.yaml /QOpenSys/etc/sc/services/mapepired.yaml" \
