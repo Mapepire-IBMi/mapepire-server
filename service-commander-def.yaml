@@ -2,7 +2,6 @@ name: Mapepire Server
 dir: .
 start_cmd: ../../bin/mapepire
 check_alive: mapepire,8076
-batch_mode: 'true'
-sbmjob_opts: 'JOBQ(QUSRNOMAX) ALWMLTTHD(*YES)'
+batch_mode: 'false'
 environment_vars:
 - PATH=/QOpenSys/pkgs/bin:/QOpenSys/usr/bin:/usr/ccs/bin:/QOpenSys/usr/bin/X11:/usr/sbin:.:/usr/bin
