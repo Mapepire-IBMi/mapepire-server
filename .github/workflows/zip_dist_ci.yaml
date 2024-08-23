@@ -71,6 +71,7 @@ jobs:
           --cmd "wget -O mapepire-server-dist.zip ${{ steps.artifact-upload.outputs.artifact-url }}" \
           --cmd "mkdir -p /opt/mapepire/dev" \
           --rcwd "/opt/mapepire/dev" \
+          --cmd "rm -f bin lib" \
           --cmd "jar xvf /opt/download/dev/mapepire-server-dist.zip" \
           --cmd "chown -R qsys ." \
           --rcwd "/opt/mapepire/dev/lib/mapepire" \
