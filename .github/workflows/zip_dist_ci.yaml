@@ -74,10 +74,10 @@ jobs:
           --cmd "rm -f bin lib" \
           --cmd "jar xvf /opt/download/dev/mapepire-server-dist.zip" \
           --cmd "chown -R qsys ." \
-          --rcwd "/opt/mapepire/dev/lib/mapepire" \
-          --cmd "sc check mapepiredev.yaml" \
-          --cmd "sc stop mapepiredev.yaml" \
-          --cmd "sc start mapepiredev.yaml" \
+          --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepiredev.yaml /QOpenSys/etc/sc/services/mapepiredev.yaml" \
+          --cmd "sc check mapepiredev" \
+          --cmd "sc stop mapepiredev" \
+          --cmd "sc start mapepiredev" \
       env:
         IBMI_HOST: ${{ secrets.IBMI_HOST }}
         IBMI_USER: ${{ secrets.IBMI_USER }}
