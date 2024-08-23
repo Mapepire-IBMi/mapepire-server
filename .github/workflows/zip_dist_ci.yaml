@@ -59,6 +59,9 @@ jobs:
         name: mapepire-server-${{ env.project_version }}
         path: staging/opt/mapepire
         if-no-files-found: error
+
+    - name: Install NPM Dependencies
+      run: npm i -g @ibm/ibmi-ci
             
     - name: Deploy Server to IBM i
       if: github.event_name == 'push'
