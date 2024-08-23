@@ -88,13 +88,14 @@ jobs:
           --cmd "wget -O mapepire-server-dist.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/download/v${{ env.project_version }}/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "mkdir -p /opt/mapepire/release" \
           --rcwd "/opt/mapepire/release" \
-          --cmd "rm -f bin lib" \
+          --cmd "rm -fr bin lib" \
           --cmd "jar xvf /opt/download/release/mapepire-server-dist.zip" \
           --cmd "chown -R qsys ." \
+          --cmd "rm -fr /QOpenSys/etc/sc/services/mapepire.yaml" \
           --cmd "ln -sf /opt/mapepire/release/lib/mapepire/mapepire.yaml /QOpenSys/etc/sc/services/mapepire.yaml" \
-          --cmd "sc check mapepire" \
-          --cmd "sc stop mapepire" \
-          --cmd "sc start mapepire" \
+          --cmd "sc -v check mapepire" \
+          --cmd "sc -v stop mapepire" \
+          --cmd "sc -v start mapepire" \
       env:
         IBMI_HOST: ${{ secrets.IBMI_HOST }}
         IBMI_USER: ${{ secrets.IBMI_USER }}

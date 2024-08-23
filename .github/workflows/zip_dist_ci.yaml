@@ -43,16 +43,21 @@ jobs:
       run: |
         mkdir -p staging/opt/mapepire/lib/mapepire/
         mkdir -p staging/opt/mapepire/bin/
+        mkdir -p staging/opt/zip
 
     - name: Update service commander definition
       run : |
-        sed -i 's/name: .*/name: Mapepire Development Server/; s/check_alive: .*/check_alive: mapepiredev,8075/' service-commander-def.yaml
+        sed -i 's/name: .*/name: Mapepire Development Server/; s/check_alive: .*/check_alive: mapepired,8075/' service-commander-def.yaml
 
     - name: Populate staging directory
       run: |
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
         mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
-        mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepiredev.yaml
+        mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepired.yaml
+
+    - name: Create distribution .zip
+      working-directory: staging/opt/mapepire
+      run: zip -r ../zip/mapepire-server-${{ env.project_version }}.zip bin lib
 
     - name: Upload dist artifact
       uses: actions/upload-artifact@v4
@@ -66,23 +71,24 @@ jobs:
       run: npm i -g @ibm/ibmi-ci
             
     - name: Deploy Server to IBM i
-      if: github.event_name == 'push'
-      run: | 
+      working-directory: staging/opt/zip
+      run: |
         ici \
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
           --cmd "mkdir -p /opt/download/dev" \
           --rcwd "/opt/download/dev" \
-          --cmd "rm -f mapepire-server-dist.zip" \
-          --cmd "wget --header=\"Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}\" -O mapepire-server-dist.zip ${{ steps.artifact-upload.outputs.artifact-url }}" \
+          --cmd "rm -f mapepire-server-*.zip" \
+          --push "." \
           --cmd "mkdir -p /opt/mapepire/dev" \
           --rcwd "/opt/mapepire/dev" \
-          --cmd "rm -f bin lib" \
-          --cmd "jar xvf /opt/download/dev/mapepire-server-dist.zip" \
+          --cmd "rm -fr bin lib" \
+          --cmd "jar xvf /opt/download/dev/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "chown -R qsys ." \
-          --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepiredev.yaml /QOpenSys/etc/sc/services/mapepiredev.yaml" \
-          --cmd "sc check mapepiredev" \
-          --cmd "sc stop mapepiredev" \
-          --cmd "sc start mapepiredev" \
+          --cmd "rm -fr /QOpenSys/etc/sc/services/mapepired.yaml" \
+          --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepired.yaml /QOpenSys/etc/sc/services/mapepired.yaml" \
+          --cmd "sc -v check mapepired" \
+          --cmd "sc -v stop mapepired" \
+          --cmd "sc -v start mapepired" \
       env:
         IBMI_HOST: ${{ secrets.IBMI_HOST }}
         IBMI_USER: ${{ secrets.IBMI_USER }}
