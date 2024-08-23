@@ -66,14 +66,13 @@ jobs:
       run: npm i -g @ibm/ibmi-ci
             
     - name: Deploy Server to IBM i
-      if: github.event_name == 'push'
       run: | 
         ici \
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
           --cmd "mkdir -p /opt/download/dev" \
           --rcwd "/opt/download/dev" \
           --cmd "rm -f mapepire-server-dist.zip" \
-          --cmd "wget --header=\"Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}\" -O mapepire-server-dist.zip ${{ steps.artifact-upload.outputs.artifact-url }}" \
+          --cmd "wget --header=\"Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}\" -O mapepire-server-dist.zip ${{ steps.artifact-upload.outputs.artifact-url }}/zip" \
           --cmd "mkdir -p /opt/mapepire/dev" \
           --rcwd "/opt/mapepire/dev" \
           --cmd "rm -f bin lib" \
