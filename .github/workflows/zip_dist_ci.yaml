@@ -43,6 +43,7 @@ jobs:
       run: |
         mkdir -p staging/opt/mapepire/lib/mapepire/
         mkdir -p staging/opt/mapepire/bin/
+        mkdir -p staging/opt/mapepire/zip/
 
     - name: Update service commander definition
       run : |
@@ -56,9 +57,9 @@ jobs:
 
     - name: Create distribution .zip
       run: |
-        pushd staging/opt/mapepire
-        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib
-        popd
+        cd staging/opt/mapepire
+        zip -r ./zip/mapepire-server-${{ env.project_version }}.zip bin lib
+        cd zip
 
     - name: Upload dist artifact
       uses: actions/upload-artifact@v4
@@ -78,7 +79,7 @@ jobs:
           --cmd "mkdir -p /opt/download/dev" \
           --rcwd "/opt/download/dev" \
           --cmd "rm -f mapepire-server-*.zip" \
-          --push "mapepire-server-${{ env.project_version }}.zip" \
+          --push "." \
           --cmd "mkdir -p /opt/mapepire/dev" \
           --rcwd "/opt/mapepire/dev" \
           --cmd "rm -f bin lib" \
