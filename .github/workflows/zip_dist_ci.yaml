@@ -47,13 +47,13 @@ jobs:
 
     - name: Update service commander definition
       run : |
-        sed -i 's/name: .*/name: Mapepire Development Server/; s/check_alive: .*/check_alive: mapepiredev,8075/' service-commander-def.yaml
+        sed -i 's/name: .*/name: Mapepire Development Server/; s/check_alive: .*/check_alive: mapepired,8075/' service-commander-def.yaml
 
     - name: Populate staging directory
       run: |
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
         mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
-        mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepiredev.yaml
+        mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepired.yaml
 
     - name: Create distribution .zip
       working-directory: staging/opt/mapepire
@@ -84,10 +84,10 @@ jobs:
           --cmd "rm -f bin lib" \
           --cmd "jar xvf /opt/download/dev/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "chown -R qsys ." \
-          --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepiredev.yaml /QOpenSys/etc/sc/services/mapepiredev.yaml" \
-          --cmd "sc check mapepiredev" \
-          --cmd "sc stop mapepiredev" \
-          --cmd "sc start mapepiredev" \
+          --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepired.yaml /QOpenSys/etc/sc/services/mapepired.yaml" \
+          --cmd "sc check mapepired" \
+          --cmd "sc stop mapepired" \
+          --cmd "sc start mapepired" \
       env:
         IBMI_HOST: ${{ secrets.IBMI_HOST }}
         IBMI_USER: ${{ secrets.IBMI_USER }}
