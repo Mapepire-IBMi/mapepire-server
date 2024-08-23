@@ -43,7 +43,7 @@ jobs:
       run: |
         mkdir -p staging/opt/mapepire/lib/mapepire/
         mkdir -p staging/opt/mapepire/bin/
-        mkdir -p staging/opt/mapepire/zip/
+        mkdir -p staging/opt/zip
 
     - name: Update service commander definition
       run : |
@@ -56,9 +56,8 @@ jobs:
         mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepiredev.yaml
 
     - name: Create distribution .zip
-      run: |
-        cd staging/opt/mapepire
-        zip -r ./zip/mapepire-server-${{ env.project_version }}.zip bin lib
+      working-directory: staging/opt/mapepire
+      run: zip -r ../zip/mapepire-server-${{ env.project_version }}.zip bin lib
 
     - name: Upload dist artifact
       uses: actions/upload-artifact@v4
@@ -72,8 +71,8 @@ jobs:
       run: npm i -g @ibm/ibmi-ci
             
     - name: Deploy Server to IBM i
-      run: | 
-        cd zip
+      working-directory: staging/opt/zip
+      run: |
         ici \
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
           --cmd "mkdir -p /opt/download/dev" \
