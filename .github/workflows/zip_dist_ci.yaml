@@ -71,6 +71,7 @@ jobs:
       run: npm i -g @ibm/ibmi-ci
             
     - name: Deploy Server to IBM i
+      if: github.event_name == 'push'
       working-directory: staging/opt/zip
       run: |
         ici \
