@@ -59,7 +59,6 @@ jobs:
       run: |
         cd staging/opt/mapepire
         zip -r ./zip/mapepire-server-${{ env.project_version }}.zip bin lib
-        cd zip
 
     - name: Upload dist artifact
       uses: actions/upload-artifact@v4
@@ -74,6 +73,7 @@ jobs:
             
     - name: Deploy Server to IBM i
       run: | 
+        cd zip
         ici \
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
           --cmd "mkdir -p /opt/download/dev" \
