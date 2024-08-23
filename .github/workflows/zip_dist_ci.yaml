@@ -11,6 +11,8 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    environment: OSSBUILD
+
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 8
