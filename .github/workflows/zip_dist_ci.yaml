@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  remote_build_dir: /home/${{ secrets.IBMI_USER }}/build/${{ github.sha }}/
-
 jobs:
   build:
 
@@ -28,33 +25,60 @@ jobs:
         echo "project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive org.codehaus.mojo:exec-maven-plugin:3.1.0:exec  --file pom.xml)" >> $GITHUB_ENV
         cat $GITHUB_ENV
 
-    - name: create jt400 psudo-directory
+    - name: Create jt400 psudo-directory
       run: sudo mkdir -p /QIBM/ProdData/OS400/jt400/lib/
-    - name: change ownership of jt400 psudo-directory
+
+    - name: Change ownership of jt400 psudo-directory
       run: sudo chown $USER /QIBM/ProdData/OS400/jt400/lib/
-    - name: fetch jt400.jar
+
+    - name: Fetch jt400.jar
       run: sudo curl https://repo1.maven.org/maven2/net/sf/jt400/jt400/10.7/jt400-10.7.jar -o /QIBM/ProdData/OS400/jt400/lib/jt400.jar
+
     - name: Build with Maven
       run: mvn -B package --file pom.xml
-    - name: create staging directory
+
+    - name: Create staging directory
       run: |
         mkdir -p staging/opt/mapepire/lib/mapepire/
         mkdir -p staging/opt/mapepire/bin/
+
+    - name: Update service commander definition
+      run : |
+        sed -i 's/name: .*/name: Mapepire Development Server/; s/check_alive: .*/check_alive: mapepiredev,8075/' service-commander-def.yaml
+
     - name: Populate staging directory
       run: |
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
         mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
-        mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepire.yaml
-
-    - name: Create distribution .zip
-      run: |
-        pushd staging/opt/mapepire
-        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib
-        popd
+        mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepiredev.yaml
 
     - name: Upload dist artifact
       uses: actions/upload-artifact@v4
+      id: artifact-upload
       with:
-        name: mapepire-server-${{ env.project_version }}.zip
-        path: mapepire-server-${{ env.project_version }}.zip
+        name: mapepire-server-${{ env.project_version }}
+        path: staging/opt/mapepire
+        if-no-files-found: error
             
+    - name: Deploy Server to IBM i
+      if: github.event_name == 'push'
+      run: | 
+        ici \
+          --rcwd "/home/${{ secrets.IBMI_USER }}" \
+          --cmd "mkdir -p /opt/download/dev" \
+          --rcwd "/opt/download/dev" \
+          --cmd "rm -f mapepire-server-dist.zip" \
+          --cmd "wget -O mapepire-server-dist.zip ${{ steps.artifact-upload.outputs.artifact-url }}" \
+          --cmd "mkdir -p /opt/mapepire/dev" \
+          --rcwd "/opt/mapepire/dev" \
+          --cmd "jar xvf /opt/download/dev/mapepire-server-dist.zip" \
+          --cmd "chown -R qsys ." \
+          --rcwd "/opt/mapepire/dev/lib/mapepire" \
+          --cmd "sc check mapepiredev.yaml" \
+          --cmd "sc stop mapepiredev.yaml" \
+          --cmd "sc start mapepiredev.yaml" \
+      env:
+        IBMI_HOST: ${{ secrets.IBMI_HOST }}
+        IBMI_USER: ${{ secrets.IBMI_USER }}
+        IBMI_PASSWORD: ${{ secrets.IBMI_PASSWORD }}
+        IBMI_SSH_PORT: ${{ secrets.IBMI_SSH_PORT }}
