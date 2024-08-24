@@ -51,6 +51,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         } else if (null != parms) {
             addJsonArrayParameters(stmt, parms.getAsJsonArray());
         }
+        //TODO: (here and other places) handle multiple returned results
         if (stmt.execute()) {
             this.m_rs = stmt.getResultSet();
             final int numRows = super.getRequestFieldInt("rows", 1000);
@@ -64,6 +65,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
             addReplyData("has_results", false);
             addReplyData("update_count", stmt.getLargeUpdateCount());
             addReplyData("output_parms", getOutputParms(stmt));
+            m_isDone = true;
         }
     }
 
