@@ -13,7 +13,6 @@ import java.util.Map;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCPreparedStatement;
 
 public class PrepareSql extends BlockRetrievableRequest {
@@ -101,6 +100,14 @@ public class PrepareSql extends BlockRetrievableRequest {
 
     PreparedStatement getStatement() {
         return m_stmt;
+    }
+    @Override
+    public boolean isDone() {
+        if(null != m_executeTask) {
+            return m_isDone || m_executeTask.isDone();
+        }
+        // This means that the request was _only_ for a prepare, so yes we're done if we haven't fetched any data
+        return true;
     }
 
 }
