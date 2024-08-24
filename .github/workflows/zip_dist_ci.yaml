@@ -68,10 +68,12 @@ jobs:
         if-no-files-found: error
 
     - name: Install NPM Dependencies
+      if: ${{ github.base_ref == '' }}
       run: npm i -g @ibm/ibmi-ci
             
     - name: Deploy Server to IBM i
       working-directory: staging/opt/zip
+      if: ${{ github.base_ref == '' }}
       run: |
         ici \
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
