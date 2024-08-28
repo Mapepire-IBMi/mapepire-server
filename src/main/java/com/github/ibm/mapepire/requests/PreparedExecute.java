@@ -66,7 +66,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
             addReplyData("has_results", false);
             addReplyData("update_count", stmt.getLargeUpdateCount());
             addReplyData("output_parms", getOutputParms(stmt));
-            addReplyData("is_done", true);
+            addReplyData("is_done", m_isDone = true);
         }
     }
 
