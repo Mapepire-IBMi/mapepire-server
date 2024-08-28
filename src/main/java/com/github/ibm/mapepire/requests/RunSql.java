@@ -27,7 +27,7 @@ public class RunSql extends BlockRetrievableRequest {
             addReplyData("metadata", getResultMetaDataForResponse());
             final List<Object> data = getNextDataBlock(numRows);
             addReplyData("data", data);
-            addReplyData("is_done", m_isDone);
+            addReplyData("is_done", isDone());
         }
     }
 }
