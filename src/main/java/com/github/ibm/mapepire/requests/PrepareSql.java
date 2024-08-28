@@ -30,7 +30,12 @@ public class PrepareSql extends BlockRetrievableRequest {
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
         final Connection jdbcConn = getSystemConnection().getJdbcConnection();
-        m_stmt = (PreparedStatement) jdbcConn.prepareStatement(sql);
+        if(sql.trim().toLowerCase().startsWith("call")){
+            m_stmt = jdbcConn.prepareCall(sql);
+        }else {
+            m_stmt = jdbcConn.prepareStatement(sql);
+        }
+        
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
 
         final ResultSetMetaData rsMetaData = m_stmt.getMetaData();
@@ -80,7 +85,7 @@ public class PrepareSql extends BlockRetrievableRequest {
         return "?";
     }
 
-    private String getModeString(int _parameterMode) {
+    private static String getModeString(int _parameterMode) {
         switch (_parameterMode) {
             case ParameterMetaData.parameterModeIn:
                 return "IN";
@@ -95,6 +100,14 @@ public class PrepareSql extends BlockRetrievableRequest {
 
     PreparedStatement getStatement() {
         return m_stmt;
+    }
+    @Override
+    public boolean isDone() {
+        if(null != m_executeTask) {
+            return m_isDone || m_executeTask.isDone();
+        }
+        // This means that the request was _only_ for a prepare, so yes we're done if we haven't fetched any data
+        return true;
     }
 
 }

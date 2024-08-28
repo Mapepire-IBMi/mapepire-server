@@ -9,6 +9,8 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    environment: OSSBUILD
+
     steps:
     - uses: actions/checkout@v3
       name: Check out
@@ -25,7 +27,7 @@ jobs:
         cat $GITHUB_ENV
 
     - name: Set up JDK 8
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '8'
         distribution: 'temurin'
@@ -37,27 +39,33 @@ jobs:
     - name: List target directory
       run: ls -l target
 
-    - name: create jt400 pseudo-directory
+    - name: Create jt400 pseudo-directory
       run: sudo mkdir -p /QIBM/ProdData/OS400/jt400/lib/
-    - name: change ownership of jt400 psudo-directory
+
+    - name: Change ownership of jt400 psudo-directory
       run: sudo chown $USER /QIBM/ProdData/OS400/jt400/lib/
-    - name: fetch jt400.jar
+
+    - name: Fetch jt400.jar
       run: sudo curl https://repo1.maven.org/maven2/net/sf/jt400/jt400/10.7/jt400-10.7.jar -o /QIBM/ProdData/OS400/jt400/lib/jt400.jar
+
     - name: Build with Maven
       run: mvn -B package --file pom.xml
-    - name: create staging directory
+
+    - name: Create staging directory
       run: |
-        mkdir -p staging/opt/mapepire/lib/
+        mkdir -p staging/opt/mapepire/lib/mapepire/
         mkdir -p staging/opt/mapepire/bin/
+
     - name: Populate staging directory
       run: |
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
-        mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire.jar
+        mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
+        mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepire.yaml
 
     - name: Create distribution .zip
       run: |
-        pushd staging/opt/
-        zip -r ../../mapepire-server-${{ env.project_version }}.zip mapepire
+        pushd staging/opt/mapepire
+        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib
         popd
 
     - name: Create the tag and release
@@ -66,3 +74,30 @@ jobs:
         tag_name: v${{ env.project_version }}
         name: v${{ env.project_version }}
         files: mapepire-server-${{ env.project_version }}.zip
+
+    - name: Install NPM Dependencies
+      run: npm i -g @ibm/ibmi-ci
+
+    - name: Deploy Server to IBM i
+      run: | 
+        ici \
+          --rcwd "/home/${{ secrets.IBMI_USER }}" \
+          --cmd "mkdir -p /opt/download/release" \
+          --rcwd "/opt/download/release" \
+          --cmd "rm -f mapepire-server-dist.zip" \
+          --cmd "wget -O mapepire-server-dist.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/download/v${{ env.project_version }}/mapepire-server-${{ env.project_version }}.zip" \
+          --cmd "mkdir -p /opt/mapepire/release" \
+          --rcwd "/opt/mapepire/release" \
+          --cmd "rm -fr bin lib" \
+          --cmd "jar xvf /opt/download/release/mapepire-server-dist.zip" \
+          --cmd "chown -R qsys ." \
+          --cmd "rm -fr /QOpenSys/etc/sc/services/mapepire.yaml" \
+          --cmd "ln -sf /opt/mapepire/release/lib/mapepire/mapepire.yaml /QOpenSys/etc/sc/services/mapepire.yaml" \
+          --cmd "sc -v check mapepire" \
+          --cmd "sc -v stop mapepire" \
+          --cmd "sc -v start mapepire" \
+      env:
+        IBMI_HOST: ${{ secrets.IBMI_HOST }}
+        IBMI_USER: ${{ secrets.IBMI_USER }}
+        IBMI_PASSWORD: ${{ secrets.IBMI_PASSWORD }}
+        IBMI_SSH_PORT: ${{ secrets.IBMI_SSH_PORT }}

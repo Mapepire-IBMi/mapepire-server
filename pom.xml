@@ -5,16 +5,16 @@
 
     <groupId>io.github.theprez</groupId>
     <artifactId>mapepire-server</artifactId>
-    <version>2.0.3</version>
+    <version>2.1.1</version>
     <name>Mapepire (IBM i) Server Component</name>
     <description>Server-side support for Mapepire cloud-native database access layer.</description>
-    <url>https://github.com/ThePrez/CodeForIBMiServer</url>
+    <url>https://github.com/Mapepire-IBMi/mapepire-server/</url>
     <packaging>jar</packaging>
     <scm>
-        <connection>scm:git:git@github.com:ThePrez/CodeForIBMiServer.git</connection>
-        <developerConnection>scm:git:git@github.com:ThePrez/CodeForIBMiServer.git</developerConnection>
+        <connection>scm:git:git@github.com:Mapepire-IBMi/mapepire-server.git</connection>
+        <developerConnection>scm:git:git@github.com:Mapepire-IBMi/mapepire-server.git</developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/ThePrez/CodeForIBMiServer</url>
+        <url>https://github.com/Mapepire-IBMi/mapepire-server/</url>
     </scm>
     <developers>
         <developer>

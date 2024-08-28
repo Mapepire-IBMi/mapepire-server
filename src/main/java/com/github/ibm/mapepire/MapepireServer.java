@@ -10,12 +10,14 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.server.NativeWebSocketServletContainerInitializer;
 import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
+
+import com.github.ibm.mapepire.Tracer.Dest;
+import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;
 import com.github.ibm.mapepire.certstuff.ServerCertInfo;
 import com.github.ibm.mapepire.ws.DbSocketCreator;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
-import com.github.theprez.jcmdutils.StringUtils.TerminalColor;
 
 public class MapepireServer {
     private static Server server;
@@ -43,8 +45,19 @@ public class MapepireServer {
 
                 io.run();
             } else {
+                Tracer.get().setDest(Dest.FILE);
+                if(args.remove("--traceErrors")) {
+                    Tracer.get().setTraceLevel(TraceLevel.ERRORS);
+                }
+                if(args.remove("--traceOn")) {
+                    Tracer.get().setTraceLevel(TraceLevel.ON);
+                }
+                if(args.remove("--traceDs")) {
+                    Tracer.get().setTraceLevel(TraceLevel.DATASTREAM);
+                }
                 AppLogger logger = AppLogger.getSingleton(args.remove("-v"));
                 logger.printf("Starting daemon...");
+                Tracer.info("Starting daemon...");
                 DbSocketCreator.enableDaemon();
                 
                 server = new Server();

@@ -8,7 +8,7 @@
       "type": "java",
       "name": "Daemon Mode",
       "request": "launch",
-      "mainClass": "com.github.theprez.codefori.CodeForiServer",
+      "mainClass": "com.github.ibm.mapepire.MapepireServer",
       "projectName": "codeforibmiserver",
       "envFile": "${workspaceFolder}/.env"
     },
@@ -16,7 +16,7 @@
       "type": "java",
       "name": "CLI mode",
       "request": "launch",
-      "mainClass": "com.github.theprez.codefori.CodeForiServer",
+      "mainClass": "com.github.ibm.mapepire.MapepireServer",
       "projectName": "codeforibmiserver",
       "args": "--single",
       "envFile": "${workspaceFolder}/.env"
