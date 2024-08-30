@@ -65,7 +65,8 @@ jobs:
     - name: Create distribution .zip
       run: |
         pushd staging/opt/mapepire
-        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib
+        zip -r ../../../mapepire-server-dist.zip bin lib
+        mv lib/mapepire/mapepire-server.jar ../../../mapepire-server.jar
         popd
 
     - name: Create the tag and release
@@ -73,7 +74,9 @@ jobs:
       with:
         tag_name: v${{ env.project_version }}
         name: v${{ env.project_version }}
-        files: mapepire-server-${{ env.project_version }}.zip
+        files: |
+          mapepire-server-dist.zip
+          mapepire-server.jar
 
     - name: Install NPM Dependencies
       run: npm i -g @ibm/ibmi-ci
