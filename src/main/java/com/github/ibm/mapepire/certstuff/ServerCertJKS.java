@@ -29,7 +29,7 @@ public class ServerCertJKS implements ServerCertInfo {
         if (null != m_keystore) {
             return m_keystore;
         }
-        final KeyStore ks = KeyStore.getInstance("JKS");
+        final KeyStore ks = KeyStore.getInstance(m_storePath.getName().endsWith(".p12") ? "PKCS12": "JKS");
         ks.load(new FileInputStream(m_storePath), m_storePass.toCharArray());
         return m_keystore = ks;
     }
