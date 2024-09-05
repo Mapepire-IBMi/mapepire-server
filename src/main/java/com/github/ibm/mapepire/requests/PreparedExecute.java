@@ -60,7 +60,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         } else {
             addReplyData("data", new LinkedList<Object>());
             addReplyData("has_results", false);
-            addReplyData("update_count", stmt.getLargeUpdateCount());
+            addReplyData("update_count", batchUpdateCount != 0 ? batchUpdateCount : stmt.getLargeUpdateCount());
             addReplyData("output_parms", getOutputParms(stmt));
             addReplyData("is_done", m_isDone = true);
         }
