@@ -48,7 +48,8 @@ public class ServerCertGetter {
         final File dotDir = new File(userHomeDir, ".mapepire");
         dotDir.mkdirs();
         m_letsEncrypt = ServerCertLetsEncrypt.get(findLetsEncryptCertDir());
-        m_userCertFile = new File ("/QOpenSys/etc/mapepire/cert/server.jks");
+        File userCertFile = new File ("/QOpenSys/etc/mapepire/cert/server.jks");
+        m_userCertFile =  userCertFile.isFile() ? userCertFile :  new File ("/QOpenSys/etc/mapepire/cert/server.p12");
         m_defaultCertFile = new File(dotDir, "default.jks");
     }
 

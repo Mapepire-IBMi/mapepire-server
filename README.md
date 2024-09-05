@@ -11,13 +11,7 @@ Client SDKs for Java, JavaScript, and Python are in the works!
 
 ## Usage
 
-```bash
-/QOpenSys/QIBM/ProdData/JavaVM/jdk80/64bit/bin/java -jar codeforibmiserver.jar 
-```
-For instance, 
-```bash
-/QOpenSys/QIBM/ProdData/JavaVM/jdk80/64bit/bin/java -jar codeforibmiserver.jar
-```
+For installation instructions, please see the [Mapepire project documentation](https://mapepire-ibmi.github.io/guides/sysadmin/)
 
 This server-side job processes requests asynchronously. Requests are sent and received
 through simple use of stdin/stdout streams. The intent is that the client program

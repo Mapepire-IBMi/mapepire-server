@@ -15,7 +15,9 @@ public class SystemConnection {
         private String userProfile;
         private String password;
 
-        public ConnectionOptions() {}
+        public ConnectionOptions() {
+        }
+
         public void setHost(String _host) {
             host = _host;
         }
@@ -41,15 +43,24 @@ public class SystemConnection {
             CLI;
         }
 
-        private String getAuthString() {
+        private String getAuthString() throws IOException {
+
+            if (!MapepireServer.isSingleMode()) {
+                if (StringUtils.isEmpty(userProfile) || userProfile.contains("*")) {
+                    throw new IOException("Invalid Username");
+                }
+                if (StringUtils.isEmpty(password)) {
+                    throw new IOException("Invalid Password");
+                }
+            }
             if (userProfile == null || password == null) {
-                return host;
+                return getHost();
             } else {
                 return String.format("%s;user=%s;password=%s", getHost(), userProfile, password);
             }
         }
- 
-        public String getConnectionString(ConnectionMethod method) {
+
+        public String getConnectionString(ConnectionMethod method) throws IOException {
             if (!isRunningOnIBMi()) {
                 return String.format("jdbc:as400:" + this.getAuthString());
             }
@@ -94,15 +105,20 @@ public class SystemConnection {
     private String userProfile;
     private String password;
 
-    public SystemConnection() {
-        super();
+    public SystemConnection() throws IOException {
+        if (!MapepireServer.isSingleMode()) {
+            throw new IOException("Improper usage");
+        }
     }
-    
+
     public SystemConnection(String host, String user, String pass) throws IOException {
         super();
         this.host = host;
         if (StringUtils.isEmpty(user) || user.contains("*")) {
             throw new IOException("Invalid Username");
+        }
+        if (StringUtils.isEmpty(host) || host.contains("*")) {
+            throw new IOException("Invalid Hostname");
         }
         if (StringUtils.isEmpty(pass)) {
             throw new IOException("Invalid Password");

@@ -21,6 +21,11 @@ import com.github.theprez.jcmdutils.StringUtils;
 
 public class MapepireServer {
     private static Server server;
+    private static boolean s_isSingleMode = false;
+
+    static boolean isSingleMode() { 
+        return s_isSingleMode;
+    }
 
     public static void main(final String[] _args) {
 
@@ -35,6 +40,7 @@ public class MapepireServer {
 
         try {
             if (args.remove("--single")) {
+                s_isSingleMode = true;
                 final SystemConnection conn = new SystemConnection();
                 String testFile = System.getProperty("test.file", "");
                 boolean testMode = StringUtils.isNonEmpty(testFile);

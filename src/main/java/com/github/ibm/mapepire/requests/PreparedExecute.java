@@ -56,12 +56,13 @@ public class PreparedExecute extends BlockRetrievableRequest {
             addReplyData("metadata", getResultMetaDataForResponse());
             addReplyData("data", getNextDataBlock(numRows));
             addReplyData("output_parms", getOutputParms(stmt));
+            addReplyData("is_done", isDone());
         } else {
             addReplyData("data", new LinkedList<Object>());
             addReplyData("has_results", false);
             addReplyData("update_count", stmt.getLargeUpdateCount());
             addReplyData("output_parms", getOutputParms(stmt));
-            m_isDone = true;
+            addReplyData("is_done", m_isDone = true);
         }
     }
 
