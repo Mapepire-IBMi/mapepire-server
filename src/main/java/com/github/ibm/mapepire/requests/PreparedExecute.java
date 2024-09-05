@@ -27,7 +27,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         JsonArray parms = super.getRequestField("parameters").getAsJsonArray();
         boolean isBatch = !parms.isEmpty() && parms.get(0).isJsonArray();
         boolean hasResultSet = false;
-        int batchUpdateCount = 0;
+        long batchUpdateCount = 0;
 
         PreparedStatement stmt = m_prev.getStatement();
         if (isBatch) {
@@ -39,7 +39,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
             }
             batch_ops_added += arr.size();
             addReplyData("batch_added", batch_ops_added);
-            int updateCount[] = stmt.executeBatch();
+            long updateCount[] = stmt.executeLargeBatch();
             batchUpdateCount = Arrays.stream(updateCount).sum();
         } else{
             if (parms != null) {
