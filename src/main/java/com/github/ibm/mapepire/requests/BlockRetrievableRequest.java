@@ -168,6 +168,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             columnAttrs.put("type", _md.getColumnTypeName(i));
             columnAttrs.put("display_size", _md.getColumnDisplaySize(i));
             columnAttrs.put("label", _md.getColumnLabel(i));
+            columnAttrs.put("precision", _md.getPrecision(i));
+            columnAttrs.put("scale", _md.getScale(i));
             columnMetaData.add(columnAttrs);
         }
         metaData.put("columns", columnMetaData);
