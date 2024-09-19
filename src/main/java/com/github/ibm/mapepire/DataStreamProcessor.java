@@ -127,14 +127,14 @@ public class DataStreamProcessor implements Runnable {
                 break;
             case "sqlmore": {
                 if (null == cont_id) {
-                    dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
+                    dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
                 }
                 BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
                 if (null == prev) {
                     prev = m_prepStmtMap.get(cont_id.getAsString());
                 }
                 if (null == prev) {
-                    dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                    dispatch(new BadReq(this, m_conn, reqObj, "invalid correlation ID"));
                     break;
                 }
                 dispatch(new RunSqlMore(this, reqObj, prev));
@@ -142,14 +142,14 @@ public class DataStreamProcessor implements Runnable {
             }
             case "sqlclose": {
                 if (null == cont_id) {
-                    dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
+                    dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
                 }
                 BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
                 if (null == prev) {
                     prev = m_prepStmtMap.get(cont_id.getAsString());
                 }
                 if (null == prev) {
-                    dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                    dispatch(new BadReq(this, m_conn, reqObj, "invalid correlation ID"));
                     break;
                 }
                 dispatch(new CloseSqlCursor(this, reqObj, prev));
@@ -157,11 +157,11 @@ public class DataStreamProcessor implements Runnable {
             }
             case "execute":
                 if (null == cont_id) {
-                    dispatch(new BadReq(null, m_conn, reqObj, "Correlation ID not specified"));
+                    dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
                 }
                 final PrepareSql prevP = m_prepStmtMap.get(cont_id.getAsString());
                 if (null == prevP) {
-                    dispatch(new BadReq(null, m_conn, reqObj, "invalid correlation ID"));
+                    dispatch(new BadReq(this, m_conn, reqObj, "invalid correlation ID"));
                     break;
                 }
                 dispatch(new PreparedExecute(this, reqObj, prevP));
