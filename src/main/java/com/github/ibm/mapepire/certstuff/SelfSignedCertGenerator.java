@@ -21,8 +21,7 @@ public class SelfSignedCertGenerator {
         final File javaHome = new File(System.getProperty("java.home"));
         final File keytoolDir = new File(javaHome, "bin");
 
-        final InetAddress localHost = InetAddress.getLocalHost();
-        final String fqdn = localHost.getHostName();
+        final String fqdn = LocalHostResolver.getFQDN();
         final String dname =  String.format("cn=%s, ou=Web Socket Server, o=Db2 for IBM i, c=Unknown, st=Unknown", fqdn);
         final File keytoolPath = new File(keytoolDir, getKeytoolBinaryName());
         final String[] cmdArray = new String[] {

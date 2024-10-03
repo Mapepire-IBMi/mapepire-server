@@ -72,7 +72,7 @@ public class ServerCertGetter {
         }
 
         try {
-            String myHostName = InetAddress.getLocalHost().getCanonicalHostName().toLowerCase();
+            String myHostName = LocalHostResolver.getFQDN();
             Tracer.info("------we think our hostname is "+myHostName);
             for (File candidate : candidates) {
                 if (candidate.getName().equalsIgnoreCase(myHostName)) {
