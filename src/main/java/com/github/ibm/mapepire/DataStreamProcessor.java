@@ -158,6 +158,7 @@ public class DataStreamProcessor implements Runnable {
             case "execute":
                 if (null == cont_id) {
                     dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
+                    break;
                 }
                 final PrepareSql prevP = m_prepStmtMap.get(cont_id.getAsString());
                 if (null == prevP) {
