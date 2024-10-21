@@ -4,9 +4,12 @@ import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 
+import org.eclipse.jetty.security.ConstraintMapping;
+import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.server.NativeWebSocketServletContainerInitializer;
 import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
@@ -92,7 +95,27 @@ public class MapepireServer {
                 // This is also known as the handler tree (in jetty speak)
                 ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
                 context.setContextPath("/");
-                server.setHandler(context);
+
+                Constraint constraint = new Constraint();
+                constraint.setName("Disable TRACE");
+                constraint.setAuthenticate(true);
+
+                ConstraintMapping disableTrace = new ConstraintMapping();
+                disableTrace.setConstraint(constraint);
+                disableTrace.setMethod("TRACE");
+                disableTrace.setPathSpec("/");
+
+                ConstraintMapping allowOthers = new ConstraintMapping();
+                allowOthers.setConstraint(new Constraint());
+                allowOthers.setMethod("*");
+                allowOthers.setPathSpec("/");
+
+                ConstraintSecurityHandler handler = new ConstraintSecurityHandler();
+                handler.addConstraintMapping(disableTrace);
+                handler.addConstraintMapping(allowOthers);
+
+                handler.setHandler(context);
+                server.setHandler(handler);
 
                 String remoteServer = System.getenv("DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
                 if (StringUtils.isNonEmpty(remoteServer)) {
