@@ -87,8 +87,8 @@ public class ServerCertGetter {
 
     public ServerCertInfo get() throws IOException, InterruptedException {
         if (m_userCertFile.isFile()) {
-            Tracer.info("Reusing user-defined server certificate in " + m_defaultCertFile.getAbsolutePath());
-            return new ServerCertJKS(m_defaultCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(),
+            Tracer.info("Reusing user-defined server certificate in " + m_userCertFile.getAbsolutePath());
+            return new ServerCertJKS(m_userCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(),
                     StoreDefaults.getAlias());
         } else if (null != m_letsEncrypt) {
             Tracer.info("Using LetsEncrypt certificate file " + m_letsEncrypt.getKeyStoreFile().getAbsolutePath());
