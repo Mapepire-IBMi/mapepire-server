@@ -96,7 +96,7 @@ Operation `sql` supports the following Java system properties:
 So, for instance:
 
 ```bash
-/QOpenSys/QIBM/ProdData/JavaVM/jdk80/64bit/bin/java -Dcodeserver.jdbc.autoconnect=true -jar codeforibmiserver.jar
+/QOpenSys/QIBM/ProdData/JavaVM/jdk11/64bit/bin/java -Dcodeserver.jdbc.autoconnect=true -jar codeforibmiserver.jar
 ```
 
 ## Developing and testing the server
