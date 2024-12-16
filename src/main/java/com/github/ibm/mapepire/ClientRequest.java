@@ -126,6 +126,7 @@ public abstract class ClientRequest implements Runnable {
     protected void sendreply() throws UnsupportedEncodingException, IOException {
         final Gson l = new GsonBuilder().serializeNulls().create();
         final String json = l.toJson(replyData);
+        replyData.clear();
         m_io.sendResponse(json);
     }
 }

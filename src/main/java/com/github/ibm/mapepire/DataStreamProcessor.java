@@ -1,38 +1,15 @@
 package com.github.ibm.mapepire;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-
-import com.github.ibm.mapepire.requests.BadReq;
-import com.github.ibm.mapepire.requests.BlockRetrievableRequest;
-import com.github.ibm.mapepire.requests.CloseSqlCursor;
-import com.github.ibm.mapepire.requests.DoVe;
-import com.github.ibm.mapepire.requests.Exit;
-import com.github.ibm.mapepire.requests.GetDbJob;
-import com.github.ibm.mapepire.requests.GetTraceData;
-import com.github.ibm.mapepire.requests.GetVersion;
-import com.github.ibm.mapepire.requests.IncompleteReq;
-import com.github.ibm.mapepire.requests.Ping;
-import com.github.ibm.mapepire.requests.PrepareSql;
-import com.github.ibm.mapepire.requests.PreparedExecute;
-import com.github.ibm.mapepire.requests.Reconnect;
-import com.github.ibm.mapepire.requests.RunCL;
-import com.github.ibm.mapepire.requests.RunSql;
-import com.github.ibm.mapepire.requests.RunSqlMore;
-import com.github.ibm.mapepire.requests.SetConfig;
-import com.github.ibm.mapepire.requests.UnknownReq;
-import com.github.ibm.mapepire.requests.UnparsableReq;
+import com.github.ibm.mapepire.requests.*;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import java.io.*;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DataStreamProcessor implements Runnable {
 
@@ -153,6 +130,9 @@ public class DataStreamProcessor implements Runnable {
                     break;
                 }
                 dispatch(new CloseSqlCursor(this, reqObj, prev));
+
+                m_queriesMap.remove(cont_id.getAsString());
+                m_prepStmtMap.remove(cont_id.getAsString());
                 break;
             }
             case "execute":
