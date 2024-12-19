@@ -24,6 +24,8 @@ import com.github.theprez.jcmdutils.StringUtils;
 
 public class MapepireServer {
     private static Server server;
+    // Required minimum Java version
+    private static String minimumRequiredJavaVersion = "1.8.0_341";
     private static boolean s_isSingleMode = false;
 
     static boolean isSingleMode() { 
@@ -40,6 +42,8 @@ public class MapepireServer {
             System.out.println("Build time: " + Version.s_compileDateTime);
             System.exit(0);
         }
+
+        checkJavaVersion(minimumRequiredJavaVersion);
 
         try {
             if (args.remove("--single")) {
@@ -158,5 +162,61 @@ public class MapepireServer {
         Tracer.warn("data stream processing completed (end of request stream?)");
         System.err.println("bye");
         System.exit(12);
+    }
+
+    /**
+     * Check that the Java version is at least a certain level
+     * @param requiredVersion The minimum required Java version
+     * @implNote This method terminates the application with {@code System.exit(1)} if the
+     * current Java version does not meet the required version.
+     */
+    private static void checkJavaVersion(String requiredVersion){
+
+        // Get the current Java version
+        String javaVersion = System.getProperty("java.version");
+
+        // Compare versions
+        if (isVersionLessThan(javaVersion, requiredVersion)) {
+            System.err.println("Error: Java version must be >= " + requiredVersion
+                    + ". Current version: " + javaVersion);
+            System.exit(1); // Exit with an error code
+        }
+    }
+
+    /**
+     * Compares two Java versions and determines if the first is less than the second.
+     *
+     * @param currentVersion the current Java version.
+     * @param requiredVersion the required Java version.
+     * @return true if currentVersion < requiredVersion, false otherwise.
+     */
+    private static boolean isVersionLessThan(String currentVersion, String requiredVersion) {
+        String[] currentParts = currentVersion.split("\\.|_|-");
+        String[] requiredParts = requiredVersion.split("\\.|_|-");
+
+        int length = Math.max(currentParts.length, requiredParts.length);
+        for (int i = 0; i < length; i++) {
+            String currentPart = (i < currentParts.length) ? currentParts[i] : "0";
+            String requiredPart = (i < requiredParts.length) ? requiredParts[i] : "0";
+            try {
+                int currentNumericPart = Integer.parseInt(currentParts[i]);
+                int requiredNumericPart = Integer.parseInt(requiredParts[i]);
+
+                if (currentNumericPart < requiredNumericPart) {
+                    return true;
+                } else if (currentNumericPart > requiredNumericPart) {
+                    return false;
+                }
+            }  catch (NumberFormatException e) {
+                // If it's not a number, compare as strings
+                int comparison = currentPart.compareTo(requiredPart);
+                if (comparison < 0) {
+                    return true;
+                } else if (comparison > 0) {
+                    return false;
+                }
+            }
+        }
+        return false;
     }
 }
