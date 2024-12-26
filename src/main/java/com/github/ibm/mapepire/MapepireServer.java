@@ -1,8 +1,14 @@
 package com.github.ibm.mapepire;
 
 import java.io.FileInputStream;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.LinkedList;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
@@ -124,6 +130,19 @@ public class MapepireServer {
                 String remoteServer = System.getenv("DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
                 if (StringUtils.isNonEmpty(remoteServer)) {
                     DbSocketCreator.setDatabaseHost(remoteServer);
+                }
+                if (SystemConnection.isRunningOnIBMi() && (StringUtils.isEmpty(remoteServer) || "localhost".equalsIgnoreCase(remoteServer) || "127.0.0.1".equalsIgnoreCase(remoteServer))) {
+                    SSLContext ctx = SSLContext.getInstance("TLS");
+                    //@formatter:off
+                    ctx.init(null, new TrustManager[] { 
+                            new X509TrustManager() { 
+                                @Override  public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+                                @Override  public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+                                @Override  public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                            } 
+                        }, null);
+                    //@formatter:on
+                    SSLContext.setDefault(ctx);
                 }
 
                 String remotePort = System.getenv("PORT");
