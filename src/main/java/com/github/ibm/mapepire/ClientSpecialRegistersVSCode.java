@@ -5,15 +5,8 @@ import java.util.Properties;
 import com.github.theprez.jcmdutils.StringUtils;
 
 public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
-
-    private static final String CLIENT_APP_NAME = "ApplicationName"; // AS400JDBCConnectionImpl.applicationNamePropertyName_
-    private static final String CLIENT_USER = "ClientUser"; // AS400JDBCConnectionImpl.clientUserPropertyName_
-    private static final String CLIENT_HOST_NAME = "ClientHostname"; // AS400JDBCConnectionImpl.clientHostnamePropertyName_
-    private static final String CLIENT_ACCOUNTING = "ClientAccounting"; // AS400JDBCConnectionImpl.clientAccountingPropertyName_
-    private static final String CLIENT_PGM_ID = "ClientProgramID"; // AS400JDBCConnectionImpl.clientProgramIDPropertyName_
     final String m_clientIP;
     final String m_accountingString;
-    private String m_applicationName = "I dunno, maybe VSCode or something";
 
     public ClientSpecialRegistersVSCode() {
         String sshConnectionEnv = System.getenv("SSH_CONNECTION");
@@ -36,15 +29,11 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
         m_accountingString = "location: "+location;
     }
 
-    public ClientSpecialRegistersVSCode setApplicationName(String _appName) {
-        m_applicationName = _appName;
-        return this;
-    }
-
-    public Properties getProperties() {
+    @Override
+    public Properties getProperties(final String _applicationName) {
         Properties ret = new Properties();
         ret.put(CLIENT_USER, System.getProperty("user.name", "<unknown>"));
-        ret.put(CLIENT_APP_NAME, m_applicationName);
+        ret.put(CLIENT_APP_NAME, _applicationName);
         ret.put(CLIENT_HOST_NAME, m_clientIP);
         ret.put(CLIENT_PGM_ID, getProgramString());
         ret.put(CLIENT_ACCOUNTING, m_accountingString);

@@ -76,7 +76,6 @@ public class SystemConnection {
 
         private String m_jdbcProps = "";
         private ConnectionMethod m_connectionMethod = ConnectionMethod.CLI;
-        private ClientSpecialRegisters m_clientRegs = new ClientSpecialRegisters();
 
         String getJdbcProperties() {
             return m_jdbcProps;
@@ -93,10 +92,6 @@ public class SystemConnection {
         public ConnectionMethod getConnectionMethod() {
             return m_connectionMethod;
         }
-
-        public void setCSRApplicationName(String _appName) {
-            m_clientRegs.setApplicationName(_appName);
-        }
     }
 
     private Connection m_conn;
@@ -104,15 +99,21 @@ public class SystemConnection {
     private String host;
     private String userProfile;
     private String password;
+    private final ClientSpecialRegisters m_clientRegs;
+    private String m_applicationName;
 
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
             throw new IOException("Improper usage");
         }
+        this.m_clientRegs = new ClientSpecialRegistersVSCode();
     }
 
-    public SystemConnection(String host, String user, String pass) throws IOException {
+    public SystemConnection(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
         super();
+        if (MapepireServer.isSingleMode()) {
+            throw new IOException("Improper usage");
+        }
         this.host = host;
         if (StringUtils.isEmpty(user) || user.contains("*")) {
             throw new IOException("Invalid Username");
@@ -125,6 +126,7 @@ public class SystemConnection {
         }
         this.userProfile = user;
         this.password = pass;
+        this.m_clientRegs = new ClientSpecialRegistersRemote(clientHost, clientAddress, user);
     }
 
     public static boolean isRunningOnIBMi() {
@@ -136,7 +138,7 @@ public class SystemConnection {
             return m_conn;
         }
         if (Boolean.getBoolean("codeserver.jdbc.autoconnect")) {
-            return reconnect(m_connectionOptions);
+            return reconnect(m_connectionOptions, m_applicationName);
         }
         throw new SQLException("Not connected");
     }
@@ -172,11 +174,14 @@ public class SystemConnection {
         }
     }
 
-    public synchronized Connection reconnect(final ConnectionOptions _opts) throws SQLException {
+    public synchronized Connection reconnect(final ConnectionOptions _opts, final String _applicationName) throws SQLException {
         if (null != m_conn) {
             final Connection cpy = m_conn;
             m_conn = null;
             cpy.close();
+        }
+        if (StringUtils.isNonEmpty(_applicationName)) {
+            m_applicationName = _applicationName;
         }
         try {
             DriverManager.registerDriver(new AS400JDBCDriver());
@@ -187,7 +192,7 @@ public class SystemConnection {
             m_connectionOptions.setPassword(this.password);
 
             m_conn = DriverManager.getConnection(m_connectionOptions.getConnectionString(m_connectionOptions.m_connectionMethod) + ";" + _opts.getJdbcProperties());
-            m_conn.setClientInfo(_opts.m_clientRegs.getProperties());
+            m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
         } catch (Exception e) {
             throw new SQLException(e);
