@@ -4,7 +4,7 @@ import java.util.Properties;
 
 import com.github.theprez.jcmdutils.StringUtils;
 
-public class ClientSpecialRegisters {
+public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
 
     private static final String CLIENT_APP_NAME = "ApplicationName"; // AS400JDBCConnectionImpl.applicationNamePropertyName_
     private static final String CLIENT_USER = "ClientUser"; // AS400JDBCConnectionImpl.clientUserPropertyName_
@@ -15,7 +15,7 @@ public class ClientSpecialRegisters {
     final String m_accountingString;
     private String m_applicationName = "I dunno, maybe VSCode or something";
 
-    public ClientSpecialRegisters() {
+    public ClientSpecialRegistersVSCode() {
         String sshConnectionEnv = System.getenv("SSH_CONNECTION");
         if (StringUtils.isNonEmpty(sshConnectionEnv)) {
             m_clientIP = sshConnectionEnv.replaceAll("\\s.*", "");
@@ -29,14 +29,14 @@ public class ClientSpecialRegisters {
         }
         String location = "<unknown location>";
         try {
-            location = ClientSpecialRegisters.class.getProtectionDomain().getCodeSource().getLocation().toString();
+            location = ClientSpecialRegistersVSCode.class.getProtectionDomain().getCodeSource().getLocation().toString();
         } catch (Exception e) {
             Tracer.err(e);
         }
         m_accountingString = "location: "+location;
     }
 
-    public ClientSpecialRegisters setApplicationName(String _appName) {
+    public ClientSpecialRegistersVSCode setApplicationName(String _appName) {
         m_applicationName = _appName;
         return this;
     }
