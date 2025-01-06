@@ -30,6 +30,7 @@ All requests require these two fields to be specified:
 All responses will include these fields:
 - `id` (string): corresponding to the request ID
 - `success` (boolean): whether or not the request was successful
+- `execution_time` (long): elapsed time in millis
 
 If an error occurs, all responses will include these fields:
 - `error`: a description of the error
