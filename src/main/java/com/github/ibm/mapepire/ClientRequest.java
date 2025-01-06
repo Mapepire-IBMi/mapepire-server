@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.Gson;
@@ -82,8 +83,11 @@ public abstract class ClientRequest implements Runnable {
     @Override
     public void run() {
         try {
+            long startTime = System.nanoTime();
             go();
+            long endTime = System.nanoTime();
             addReplyData("success", true);
+            addReplyData("execution_time", TimeUnit.NANOSECONDS.toMillis(endTime - startTime));
         } catch (final Exception _e) {
             Tracer.err(_e);
             addReplyData("error", "" + getErrorStringFromException(_e));
