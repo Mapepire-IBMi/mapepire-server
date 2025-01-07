@@ -82,12 +82,10 @@ public abstract class ClientRequest implements Runnable {
 
     @Override
     public void run() {
+        long startTime = System.nanoTime();
         try {
-            long startTime = System.nanoTime();
             go();
-            long endTime = System.nanoTime();
             addReplyData("success", true);
-            addReplyData("execution_time", TimeUnit.NANOSECONDS.toMillis(endTime - startTime));
         } catch (final Exception _e) {
             Tracer.err(_e);
             addReplyData("error", "" + getErrorStringFromException(_e));
@@ -99,6 +97,7 @@ public abstract class ClientRequest implements Runnable {
             }
         } finally {
             try {
+                addReplyData("execution_time", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
                 sendreply();
                 processAfterReplySent();
             } catch (final Exception e) {
