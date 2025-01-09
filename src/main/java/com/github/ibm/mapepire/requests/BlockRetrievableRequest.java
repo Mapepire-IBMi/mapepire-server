@@ -131,7 +131,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 if (null == cellData) {
                     cellDataForResponse = null;
                 } else if (cellData instanceof CharSequence) {
-                    cellDataForResponse = cellData.toString().trim();
+                    cellDataForResponse = cellData.toString().replaceAll("\\s+$","");
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else {
