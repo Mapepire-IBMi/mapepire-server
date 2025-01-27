@@ -32,10 +32,11 @@ public class Reconnect extends ClientRequest {
         if (null != props) {
             opts.setJdbcProperties(props.getAsString());
         }
+        String appName = null;
         if (null != applicationName) {
-            opts.setCSRApplicationName(applicationName.getAsString());
+            appName = applicationName.getAsString();
         }
-        getSystemConnection().reconnect(opts);
+        getSystemConnection().reconnect(opts, appName);
         addReplyData("job", getSystemConnection().getJdbcJobName());
     }
 

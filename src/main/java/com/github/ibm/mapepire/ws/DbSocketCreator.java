@@ -1,7 +1,6 @@
 package com.github.ibm.mapepire.ws;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
@@ -82,7 +81,7 @@ public class DbSocketCreator implements WebSocketCreator
         }
         
         try {
-            return new DbWebsocketClient(DbSocketCreator.getHost(), parts[0], parts[1]);
+            return new DbWebsocketClient(jettyServerUpgradeRequest.getRemoteHostName(), jettyServerUpgradeRequest.getRemoteAddress(), DbSocketCreator.getHost(), parts[0], parts[1]);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
