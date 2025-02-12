@@ -157,8 +157,14 @@ public class MapepireServer {
                 // Configure specific websocket behavior
                 NativeWebSocketServletContainerInitializer.configure(context,
                         (servletContext, nativeWebSocketConfiguration) -> {
-                            // Configure default max size
                             nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
+                            // Configure max message size
+                            int maxWsMessageSize = 50 * 1024 * 1024; // 50MB
+                            String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
+                            if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
+                                maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
+                            }
+                            nativeWebSocketConfiguration.getPolicy().setMaxTextMessageSize(maxWsMessageSize);
 
                             // Add websockets
                             nativeWebSocketConfiguration.addMapping("/db/*", new DbSocketCreator());
