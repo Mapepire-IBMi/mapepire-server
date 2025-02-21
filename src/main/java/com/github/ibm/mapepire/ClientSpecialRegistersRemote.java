@@ -18,7 +18,7 @@ public class ClientSpecialRegistersRemote implements ClientSpecialRegisters {
     public Properties getProperties(final String _applicationName) {
         Properties ret = new Properties();
         ret.put(CLIENT_USER, m_user);
-        ret.put(CLIENT_APP_NAME, _applicationName);
+        ret.put(CLIENT_APP_NAME, null == _applicationName ? "unspecified" : _applicationName);
         ret.put(CLIENT_HOST_NAME, m_clientIP);
         ret.put(CLIENT_PGM_ID, getProgramString());
         ret.put(CLIENT_ACCOUNTING, m_accountingString);

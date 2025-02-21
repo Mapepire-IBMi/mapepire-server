@@ -26,14 +26,14 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
         } catch (Exception e) {
             Tracer.err(e);
         }
-        m_accountingString = "location: "+location;
+        m_accountingString = "location: " + location;
     }
 
     @Override
     public Properties getProperties(final String _applicationName) {
         Properties ret = new Properties();
         ret.put(CLIENT_USER, System.getProperty("user.name", "<unknown>"));
-        ret.put(CLIENT_APP_NAME, _applicationName);
+        ret.put(CLIENT_APP_NAME, null == _applicationName ? "VSCode" : _applicationName);
         ret.put(CLIENT_HOST_NAME, m_clientIP);
         ret.put(CLIENT_PGM_ID, getProgramString());
         ret.put(CLIENT_ACCOUNTING, m_accountingString);
