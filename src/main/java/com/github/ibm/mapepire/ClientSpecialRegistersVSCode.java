@@ -32,7 +32,7 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
     @Override
     public Properties getProperties(final String _applicationName) {
         Properties ret = new Properties();
-        ret.put(CLIENT_USER, System.getProperty("user.name", "<unknown>"));
+        ret.put(CLIENT_USER, System.getProperty("user.name", "<unknown>").toUpperCase());
         ret.put(CLIENT_APP_NAME, null == _applicationName ? "VSCode" : _applicationName);
         ret.put(CLIENT_HOST_NAME, m_clientIP);
         ret.put(CLIENT_PGM_ID, getProgramString());
