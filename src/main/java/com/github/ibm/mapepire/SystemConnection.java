@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCDriver;
@@ -39,8 +40,7 @@ public class SystemConnection {
         }
 
         public enum ConnectionMethod {
-            TCP,
-            CLI;
+            TCP, CLI;
         }
 
         private String getAuthString() throws IOException {
@@ -66,9 +66,7 @@ public class SystemConnection {
             }
             switch (method) {
                 case CLI:
-                    return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only")
-                            ? "jdbc:default:connection"
-                            : "jdbc:db2:" + this.getAuthString();
+                    return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only") ? "jdbc:default:connection" : "jdbc:db2:" + this.getAuthString();
                 default:
                     return "jdbc:as400:" + this.getAuthString();
             }
@@ -101,12 +99,15 @@ public class SystemConnection {
     private String password;
     private final ClientSpecialRegisters m_clientRegs;
     private String m_applicationName;
+    private final String clientAddress;
 
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
             throw new IOException("Improper usage");
         }
-        this.m_clientRegs = new ClientSpecialRegistersVSCode();
+        ClientSpecialRegistersVSCode clientRegs = new ClientSpecialRegistersVSCode();
+        this.m_clientRegs = clientRegs;
+        this.clientAddress = clientRegs.getClientAddress();
     }
 
     public SystemConnection(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
@@ -126,6 +127,7 @@ public class SystemConnection {
         }
         this.userProfile = user;
         this.password = pass;
+        this.clientAddress = clientAddress;
         this.m_clientRegs = new ClientSpecialRegistersRemote(clientHost, clientAddress, user);
     }
 
@@ -184,6 +186,9 @@ public class SystemConnection {
             m_applicationName = _applicationName;
         }
         try {
+            // check if this connection is allowed by our security rules file
+            AuthFile.getDefault().verify(this.userProfile, this.clientAddress);
+    
             DriverManager.registerDriver(new AS400JDBCDriver());
             m_connectionOptions = _opts;
 

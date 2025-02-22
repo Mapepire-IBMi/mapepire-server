@@ -43,4 +43,8 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
     private String getProgramString() {
         return String.format("VSCode connector | Version %s", Version.s_version);
     }
+
+    public String getClientAddress() {
+        return m_clientIP;
+    }
 }
