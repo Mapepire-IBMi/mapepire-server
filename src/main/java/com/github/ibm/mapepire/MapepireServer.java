@@ -22,6 +22,7 @@ import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
 
 import com.github.ibm.mapepire.Tracer.Dest;
 import com.github.ibm.mapepire.Tracer.TraceLevel;
+import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;
 import com.github.ibm.mapepire.certstuff.ServerCertInfo;
 import com.github.ibm.mapepire.ws.DbSocketCreator;
@@ -52,8 +53,10 @@ public class MapepireServer {
         checkJavaVersion(minimumRequiredJavaVersion);
 
         try {
+
             if (args.remove("--single")) {
                 s_isSingleMode = true;
+                AuthFile.disableDefaultAuthFile();
                 final SystemConnection conn = new SystemConnection();
                 String testFile = System.getProperty("test.file", "");
                 boolean testMode = StringUtils.isNonEmpty(testFile);
@@ -64,6 +67,9 @@ public class MapepireServer {
 
                 io.run();
             } else {
+                // Make sure we can process our security rules file
+                AuthFile.getDefault().getRules();
+
                 Tracer.get().setDest(Dest.FILE);
                 if(args.remove("--traceErrors")) {
                     Tracer.get().setTraceLevel(TraceLevel.ERRORS);

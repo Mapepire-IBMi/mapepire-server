@@ -36,7 +36,10 @@ public class AuthFile {
         if (null != s_defaultInstance) {
             return s_defaultInstance;
         }
-        return new AuthFile(System.getProperty("mapepire.secfile", DEFAULT_SEC_FILE));
+        return new AuthFile(DEFAULT_SEC_FILE);
+    }
+    public synchronized static void disableDefaultAuthFile() { 
+        s_defaultInstance = new AuthFile("/dev/null");
     }
 
     private final File m_file;
@@ -52,7 +55,7 @@ public class AuthFile {
         this(new File(_file));
     }
 
-    public List<AuthRule> getRules() throws UnsupportedEncodingException, FileNotFoundException, IOException {
+    public List<AuthRule> getRules() throws IOException {
         if (null != m_rules) {
             return m_rules;
         }
