@@ -33,9 +33,9 @@ public class MapepireServer {
     private static Server server;
     // Required minimum Java version
     private static String minimumRequiredJavaVersion = "1.8.0_341";
-    private static boolean s_isSingleMode = false;
+    private volatile static boolean s_isSingleMode = false;
 
-    static boolean isSingleMode() { 
+    public static boolean isSingleMode() { 
         return s_isSingleMode;
     }
 
@@ -56,7 +56,9 @@ public class MapepireServer {
 
             if (args.remove("--single")) {
                 s_isSingleMode = true;
-                AuthFile.disableDefaultAuthFile();
+                // Make sure we can process our security rules file, if it exists
+                AuthFile.getDefault().getRules();
+
                 final SystemConnection conn = new SystemConnection();
                 String testFile = System.getProperty("test.file", "");
                 boolean testMode = StringUtils.isNonEmpty(testFile);
@@ -67,7 +69,8 @@ public class MapepireServer {
 
                 io.run();
             } else {
-                // Make sure we can process our security rules file
+                s_isSingleMode = false;
+                // Make sure we can process our security rules file, if it exists
                 AuthFile.getDefault().getRules();
 
                 Tracer.get().setDest(Dest.FILE);
