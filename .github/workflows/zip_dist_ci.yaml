@@ -88,6 +88,9 @@ jobs:
           --cmd "chown -R qsys ." \
           --cmd "rm -fr /QOpenSys/etc/sc/services/mapepired.yaml" \
           --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepired.yaml /QOpenSys/etc/sc/services/mapepired.yaml" \
+          --cmd "mkdir -p /QOpenSys/etc/mapepire" \
+          --cmd "touch /QOpenSys/etc/mapepire/iprules.conf" \
+          --cmd "touch /QOpenSys/etc/mapepire/iprules-single.conf" \
           --cmd "sc -v check mapepired" \
           --cmd "sc -v stop mapepired" \
           --cmd "sc -v start mapepired" \
