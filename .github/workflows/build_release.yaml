@@ -62,10 +62,10 @@ jobs:
         mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
         mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepire.yaml
 
-    - name: Create distribution .zip
+    - name: Create distribution .zip and move JAR file
       run: |
         pushd staging/opt/mapepire
-        zip -r ../../../mapepire-server-dist.zip bin lib
+        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib
         mv lib/mapepire/mapepire-server.jar ../../../mapepire-server.jar
         popd
 
@@ -75,7 +75,7 @@ jobs:
         tag_name: v${{ env.project_version }}
         name: v${{ env.project_version }}
         files: |
-          mapepire-server-dist.zip
+          mapepire-server-${{ env.project_version }}.zip
           mapepire-server.jar
 
     - name: Install NPM Dependencies
