@@ -87,12 +87,12 @@ jobs:
           --rcwd "/home/${{ secrets.IBMI_USER }}" \
           --cmd "mkdir -p /opt/download/release" \
           --rcwd "/opt/download/release" \
-          --cmd "rm -f mapepire-server-dist.zip" \
-          --cmd "wget -O mapepire-server-dist.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/latest/download/mapepire-server-dist.zip" \
+          --cmd "rm -f mapepire-server-${{ env.project_version }}.zip" \
+          --cmd "wget -O mapepire-server-${{ env.project_version }}.zip https://github.com/Mapepire-IBMi/mapepire-server/releases/latest/download/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "mkdir -p /opt/mapepire/release" \
           --rcwd "/opt/mapepire/release" \
           --cmd "rm -fr bin lib" \
-          --cmd "jar xvf /opt/download/release/mapepire-server-dist.zip" \
+          --cmd "jar xvf /opt/download/release/mapepire-server-${{ env.project_version }}.zip" \
           --cmd "chown -R qsys ." \
           --cmd "rm -fr /QOpenSys/etc/sc/services/mapepire.yaml" \
           --cmd "ln -sf /opt/mapepire/release/lib/mapepire/mapepire.yaml /QOpenSys/etc/sc/services/mapepire.yaml" \
