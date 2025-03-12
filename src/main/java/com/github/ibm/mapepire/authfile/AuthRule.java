@@ -1,6 +1,5 @@
 package com.github.ibm.mapepire.authfile;
 
-import java.net.InetAddress;
 import java.util.regex.Pattern;
 
 public class AuthRule {
