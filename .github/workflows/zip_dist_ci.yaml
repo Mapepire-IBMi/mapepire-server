@@ -54,10 +54,12 @@ jobs:
         mv scripts/mapepire-start.sh staging/opt/mapepire/bin/mapepire
         mv target/mapepire-server-${{ env.project_version }}-jar-with-dependencies.jar staging/opt/mapepire/lib/mapepire/mapepire-server.jar
         mv service-commander-def.yaml staging/opt/mapepire/lib/mapepire/mapepired.yaml
+        mv conf/iprules.conf staging/opt/mapepire/iprules.conf
+        mv conf/iprules-single.conf staging/opt/mapepire/iprules-single.conf
 
     - name: Create distribution .zip
       working-directory: staging/opt/mapepire
-      run: zip -r ../zip/mapepire-server-${{ env.project_version }}.zip bin lib
+      run: zip -r ../zip/mapepire-server-${{ env.project_version }}.zip bin lib iprules-single.conf iprules-single.conf
 
     - name: Upload dist artifact
       uses: actions/upload-artifact@v4
@@ -89,8 +91,8 @@ jobs:
           --cmd "rm -fr /QOpenSys/etc/sc/services/mapepired.yaml" \
           --cmd "ln -sf /opt/mapepire/dev/lib/mapepire/mapepired.yaml /QOpenSys/etc/sc/services/mapepired.yaml" \
           --cmd "mkdir -p /QOpenSys/etc/mapepire" \
-          --cmd "touch /QOpenSys/etc/mapepire/iprules.conf" \
-          --cmd "touch /QOpenSys/etc/mapepire/iprules-single.conf" \
+          --cmd "mv -n /opt/mapepire/dev/iprules.conf /QOpenSys/etc/mapepire/iprules.conf" \
+          --cmd "mv -n /opt/mapepire/dev/iprules-single.conf /QOpenSys/etc/mapepire/iprules-single.conf" \
           --cmd "sc -v check mapepired" \
           --cmd "sc -v stop mapepired" \
           --cmd "sc -v start mapepired" \
