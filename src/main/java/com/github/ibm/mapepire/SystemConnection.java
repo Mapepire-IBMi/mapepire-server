@@ -108,6 +108,7 @@ public class SystemConnection {
         ClientSpecialRegistersVSCode clientRegs = new ClientSpecialRegistersVSCode();
         this.m_clientRegs = clientRegs;
         this.clientAddress = clientRegs.getClientAddress();
+        this.userProfile = System.getProperty("user.name");
     }
 
     public SystemConnection(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
