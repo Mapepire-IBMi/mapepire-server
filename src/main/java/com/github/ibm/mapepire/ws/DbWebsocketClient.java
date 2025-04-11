@@ -1,19 +1,16 @@
 package com.github.ibm.mapepire.ws;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.util.concurrent.CountDownLatch;
-
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketAdapter;
-
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketException;
+
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
@@ -60,30 +57,35 @@ public class DbWebsocketClient extends WebSocketAdapter {
     InputStream in = new ByteArrayInputStream(new byte[0]);
 
     OutputStream outStream = new OutputStream() {
-      private StringBuilder string = new StringBuilder();
+      private final List<Byte> payload = new ArrayList<>();
 
       @Override
       public void write(int b) {
-        this.string.append((char) b);
+        this.payload.add((byte)b);
       }
 
-      public String toString() {
-        return this.string.toString();
+      public byte[] getBytes() {
+        byte[] byteArray = new byte[this.payload.size()];
+        for (int i = 0; i < this.payload.size() ; i++) {
+          byteArray[i] = payload.get(i);
+        }
+        return byteArray;
       }
 
       @Override
       public void flush() throws IOException {
         if (endpoint.getRemote() != null) {
-          String content = this.toString();
-          if (content != null) {
+          if (!payload.isEmpty()) {
+            byte[] payloadByteArray = this.getBytes();
             try {
-              endpoint.getRemote().sendString(content);
+              endpoint.getRemote().sendBytes(ByteBuffer.wrap(payloadByteArray));
             } catch (WebSocketException e){
-              System.out.println("Could not send message: " + content + e.getMessage());
+
+              System.out.println("Could not send message: " + new String(payloadByteArray) + e.getMessage());
             }
           }
         }
-        this.string.setLength(0);
+        this.payload.clear();
       }
     };
 
