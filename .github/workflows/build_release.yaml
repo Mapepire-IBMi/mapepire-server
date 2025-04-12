@@ -68,7 +68,7 @@ jobs:
     - name: Create distribution .zip and move JAR file
       run: |
         pushd staging/opt/mapepire
-        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib iprules-single.conf iprules-single.conf
+        zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib iprules.conf iprules-single.conf
         mv lib/mapepire/mapepire-server.jar ../../../mapepire-server.jar
         popd
 
@@ -100,8 +100,8 @@ jobs:
           --cmd "rm -fr /QOpenSys/etc/sc/services/mapepire.yaml" \
           --cmd "ln -sf /opt/mapepire/release/lib/mapepire/mapepire.yaml /QOpenSys/etc/sc/services/mapepire.yaml" \
           --cmd "mkdir -p /QOpenSys/etc/mapepire" \
-          --cmd "mv -n /opt/mapepire/dev/iprules.conf /QOpenSys/etc/mapepire/iprules.conf" \
-          --cmd "mv -n /opt/mapepire/dev/iprules-single.conf /QOpenSys/etc/mapepire/iprules-single.conf" \
+          --cmd "mv -n /opt/mapepire/release/iprules.conf /QOpenSys/etc/mapepire/iprules.conf" \
+          --cmd "mv -n /opt/mapepire/release/iprules-single.conf /QOpenSys/etc/mapepire/iprules-single.conf" \
           --cmd "sc -v check mapepire" \
           --cmd "sc -v stop mapepire" \
           --cmd "sc -v start mapepire" \
