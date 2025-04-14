@@ -8,8 +8,6 @@ import org.eclipse.jetty.websocket.api.WebSocketException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
@@ -57,35 +55,30 @@ public class DbWebsocketClient extends WebSocketAdapter {
     InputStream in = new ByteArrayInputStream(new byte[0]);
 
     OutputStream outStream = new OutputStream() {
-      private final List<Byte> payload = new ArrayList<>();
+      private final ByteArrayOutputStream payload = new ByteArrayOutputStream();
 
       @Override
       public void write(int b) {
-        this.payload.add((byte)b);
+        this.payload.write((byte)b);
       }
 
       public byte[] getBytes() {
-        byte[] byteArray = new byte[this.payload.size()];
-        for (int i = 0; i < this.payload.size() ; i++) {
-          byteArray[i] = payload.get(i);
-        }
-        return byteArray;
+        return payload.toByteArray();
       }
 
       @Override
       public void flush() throws IOException {
         if (endpoint.getRemote() != null) {
-          if (!payload.isEmpty()) {
+          if (payload.size() != 0) {
             byte[] payloadByteArray = this.getBytes();
             try {
               endpoint.getRemote().sendBytes(ByteBuffer.wrap(payloadByteArray));
             } catch (WebSocketException e){
-
               System.out.println("Could not send message: " + new String(payloadByteArray) + e.getMessage());
             }
           }
         }
-        this.payload.clear();
+        this.payload.reset();
       }
     };
 
