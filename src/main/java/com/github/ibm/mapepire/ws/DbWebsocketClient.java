@@ -70,6 +70,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
       public void flush() throws IOException {
         if (endpoint.getRemote() != null) {
           if (payload.size() != 0) {
+            this.write('\n');
             byte[] payloadByteArray = this.getBytes();
             try {
               endpoint.getRemote().sendBytes(ByteBuffer.wrap(payloadByteArray));
