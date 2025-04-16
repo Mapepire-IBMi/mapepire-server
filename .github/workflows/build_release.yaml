@@ -6,6 +6,7 @@ on:
 
 jobs:
   build:
+    name: Build and Deploy Release Server
 
     runs-on: ubuntu-latest
 

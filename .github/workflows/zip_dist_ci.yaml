@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     name: Build and Deploy Development Server
+
     runs-on: ubuntu-latest
 
     environment: OSSBUILD
@@ -104,5 +105,6 @@ jobs:
   
   java:
     name: Java Client
+    if: ${{ github.base_ref == '' }}
     needs: build
     uses: Mapepire-IBMi/mapepire-java/.github/workflows/build.yml@main
