@@ -58,7 +58,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
       private final ByteArrayOutputStream payload = new ByteArrayOutputStream();
 
       @Override
-      public void write(int b) {
+      public synchronized void write(int b) {
         this.payload.write((byte)b);
       }
 
@@ -67,13 +67,13 @@ public class DbWebsocketClient extends WebSocketAdapter {
       }
 
       @Override
-      public void flush() throws IOException {
+      public synchronized void flush() throws IOException {
         if (endpoint.getRemote() != null) {
           if (payload.size() != 0) {
             this.write('\n');
             byte[] payloadByteArray = this.getBytes();
             try {
-              endpoint.getRemote().sendBytes(ByteBuffer.wrap(payloadByteArray));
+              endpoint.getRemote().sendString(new String(payloadByteArray, "UTF-8"));
             } catch (WebSocketException e){
               System.out.println("Could not send message: " + new String(payloadByteArray) + e.getMessage());
             }
