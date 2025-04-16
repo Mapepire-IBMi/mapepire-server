@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-
+    name: Build and Deploy Development Server
     runs-on: ubuntu-latest
 
     environment: OSSBUILD
@@ -101,3 +101,8 @@ jobs:
         IBMI_USER: ${{ secrets.IBMI_USER }}
         IBMI_PASSWORD: ${{ secrets.IBMI_PASSWORD }}
         IBMI_SSH_PORT: ${{ secrets.IBMI_SSH_PORT }}
+  
+  java:
+    name: Java Client
+    needs: build
+    uses: Mapepire-IBMi/mapepire-java/.github/workflows/build.yml@main
