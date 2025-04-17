@@ -1,12 +1,6 @@
 package com.github.ibm.mapepire.requests;
 
-import java.sql.CallableStatement;
-import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -101,7 +95,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     }
 
     protected static DataBlockFetchResult getNextDataBlock(final ResultSet _rs, final int _numRows,
-            final boolean _isTerseDataFormat) throws SQLException {
+                                                           final boolean _isTerseDataFormat) throws SQLException {
         final DataBlockFetchResult ret = new DataBlockFetchResult();
 
         if (null == _rs) {
@@ -131,7 +125,11 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 if (null == cellData) {
                     cellDataForResponse = null;
                 } else if (cellData instanceof CharSequence) {
-                    cellDataForResponse = cellData.toString().replaceAll("\\s+$","");
+                    cellDataForResponse = cellData.toString();
+                    int columnType = _rs.getMetaData().getColumnType(col);
+                    if (columnType == Types.CHAR || columnType == Types.NCHAR) {
+                        cellDataForResponse = ((String) cellDataForResponse).replaceAll("\\s+$", "");
+                    }
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else {
