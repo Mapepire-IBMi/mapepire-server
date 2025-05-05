@@ -74,7 +74,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
             try {
               endpoint.getRemote().sendString(message);
             } catch (WebSocketException e){
-              System.out.println("Could not send message: " + message + ". Error: " + e.getMessage());
+              System.err.println("Could not send message due to error: " + e.getMessage());
             }
           }
         }
