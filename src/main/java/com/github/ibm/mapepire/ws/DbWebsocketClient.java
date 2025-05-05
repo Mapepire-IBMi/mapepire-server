@@ -72,7 +72,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
           if (payload.size() != 0) {
             String message = this.payload.toString("UTF-8");
             try {
-              endpoint.getRemote().sendString(this.payload.toString("UTF-8")+"\n");
+              endpoint.getRemote().sendString(message);
             } catch (WebSocketException e){
               System.out.println("Could not send message: " + message + ". Error: " + e.getMessage());
             }
