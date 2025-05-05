@@ -70,6 +70,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
       public synchronized void flush() throws IOException {
         if (endpoint.getRemote() != null) {
           if (payload.size() != 0) {
+            String message = this.payload.toString("UTF-8");
             try {
               endpoint.getRemote().sendString(this.payload.toString("UTF-8")+"\n");
             } catch (WebSocketException e){
