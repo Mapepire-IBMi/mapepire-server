@@ -96,6 +96,7 @@ jobs:
           --rcwd "/opt/mapepire/release" \
           --cmd "rm -fr bin lib" \
           --cmd "jar xvf /opt/download/release/mapepire-server-${{ env.project_version }}.zip" \
+          --cmd "chmod +x bin/mapepire" \
           --cmd "chown -R qsys ." \
           --cmd "rm -fr /QOpenSys/etc/sc/services/mapepire.yaml" \
           --cmd "ln -sf /opt/mapepire/release/lib/mapepire/mapepire.yaml /QOpenSys/etc/sc/services/mapepire.yaml" \
