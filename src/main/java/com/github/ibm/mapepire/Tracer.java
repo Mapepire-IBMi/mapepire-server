@@ -243,11 +243,17 @@ public class Tracer {
     }
 
     public Tracer setTraceLevel(TraceLevel _l) {
+        if(!MapepireServer.isSingleMode()) {
+            return this;
+        }
         m_traceLevel = _l;
         return this;
     }
 
     public Tracer setJtOpenTraceLevel(TraceLevel _l) {
+        if(!MapepireServer.isSingleMode()) {
+            return this;
+        }
         switch (_l) {
             case OFF:
                 Trace.setTraceOn(false);
@@ -274,6 +280,9 @@ public class Tracer {
     }
 
     public Tracer setDest(Dest _dest) {
+        if(!MapepireServer.isSingleMode()) {
+            return this;
+        }
         if (m_dest == _dest) {
             return this;
         }
@@ -290,6 +299,9 @@ public class Tracer {
     }
 
     public Tracer setJtOpenDest(Dest _dest) throws FileNotFoundException, UnsupportedEncodingException, IOException {
+        if(!MapepireServer.isSingleMode()) {
+            return this;
+        }
         if (m_jtopenDest == _dest) {
             return this;
         }
@@ -303,6 +315,9 @@ public class Tracer {
     }
 
     public String getDestString() throws IOException {
+        if(!MapepireServer.isSingleMode()) {
+            return "unknown";
+        }
         switch (m_dest) {
             case FILE:
                 return getFile().getAbsolutePath();
@@ -314,6 +329,9 @@ public class Tracer {
     }
 
     public String getJtOpenDestString() throws IOException {
+        if(!MapepireServer.isSingleMode()) {
+            return "unknown";
+        }
         switch (m_dest) {
             case FILE:
                 return getJtOpenFile().getAbsolutePath();
@@ -333,6 +351,9 @@ public class Tracer {
     }
 
     public StringBuffer getRawData() throws IOException {
+        if(!MapepireServer.isSingleMode()) {
+            return new StringBuffer("<prohibited>");
+        }
         StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_dest) {
             buf.append("<html><body bgcolor=\"white\">\n\n");
@@ -357,6 +378,9 @@ public class Tracer {
     }
 
     public StringBuffer getJtOpenRawData() throws UnsupportedEncodingException, FileNotFoundException, IOException {
+        if(!MapepireServer.isSingleMode()) {
+            return new StringBuffer("<prohibited>");
+        }
         StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_jtopenDest) {
             synchronized (m_jtOpenInMem) {
