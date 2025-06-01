@@ -5,7 +5,7 @@
 
     <groupId>io.github.theprez</groupId>
     <artifactId>mapepire-server</artifactId>
-    <version>2.3.2</version>
+    <version>2.3.3</version>
     <name>Mapepire (IBM i) Server Component</name>
     <description>Server-side support for Mapepire cloud-native database access layer.</description>
     <url>https://github.com/Mapepire-IBMi/mapepire-server/</url>
