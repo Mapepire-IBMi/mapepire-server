@@ -50,8 +50,6 @@ public class MapepireServer {
             System.exit(0);
         }
 
-        checkJavaVersion(minimumRequiredJavaVersion);
-
         try {
 
             if (args.remove("--single")) {
@@ -70,6 +68,10 @@ public class MapepireServer {
                 io.run();
             } else {
                 s_isSingleMode = false;
+
+                // Needed to enforce TLS capabilities when not in single mode
+                checkJavaVersion(minimumRequiredJavaVersion);
+                
                 // Make sure we can process our security rules file, if it exists
                 AuthFile.getDefault().getRules();
 
