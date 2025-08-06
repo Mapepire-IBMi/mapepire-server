@@ -25,6 +25,7 @@ import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;
 import com.github.ibm.mapepire.certstuff.ServerCertInfo;
+import com.github.ibm.mapepire.http.VersionServlet;
 import com.github.ibm.mapepire.ws.DbSocketCreator;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
@@ -116,6 +117,7 @@ public class MapepireServer {
                 // This is also known as the handler tree (in jetty speak)
                 ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
                 context.setContextPath("/");
+                context.addServlet(VersionServlet.class, "/version");
 
                 Constraint constraint = new Constraint();
                 constraint.setName("Disable TRACE");
