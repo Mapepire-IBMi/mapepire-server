@@ -135,6 +135,12 @@ public class DataStreamProcessor implements Runnable {
                 m_prepStmtMap.remove(cont_id.getAsString());
                 break;
             }
+//            case "blob": {
+//                final RunBlob blob = new RunBlob(this, m_conn, reqObj);
+//                m_queriesMap.put(runSqlReq.getId(), runSqlReq);
+//                dispatch(runSqlReq);
+//                break;
+//            }
             case "execute":
                 if (null == cont_id) {
                     dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
