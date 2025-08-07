@@ -36,7 +36,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
         JsonArray parms = super.getRequestField("parameters").getAsJsonArray();
         JsonElement columnTypesElement = super.getRequestField("columnTypes");
         JsonArray columnTypes;
-        if (!columnTypesElement.isJsonNull()){
+        if (columnTypesElement != null){
             columnTypes = columnTypesElement.getAsJsonArray();
         } else {
             columnTypes = null;
