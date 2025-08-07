@@ -1,5 +1,6 @@
 package com.github.ibm.mapepire.requests;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -132,6 +133,9 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     }
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
+                }
+                else if (cellData instanceof Blob){
+                        cellDataForResponse = new String((byte[]) cellData, StandardCharsets.UTF_8);
                 } else {
                     cellDataForResponse = _rs.getString(col);
                 }
