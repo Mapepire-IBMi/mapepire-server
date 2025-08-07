@@ -145,7 +145,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
     private ColumnType getColumnType(int i, JsonArray columnTypes){
         ColumnType columnType;
         try {
-            columnType = ColumnType.valueOf(columnTypes.get(-1 + i).getAsString());
+            columnType = ColumnType.valueOf(columnTypes.get(i).getAsString());
         } catch (IllegalArgumentException e){
             columnType = ColumnType.VARCHAR;
         }
