@@ -34,7 +34,13 @@ public class PreparedExecute extends BlockRetrievableRequest {
     @Override
     protected void go() throws Exception {
         JsonArray parms = super.getRequestField("parameters").getAsJsonArray();
-        JsonArray columnTypes = super.getRequestField("columnTypes").getAsJsonArray();
+        JsonElement columnTypesElement = super.getRequestField("columnTypes");
+        JsonArray columnTypes;
+        if (!columnTypesElement.isJsonNull()){
+            columnTypes = columnTypesElement.getAsJsonArray();
+        } else {
+            columnTypes = null;
+        }
         boolean isBatch = !parms.isEmpty() && parms.get(0).isJsonArray();
         boolean hasResultSet = false;
         long batchUpdateCount = 0;
@@ -155,7 +161,7 @@ public class PreparedExecute extends BlockRetrievableRequest {
     private void addJsonArrayParameters(PreparedStatement stmt, JsonArray parameters, JsonArray columnTypes) throws SQLException {
         for (int i = 1; i <= parameters.size(); ++i) {
             JsonElement element = parameters.get(-1 + i);
-            ColumnType columnType = getColumnType(-1 + i, columnTypes);
+            ColumnType columnType = columnTypes == null ? ColumnType.VARCHAR : getColumnType(-1 + i, columnTypes);
 
             if (element.isJsonNull()) {
                 stmt.setNull(i, Types.NULL);
