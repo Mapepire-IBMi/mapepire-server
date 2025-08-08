@@ -170,7 +170,7 @@ public class MapepireServer {
                         (servletContext, nativeWebSocketConfiguration) -> {
                             nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
                             // Configure max message size
-                            int maxWsMessageSize = 50 * 1024 * 1024; // 50MB
+                            int maxWsMessageSize = 200 * 1024 * 1024; // 50MB
                             String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
                             if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
                                 maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
