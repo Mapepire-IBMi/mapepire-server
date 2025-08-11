@@ -8,6 +8,7 @@ import org.eclipse.jetty.websocket.api.WebSocketException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
@@ -31,6 +32,15 @@ public class DbWebsocketClient extends WebSocketAdapter {
   public void onWebSocketText(String message) {
     super.onWebSocketText(message);
     io.run(message);
+  }
+
+  @Override
+  public void onWebSocketBinary(byte[] payload, int offset, int len) {
+    // Access only the relevant portion of the data
+    byte[] binary = Arrays.copyOfRange(payload, offset, offset + len);
+    io.run(binary);
+
+    // Now use `message` as needed
   }
 
   @Override

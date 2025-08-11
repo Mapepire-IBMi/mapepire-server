@@ -8,6 +8,7 @@ import com.google.gson.JsonParser;
 
 import java.io.*;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,6 +65,41 @@ public class DataStreamProcessor implements Runnable {
             Tracer.err(e);
             System.exit(6);
         }
+    }
+
+    private int bytesToInt(byte[] bytes, int offset, int length) {
+        int x = 0;
+        for (int i = offset; i < offset + length; i++){
+            byte b = bytes[i];
+            x = x << 8 | b & 0xFF;
+        }
+        return x;
+    }
+
+
+
+    public void run(byte[] binary) {
+        int cont_id = bytesToInt(binary, 0, 2);
+        int length = bytesToInt(binary, 2, 4);
+
+        if (binary.length - 6 != length){
+            throw new RuntimeException("Invalid binary data recieved.");
+        }
+
+
+        PrepareSql prev = m_prepStmtMap.get(cont_id);
+        if (null == prev) {
+            dispatch(new BadReq(this, m_conn, null, "invalid correlation ID"));
+            return;
+        }
+        byte[] blob = Arrays.copyOfRange(binary, 6, binary.length);
+    try {
+        RunBlob runBlob = new RunBlob(this, blob, prev);
+
+    } catch (Exception e){
+
+    }
+
     }
 
     public void run(String requestString) {
