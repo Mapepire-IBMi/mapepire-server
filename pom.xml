@@ -27,7 +27,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
-        <jetty.version>9.4.54.v20240208</jetty.version>
+        <jetty.version>9.4.57.v20241219</jetty.version>
     </properties>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -221,6 +221,7 @@
             <artifactId>websocket-server</artifactId>
             <version>${jetty.version}</version>
         </dependency>
+
     </dependencies>
 
 </project>
