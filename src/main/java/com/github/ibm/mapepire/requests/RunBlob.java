@@ -19,11 +19,9 @@ public class RunBlob{
         m_prev = _prev;
         PreparedStatement stmt = m_prev.getStatement();
         Blob blob = new SerialBlob(binary);
-//        stmt.setString(i, element.getAsString());
-        stmt.setBlob(0, blob);
-
+        stmt.setBlob(1, blob);
         try {
-            stmt.getResultSet();
+            int affectedRows = stmt.executeUpdate();
 
         } catch (Exception e){
             System.out.println("Caught error " + e);
