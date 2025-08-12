@@ -13,12 +13,14 @@ import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
-  private final DataStreamProcessor io;
+//  private final DataStreamProcessor io;
 
-  DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
-    super();
-    SystemConnection conn = new SystemConnection(clientHost, clientAddress,host, user, pass);
-    io = getDataStream(this, conn);
+//  DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
+DbWebsocketClient() throws IOException {
+
+  super();
+//    SystemConnection conn = new SystemConnection(clientHost, clientAddress,host, user, pass);
+//    io = getDataStream(this, conn);
   }
 
   @Override
@@ -31,7 +33,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
   @Override
   public void onWebSocketText(String message) {
     super.onWebSocketText(message);
-    io.run(message);
+//    io.run(message);
   }
 
   @Override
@@ -39,21 +41,21 @@ public class DbWebsocketClient extends WebSocketAdapter {
     System.out.println(">>> onWebSocketBinary called with len=" + len);
     // Access only the relevant portion of the data
     byte[] binary = Arrays.copyOfRange(payload, offset, offset + len);
-    io.run(binary);
+//    io.run(binary);
 
     // Now use `message` as needed
   }
 
   @Override
   public void onWebSocketClose(int statusCode, String reason) {
-    io.end();
+//    io.end();
     super.onWebSocketClose(statusCode, reason);
     closureLatch.countDown();
   }
 
   @Override
   public void onWebSocketError(Throwable cause) {
-    io.end();
+//    io.end();
     super.onWebSocketError(cause);
     // cause.printStackTrace(System.err);
   }

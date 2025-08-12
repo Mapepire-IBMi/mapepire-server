@@ -41,47 +41,49 @@ public class DbSocketCreator implements WebSocketCreator
 
     @Override
     public Object createWebSocket(ServletUpgradeRequest jettyServerUpgradeRequest, ServletUpgradeResponse jettyServerUpgradeResponse) {
-        String auth = jettyServerUpgradeRequest.getHeader("authorization");
-
-        if (auth == null) {
-            try {
-                jettyServerUpgradeResponse.sendForbidden("Authorization header missing");
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-        if (!auth.startsWith("Basic ")) {
-            try {
-                jettyServerUpgradeResponse.sendForbidden("Invalid Authorization header");
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            return null;
-        }
- 
-        // base64 decode
-        String asBase64 = auth.substring(6).trim();
-        byte[] decoded = Base64.getDecoder().decode(asBase64);
-        String userPass = new String(decoded, StandardCharsets.UTF_8);
-
-        String[] parts = userPass.split(":");
-
-        if (parts.length != 2) {
-            try {
-                jettyServerUpgradeResponse.sendForbidden("Invalid Authorization header");
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            return null;
-        }
+//        String auth = jettyServerUpgradeRequest.getHeader("authorization");
+//
+//        if (auth == null) {
+//            try {
+//                jettyServerUpgradeResponse.sendForbidden("Authorization header missing");
+//            } catch (IOException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            }
+//            return null;
+//        }
+//
+//        if (!auth.startsWith("Basic ")) {
+//            try {
+//                jettyServerUpgradeResponse.sendForbidden("Invalid Authorization header");
+//            } catch (IOException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            }
+//            return null;
+//        }
+//
+//        // base64 decode
+//        String asBase64 = auth.substring(6).trim();
+//        byte[] decoded = Base64.getDecoder().decode(asBase64);
+//        String userPass = new String(decoded, StandardCharsets.UTF_8);
+//
+//        String[] parts = userPass.split(":");
+//
+//        if (parts.length != 2) {
+//            try {
+//                jettyServerUpgradeResponse.sendForbidden("Invalid Authorization header");
+//            } catch (IOException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            }
+//            return null;
+//        }
         
         try {
-            return new DbWebsocketClient(jettyServerUpgradeRequest.getRemoteHostName(), jettyServerUpgradeRequest.getRemoteAddress(), DbSocketCreator.getHost(), parts[0], parts[1]);
+//            return new DbWebsocketClient(jettyServerUpgradeRequest.getRemoteHostName(), jettyServerUpgradeRequest.getRemoteAddress(), DbSocketCreator.getHost(), parts[0], parts[1]);
+            return new DbWebsocketClient();
+
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
