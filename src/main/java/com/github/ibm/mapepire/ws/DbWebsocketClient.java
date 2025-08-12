@@ -38,7 +38,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
   public void onWebSocketBinary(byte[] payload, int offset, int len) {
     System.out.println(">>> onWebSocketBinary called with len=" + len);
     // Access only the relevant portion of the data
-    byte[] binary = Arrays.copyOfRange(payload, offset, offset + len);
+    byte[] binary = Arrays.copyOfRange(payload, offset, offset + len - 1);
     io.run(binary);
 
     // Now use `message` as needed
