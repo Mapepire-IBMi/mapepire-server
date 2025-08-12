@@ -22,7 +22,12 @@ public class RunBlob{
 //        stmt.setString(i, element.getAsString());
         stmt.setBlob(0, blob);
 
-        stmt.getResultSet();
+        try {
+            stmt.getResultSet();
+
+        } catch (Exception e){
+            System.out.println("Caught error " + e);
+        }
 
     }
 

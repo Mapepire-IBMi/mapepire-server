@@ -87,7 +87,7 @@ public class DataStreamProcessor implements Runnable {
         }
 
 
-        PrepareSql prev = m_prepStmtMap.get(cont_id);
+        PrepareSql prev = m_prepStmtMap.get(String.valueOf(cont_id));
         if (null == prev) {
             dispatch(new BadReq(this, m_conn, null, "invalid correlation ID"));
             return;
@@ -95,9 +95,8 @@ public class DataStreamProcessor implements Runnable {
         byte[] blob = Arrays.copyOfRange(binary, 6, binary.length);
     try {
         RunBlob runBlob = new RunBlob(this, blob, prev);
-
     } catch (Exception e){
-
+        System.out.println("Caught exception " + e);
     }
 
     }
