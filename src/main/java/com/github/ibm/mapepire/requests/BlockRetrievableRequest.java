@@ -1,5 +1,6 @@
 package com.github.ibm.mapepire.requests;
 
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.LinkedHashMap;
@@ -11,6 +12,7 @@ import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
+import com.ibm.as400.access.AS400JDBCBlobLocator;
 import com.ibm.as400.access.AS400JDBCParameterMetaData;
 
 public abstract class BlockRetrievableRequest extends ClientRequest {
@@ -133,6 +135,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     }
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
+                } else if (cellData instanceof AS400JDBCBlobLocator){
+                    cellDataForResponse = _rs.getBytes(col);
                 }
                  else {
                     cellDataForResponse = _rs.getString(col);
