@@ -39,6 +39,10 @@ public class MapepireServer {
         return s_isSingleMode;
     }
 
+    private static int getNumBytesInMb(int num){
+        return num * 1024 * 1024;
+    }
+
     public static void main(final String[] _args) {
 
         final LinkedList<String> args = new LinkedList<String>();
@@ -170,12 +174,15 @@ public class MapepireServer {
                         (servletContext, nativeWebSocketConfiguration) -> {
                             nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
                             // Configure max message size
-                            int maxWsMessageSize = 200 * 1024 * 1024; // 50MB
+                            int maxWsMessageSize = getNumBytesInMb(200);
+                            int maxBinaryMessageSize = getNumBytesInMb(200);
                             String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
                             if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
                                 maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
                             }
                             nativeWebSocketConfiguration.getPolicy().setMaxTextMessageSize(maxWsMessageSize);
+                            nativeWebSocketConfiguration.getPolicy().setMaxBinaryMessageSize(maxBinaryMessageSize);
+
 
                             // Add websockets
                             nativeWebSocketConfiguration.addMapping("/db/*", new DbSocketCreator());
