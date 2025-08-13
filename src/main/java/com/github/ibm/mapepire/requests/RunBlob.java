@@ -17,11 +17,11 @@ public class RunBlob{
 
     private final PrepareSql m_prev;
 
-    public RunBlob(final DataStreamProcessor _io, final byte[] binary, final PrepareSql _prev) throws SQLException {
+    public RunBlob(final DataStreamProcessor _io, final byte[] binary, final int offset, final int length, final PrepareSql _prev) throws SQLException {
         m_prev = _prev;
         PreparedStatement stmt = m_prev.getStatement();
-        try (InputStream is = new ByteArrayInputStream(binary)) {
-            stmt.setBinaryStream(1, is, binary.length);
+        try (InputStream is = new ByteArrayInputStream(binary, offset, length)) {
+            stmt.setBinaryStream(1, is, length);
             int affectedRows = stmt.executeUpdate();
         }
         catch (Exception e){

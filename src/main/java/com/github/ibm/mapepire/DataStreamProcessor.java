@@ -24,7 +24,7 @@ public class DataStreamProcessor implements Runnable {
     private final boolean m_isTestMode;
 
     public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn,
-            boolean _isTestMode)
+                               boolean _isTestMode)
             throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
         m_out = _out;
@@ -69,7 +69,7 @@ public class DataStreamProcessor implements Runnable {
 
     private int bytesToInt(byte[] bytes, int offset, int length) {
         int x = 0;
-        for (int i = offset; i < offset + length; i++){
+        for (int i = offset; i < offset + length; i++) {
             byte b = bytes[i];
             x = x << 8 | b & 0xFF;
         }
@@ -77,12 +77,11 @@ public class DataStreamProcessor implements Runnable {
     }
 
 
+    public void run(byte[] payload, int offset, int len) {
+        int cont_id = bytesToInt(payload, offset, 2);
+        int length = bytesToInt(payload, offset + 2, 4);
 
-    public void run(byte[] binary) {
-        int cont_id = bytesToInt(binary, 0, 2);
-        int length = bytesToInt(binary, 2, 4);
-
-        if (binary.length - 6 != length){
+        if (payload.length - 6 != length) {
             throw new RuntimeException("Invalid binary data recieved.");
         }
 
@@ -92,14 +91,38 @@ public class DataStreamProcessor implements Runnable {
             dispatch(new BadReq(this, m_conn, null, "invalid correlation ID"));
             return;
         }
-        byte[] blob = Arrays.copyOfRange(binary, 6, binary.length);
-    try {
-        RunBlob runBlob = new RunBlob(this, blob, prev);
-    } catch (Exception e){
-        System.out.println("Caught exception " + e);
+//        byte[] blob = Arrays.copyOfRange(payload, 6, payload.length);
+        int blobOffset = 6;
+        try {
+            RunBlob runBlob = new RunBlob(this, payload, offset, len, prev);
+        } catch (Exception e) {
+            System.out.println("Caught exception " + e);
+        }
     }
 
-    }
+
+//    public void run(byte[] binary) {
+//        int cont_id = bytesToInt(binary, 0, 2);
+//        int length = bytesToInt(binary, 2, 4);
+//
+//        if (binary.length - 6 != length) {
+//            throw new RuntimeException("Invalid binary data recieved.");
+//        }
+//
+//
+//        PrepareSql prev = m_prepStmtMap.get(String.valueOf(cont_id));
+//        if (null == prev) {
+//            dispatch(new BadReq(this, m_conn, null, "invalid correlation ID"));
+//            return;
+//        }
+//        byte[] blob = Arrays.copyOfRange(binary, 6, binary.length);
+//        try {
+//            RunBlob runBlob = new RunBlob(this, blob, prev);
+//        } catch (Exception e) {
+//            System.out.println("Caught exception " + e);
+//        }
+//
+//    }
 
     public void run(String requestString) {
         final JsonElement reqElement;
