@@ -1,5 +1,7 @@
 package com.github.ibm.mapepire.requests;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -18,12 +20,11 @@ public class RunBlob{
     public RunBlob(final DataStreamProcessor _io, final byte[] binary, final PrepareSql _prev) throws SQLException {
         m_prev = _prev;
         PreparedStatement stmt = m_prev.getStatement();
-        Blob blob = new SerialBlob(binary);
-        stmt.setBlob(1, blob);
-        try {
+        try (InputStream is = new ByteArrayInputStream(binary)) {
+            stmt.setBinaryStream(1, is, binary.length);
             int affectedRows = stmt.executeUpdate();
-
-        } catch (Exception e){
+        }
+        catch (Exception e){
             System.out.println("Caught error " + e);
         }
 
