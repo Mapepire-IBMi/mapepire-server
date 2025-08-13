@@ -94,7 +94,7 @@ public class DataStreamProcessor implements Runnable {
 //        byte[] blob = Arrays.copyOfRange(payload, 6, payload.length);
         int blobOffset = 6;
         try {
-            RunBlob runBlob = new RunBlob(this, payload, offset, len, prev);
+            RunBlob runBlob = new RunBlob(this, payload, blobOffset, len, prev);
         } catch (Exception e) {
             System.out.println("Caught exception " + e);
         }
