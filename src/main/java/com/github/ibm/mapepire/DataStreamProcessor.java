@@ -272,16 +272,23 @@ public class DataStreamProcessor implements Runnable {
 //        }
 //    }
 
-    public void sendResponse(final InputStream is, final String id) throws UnsupportedEncodingException, IOException {
+    public void sendResponse(final InputStream is, final String id) throws IOException {
         synchronized (s_replyWriterLock) {
             byte[] buffer = new byte[8192];
             byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
-            System.arraycopy(idBytes, 0, buffer, 0, idBytes.length);
 
-            int bytesRead;
-            bytesRead = is.read(buffer, idBytes.length, buffer.length - idBytes.length);
-            if (bytesRead != -1){
-                sendByteBuffer(buffer, bytesRead + idBytes.length, is);
+            if (idBytes.length > 255) {
+                throw new IllegalArgumentException("ID too long to encode in one byte length");
+            }
+
+            // First byte is the length of the ID
+            buffer[0] = (byte) idBytes.length;
+            // Copy ID bytes after the length byte
+            System.arraycopy(idBytes, 0, buffer, 1, idBytes.length);
+
+            int bytesRead = is.read(buffer, 1 + idBytes.length, buffer.length - (1 + idBytes.length));
+            if (bytesRead != -1) {
+                sendByteBuffer(buffer, bytesRead + 1 + idBytes.length, is);
             }
 
             while ((bytesRead = is.read(buffer)) != -1) {
