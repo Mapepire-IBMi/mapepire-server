@@ -22,7 +22,6 @@ public class DbWebsocketClient extends WebSocketAdapter {
 
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
     super();
-    remote = getRemote();
     SystemConnection conn = new SystemConnection(clientHost, clientAddress,host, user, pass);
     io = getDataStreamProcessor(this, conn);
   }
