@@ -10,6 +10,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import com.github.ibm.mapepire.ws.DbWebsocketClient;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Server;
@@ -67,9 +68,10 @@ public class MapepireServer {
                 if (testMode) {
                     System.setIn(new FileInputStream(testFile));
                 }
-                final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, conn, testMode);
+//                DbWebsocketClient.BinarySender binarySender = (data, isLast) -> remote.sendPartialBytes(data, isLast);
+//                final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, conn, testMode);
 
-                io.run();
+//                io.run();
             } else {
                 s_isSingleMode = false;
 
