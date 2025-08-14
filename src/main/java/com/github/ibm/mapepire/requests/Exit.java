@@ -21,7 +21,7 @@ public class Exit extends ClientRequest {
     @Override
     protected void processAfterReplySent() {
         if (DbSocketCreator.isDaemon()) {
-            this.getConnection().close();
+            this.getSystemConnection().close();
         } else {
             Tracer.info("exiting as requested");
             System.exit(0);

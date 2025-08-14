@@ -1,5 +1,6 @@
 package com.github.ibm.mapepire.requests;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -20,13 +21,15 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     protected boolean m_isDone = false;
     protected ResultSet m_rs = null;
     protected final boolean m_isTerseData;
+    private DataStreamProcessor m_io;
 
     protected BlockRetrievableRequest(DataStreamProcessor _io, SystemConnection _conn, JsonObject _reqObj) {
         super(_io, _conn, _reqObj);
+        m_io = _io;
         m_isTerseData = getRequestFieldBoolean("terse", false);
     }
 
-    List<Object> getNextDataBlock(final int _numRows) throws SQLException {
+    List<Object> getNextDataBlock(final int _numRows) throws SQLException, IOException {
         if (m_isDone) {
             return new LinkedList<Object>();
         }
@@ -97,8 +100,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         }
     }
 
-    protected static DataBlockFetchResult getNextDataBlock(final ResultSet _rs, final int _numRows,
-                                                           final boolean _isTerseDataFormat) throws SQLException {
+    protected DataBlockFetchResult getNextDataBlock(final ResultSet _rs, final int _numRows,
+                                                           final boolean _isTerseDataFormat) throws SQLException, IOException {
         final DataBlockFetchResult ret = new DataBlockFetchResult();
 
         if (null == _rs) {
@@ -136,7 +139,10 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else if (cellData instanceof AS400JDBCBlobLocator){
-                    cellDataForResponse = _rs.getBytes(col);
+                    InputStream is = _rs.getBinaryStream(col);
+                    m_io.sendResponse(is);
+
+//                    cellDataForResponse = _rs.getBytes(col);
                 }
                  else {
                     cellDataForResponse = _rs.getString(col);

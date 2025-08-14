@@ -1,12 +1,14 @@
 package com.github.ibm.mapepire;
 
 import com.github.ibm.mapepire.requests.*;
+import com.github.ibm.mapepire.ws.DbWebsocketClient;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,16 +20,19 @@ public class DataStreamProcessor implements Runnable {
 
     private final SystemConnection m_conn;
     private final BufferedReader m_in;
-    private final PrintStream m_out;
+    private final PrintStream m_out_text;
+
     private final Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
     private final Map<String, PrepareSql> m_prepStmtMap = new HashMap<String, PrepareSql>();
     private final boolean m_isTestMode;
+    private final DbWebsocketClient.BinarySender m_binarySender;
 
-    public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn,
+    public DataStreamProcessor(final InputStream _in, final PrintStream _outText, final DbWebsocketClient.BinarySender binarySender, final SystemConnection _conn,
                                boolean _isTestMode)
             throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
-        m_out = _out;
+        m_out_text = _outText;
+        m_binarySender = binarySender;
         m_conn = _conn;
         m_isTestMode = _isTestMode;
     }
@@ -243,9 +248,26 @@ public class DataStreamProcessor implements Runnable {
 
     public void sendResponse(final String _response) throws UnsupportedEncodingException, IOException {
         synchronized (s_replyWriterLock) {
-            m_out.write((_response + "\n").getBytes("UTF-8"));
+            m_out_text.write((_response + "\n").getBytes("UTF-8"));
             Tracer.datastreamOut(_response);
-            m_out.flush();
+            m_out_text.flush();
+        }
+    }
+
+    public void sendResponse(final InputStream is) throws UnsupportedEncodingException, IOException {
+        synchronized (s_replyWriterLock) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            boolean isFinal;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                // Wrap only the bytes actually read
+                ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
+
+                // Check if this is the last chunk
+                isFinal = is.available() == 0;
+
+                m_binarySender.send(byteBuffer, isFinal);
+            }
         }
     }
 

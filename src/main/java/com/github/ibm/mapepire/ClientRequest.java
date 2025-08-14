@@ -16,7 +16,7 @@ import com.google.gson.JsonObject;
 public abstract class ClientRequest implements Runnable {
     private final SystemConnection m_conn;
     private final String m_id;
-    private final DataStreamProcessor m_io;
+    protected final DataStreamProcessor m_io;
     private final JsonObject m_reqObj;
     private final Map<String, Object> replyData = new LinkedHashMap<String, Object>();
 
@@ -26,10 +26,6 @@ public abstract class ClientRequest implements Runnable {
         m_id = _reqObj.get("id").getAsString();
         m_conn = _conn;
         addReplyData("id", m_id);
-    }
-
-    public SystemConnection getConnection() {
-        return m_conn;
     }
 
     protected void addReplyData(final String _key, final Object _val) {

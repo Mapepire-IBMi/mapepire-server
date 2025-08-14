@@ -2,23 +2,30 @@ package com.github.ibm.mapepire.ws;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
+import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
+  private final RemoteEndpoint remote;
+
+  @FunctionalInterface
+  public interface BinarySender {
+    void send(ByteBuffer buffer, boolean isLast) throws IOException;
+  }
 
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
     super();
+    remote = getRemote();
     SystemConnection conn = new SystemConnection(clientHost, clientAddress,host, user, pass);
-    io = getDataStream(this, conn);
+    io = getDataStreamProcessor(this, conn);
   }
 
   @Override
@@ -62,10 +69,11 @@ public class DbWebsocketClient extends WebSocketAdapter {
     closureLatch.await();
   }
 
-  private static DataStreamProcessor getDataStream(DbWebsocketClient endpoint, SystemConnection conn) throws UnsupportedEncodingException {
+  private DataStreamProcessor getDataStreamProcessor(DbWebsocketClient endpoint, SystemConnection conn) throws UnsupportedEncodingException {
+    BinarySender binarySender = (data, isLast) -> remote.sendPartialBytes(data, isLast);
     InputStream in = new ByteArrayInputStream(new byte[0]);
 
-    OutputStream outStream = new OutputStream() {
+    OutputStream outStreamText = new OutputStream() {
       private final ByteArrayOutputStream payload = new ByteArrayOutputStream();
 
       @Override
@@ -93,8 +101,8 @@ public class DbWebsocketClient extends WebSocketAdapter {
       }
     };
 
-    PrintStream out = new PrintStream(outStream);
+    PrintStream out = new PrintStream(outStreamText);
 
-    return new DataStreamProcessor(in, out, conn, false);
+    return new DataStreamProcessor(in, out, binarySender, conn, false);
   }
 }
