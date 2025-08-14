@@ -139,8 +139,9 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else if (cellData instanceof Blob){
+                    String id = this.getId();
                     InputStream is = _rs.getBinaryStream(col);
-                    m_io.sendResponse(is);
+                    m_io.sendResponse(is, id);
 
 //                    cellDataForResponse = _rs.getBytes(col);
                 }

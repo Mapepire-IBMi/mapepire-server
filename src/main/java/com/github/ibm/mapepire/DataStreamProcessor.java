@@ -254,21 +254,50 @@ public class DataStreamProcessor implements Runnable {
         }
     }
 
-    public void sendResponse(final InputStream is) throws UnsupportedEncodingException, IOException {
+//    public void sendResponse(final InputStream is, final String id) throws UnsupportedEncodingException, IOException {
+//        synchronized (s_replyWriterLock) {
+//            byte[] buffer = new byte[8192];
+//            int bytesRead;
+//            boolean isFinal;
+//            while ((bytesRead = is.read(buffer)) != -1) {
+//                // Wrap only the bytes actually read
+//                ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
+//
+//                // Check if this is the last chunk
+//                isFinal = is.available() == 0;
+//
+//                m_binarySender.send(byteBuffer, isFinal);
+//            }
+//        }
+//    }
+
+    public void sendResponse(final InputStream is, final String id) throws UnsupportedEncodingException, IOException {
         synchronized (s_replyWriterLock) {
             byte[] buffer = new byte[8192];
+            short idValue = Short.parseShort(id);
+            byte[] idBytes = ByteBuffer.allocate(2).putShort(idValue).array();
+            System.arraycopy(idBytes, 0, buffer, 0, idBytes.length);
+
             int bytesRead;
-            boolean isFinal;
+            bytesRead = is.read(buffer, idBytes.length, buffer.length - idBytes.length);
+            if (bytesRead != -1){
+                sendByteBuffer(buffer, bytesRead + idBytes.length, is);
+            }
+
             while ((bytesRead = is.read(buffer)) != -1) {
-                // Wrap only the bytes actually read
-                ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
-
-                // Check if this is the last chunk
-                isFinal = is.available() == 0;
-
-                m_binarySender.send(byteBuffer, isFinal);
+                sendByteBuffer(buffer, bytesRead, is);
             }
         }
+    }
+
+    private void sendByteBuffer(byte[] buffer, int bytesRead, InputStream is) throws IOException {
+        // Wrap only the bytes actually read
+        ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
+
+        // Check if this is the last chunk
+        boolean isFinal = is.available() == 0;
+
+        m_binarySender.send(byteBuffer, isFinal);
     }
 
     public void end() {
