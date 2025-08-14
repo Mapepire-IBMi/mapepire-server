@@ -14,7 +14,6 @@ import java.util.concurrent.CountDownLatch;
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
-  private final RemoteEndpoint remote;
 
   @FunctionalInterface
   public interface BinarySender {
@@ -70,7 +69,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
   }
 
   private DataStreamProcessor getDataStreamProcessor(DbWebsocketClient endpoint, SystemConnection conn) throws UnsupportedEncodingException {
-    BinarySender binarySender = (data, isLast) -> remote.sendPartialBytes(data, isLast);
+    BinarySender binarySender = (data, isLast) -> getRemote().sendPartialBytes(data, isLast);
     InputStream in = new ByteArrayInputStream(new byte[0]);
 
     OutputStream outStreamText = new OutputStream() {
