@@ -9,6 +9,7 @@ import com.google.gson.JsonParser;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -274,8 +275,7 @@ public class DataStreamProcessor implements Runnable {
     public void sendResponse(final InputStream is, final String id) throws UnsupportedEncodingException, IOException {
         synchronized (s_replyWriterLock) {
             byte[] buffer = new byte[8192];
-            short idValue = Short.parseShort(id);
-            byte[] idBytes = ByteBuffer.allocate(2).putShort(idValue).array();
+            byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
             System.arraycopy(idBytes, 0, buffer, 0, idBytes.length);
 
             int bytesRead;
