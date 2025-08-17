@@ -10,15 +10,16 @@ import org.eclipse.jetty.websocket.api.WebSocketException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
+import com.github.ibm.mapepire.ws.BinarySender;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
 
-  @FunctionalInterface
+ /* @FunctionalInterface
   public interface BinarySender {
     void send(ByteBuffer buffer, boolean isLast) throws IOException;
-  }
+  }*/
 
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
     super();

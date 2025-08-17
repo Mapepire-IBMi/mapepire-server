@@ -1,6 +1,7 @@
 package com.github.ibm.mapepire;
 
 import com.github.ibm.mapepire.requests.*;
+import com.github.ibm.mapepire.ws.BinarySender;
 import com.github.ibm.mapepire.ws.DbWebsocketClient;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonElement;
@@ -26,9 +27,10 @@ public class DataStreamProcessor implements Runnable {
     private final Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
     private final Map<String, PrepareSql> m_prepStmtMap = new HashMap<String, PrepareSql>();
     private final boolean m_isTestMode;
-    private final DbWebsocketClient.BinarySender m_binarySender;
+    private final BinarySender m_binarySender;
+//    private final DbWebsocketClient.BinarySender m_binarySender;
 
-    public DataStreamProcessor(final InputStream _in, final PrintStream _outText, final DbWebsocketClient.BinarySender binarySender, final SystemConnection _conn,
+    public DataStreamProcessor(final InputStream _in, final PrintStream _outText, final BinarySender binarySender, final SystemConnection _conn,
                                boolean _isTestMode)
             throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
@@ -272,10 +274,12 @@ public class DataStreamProcessor implements Runnable {
 //        }
 //    }
 
-    public void sendResponse(final InputStream is, final String id) throws IOException {
+    public void sendResponse(final InputStream is, final String id, final String column) throws IOException {
         synchronized (s_replyWriterLock) {
+            int curOffset = 0;
             byte[] buffer = new byte[8192];
             byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
+            byte[] columnNameBytes = column.getBytes(StandardCharsets.UTF_8);
 
             if (idBytes.length > 255) {
                 throw new IllegalArgumentException("ID too long to encode in one byte length");
@@ -283,12 +287,24 @@ public class DataStreamProcessor implements Runnable {
 
             // First byte is the length of the ID
             buffer[0] = (byte) idBytes.length;
+            curOffset += 1;
             // Copy ID bytes after the length byte
-            System.arraycopy(idBytes, 0, buffer, 1, idBytes.length);
+            System.arraycopy(idBytes, 0, buffer, curOffset, idBytes.length);
+            curOffset += idBytes.length;
 
-            int bytesRead = is.read(buffer, 1 + idBytes.length, buffer.length - (1 + idBytes.length));
+            // Copy column length
+            buffer[curOffset] = (byte) column.length();
+            curOffset += 1;
+
+            // copy column name
+            System.arraycopy(columnNameBytes, 0, buffer, curOffset, columnNameBytes.length);
+            curOffset += columnNameBytes.length;
+
+
+            int bytesRead = is.read(buffer, curOffset, buffer.length - curOffset);
+            curOffset += bytesRead;
             if (bytesRead != -1) {
-                sendByteBuffer(buffer, bytesRead + 1 + idBytes.length, is);
+                sendByteBuffer(buffer, curOffset, is);
             }
 
             while ((bytesRead = is.read(buffer)) != -1) {
