@@ -318,9 +318,13 @@ public class DataStreamProcessor implements Runnable {
                 curOffset += columnNameBytes.length;
 
                 // Copy blob length
-                buffer[curOffset] = (byte) is.available();
-                curOffset += 1;
-
+                ByteBuffer blobLength = ByteBuffer.allocate(4);
+                blobLength.putInt(is.available()); // default is big-endian
+                byte[] bytes = blobLength.array();
+                for (int j = 0; j < 4; j++){
+                    buffer[curOffset] = bytes[j];
+                    curOffset += 1;
+                }
 
                 int bytesRead = is.read(buffer, curOffset, buffer.length - curOffset);
                 curOffset += bytesRead;

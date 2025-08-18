@@ -130,7 +130,7 @@ public class BlobTest {
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
         byte[] blobData = {1, 2, 3, 4, 5};
-        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
         Blob blob = new SerialBlob(blobData);
 
         // Use rowsByIndex to support getBinaryStream(int columnIndex)
@@ -171,8 +171,8 @@ public class BlobTest {
         byte[] blob1Data = {1, 2, 3, 4, 5};
         byte[] blob2Data = {6, 7, 8};
 
-        byte[] expectedResult1 = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
-        byte[] expectedResult2 = {1, 4, 98, 108, 111, 98, 3, 6, 7, 8}; //  rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult1 = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult2 = {1, 4, 98, 108, 111, 98, 0,0,0,3, 6, 7, 8}; //  rowId | colNameLength | colName| bloblLength| blob
 
         Blob blob1 = new SerialBlob(blob1Data);
         Blob blob2 = new SerialBlob(blob2Data);
@@ -236,13 +236,13 @@ public class BlobTest {
                 3, '1','2','3', // queryId
                 0,              // rowId
                 1, 'a',         // colName "a"
-                2, 10, 11,      // blob
+                0,0,0,2, 10, 11,      // blob
         };
 
         byte[] expected2 = {
                 0,              // rowId
                 2, 'b','b',     // colName "bb"
-                3, 20, 21, 22   // blob
+                0,0,0,3, 20, 21, 22   // blob
         };
         // Use rowsByIndex to support getBinaryStream(int columnIndex)
         List<List<Object>> rowsByIndex = new ArrayList<>();
@@ -296,25 +296,25 @@ public class BlobTest {
                 6, 'q', 'u', 'e', 'r', 'y', '7', // queryId
                 0,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','1',         // colName "a"
-                5, 1, 2, 3, 4 ,5      // blob
+                0,0,0,5, 1, 2, 3, 4 ,5      // blob
         };
 
         byte[] expected2 = {
                 0,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','2',
-                3, 6, 7, 8   // blob
+                0,0,0,3, 6, 7, 8   // blob
         };
 
         byte[] expected3 = {
                 1,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','1',
-                5, 1, 2, 3, 4 ,5      // blob
+                0,0,0,5, 1, 2, 3, 4 ,5      // blob
         };
 
         byte[] expected4 = {
                 1,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','2',
-                3, 6, 7, 8   // blob
+                0,0,0,3, 6, 7, 8   // blob
         };
 
 
@@ -407,6 +407,127 @@ public class BlobTest {
         ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         verify(binarySender, times(0)).send(bufferCaptor.capture(), booleanCaptor.capture());
+
+    }
+
+    @Test
+    public void testSendingSingleRowWithBlobandNonblobColumns() throws SQLException, IOException {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("id", "12345");
+        BinarySender binarySender = mock(BinarySender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+
+
+        BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
+        byte[] blobData = {1, 2, 3, 4, 5};
+        String strCol = "Some string column data";
+        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
+        Blob blob = new SerialBlob(blobData);
+
+        // Use rowsByIndex to support getBinaryStream(int columnIndex)
+        List<List<Object>> rowsByIndex = new ArrayList<>();
+
+        rowsByIndex.add(Arrays.asList(blob, strCol));
+
+        Map<String, Object> row1 = new HashMap<>();
+        row1.put("blob", blob);
+        row1.put("strCol", strCol);
+
+        List<Map<String, Object>> rows = Arrays.asList(row1);
+        MockResultSet rs = new MockResultSet(rows, rowsByIndex);
+        block.getNextDataBlockUsage(rs, 1, false);
+
+        verify(binarySender, times(1)).send(any(ByteBuffer.class), anyBoolean());
+
+        // Assert - capture arguments
+        ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
+        ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        verify(binarySender, times(1)).send(bufferCaptor.capture(), booleanCaptor.capture());
+
+        // Verify first call
+        ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
+        Boolean firstFlag = booleanCaptor.getAllValues().get(0);
+        byte[] actual = Arrays.copyOfRange(firstBuf.array(), firstBuf.position(), firstBuf.limit());
+        assertArrayEquals(expectedResult, actual);
+        assertTrue(firstFlag);
+    }
+
+
+    @Test
+    public void testSendingSingleRowWithLongBlob() throws SQLException, IOException {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("id", "12345");
+        BinarySender binarySender = mock(BinarySender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+
+
+        BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
+        int blobSize = 5 * 1024 * 1024; // 5 MB
+        byte[] blobData = new byte[blobSize];
+        for (int i = 0; i < blobSize; i++) {
+            blobData[i] = (byte) (i % 256); // repeat 0-255
+        }
+
+//        byte[] expected1 = {
+//                6, 'q', 'u', 'e', 'r', 'y', '7', // queryId
+//                0,              // rowId
+//                11, 'b', 'l','o','b','C','o','l','u','m','n','1',         // colName "a"
+//                5, 1, 2, 3, 4 ,5      // blob
+//        };
+        byte[] expectedResult = {
+                5, 49, 50, 51, 52, 53, // querylength, id
+                0,  // row id
+                4, 98, 108, 111, 98, // col name length, colname
+                0, 80, 0, 0, 0, 1, 2, 3, 4, 5}; // blob length, blob
+        Blob blob = new SerialBlob(blobData);
+
+        // Use rowsByIndex to support getBinaryStream(int columnIndex)
+        List<List<Object>> rowsByIndex = new ArrayList<>();
+        rowsByIndex.add(Arrays.asList(blob));
+
+        Map<String, Object> row1 = new HashMap<>();
+        row1.put("blob", blob);
+        List<Map<String, Object>> rows = Arrays.asList(row1);
+        MockResultSet rs = new MockResultSet(rows, rowsByIndex);
+//
+//        verify(binarySender, times(641)).send(any(ByteBuffer.class), anyBoolean());
+//
+//        // Assert - capture arguments
+//        ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
+//        ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
+//
+//        verify(binarySender, times(641)).send(bufferCaptor.capture(), booleanCaptor.capture());
+//
+//        // Verify first call
+//        ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
+//        Boolean firstFlag = booleanCaptor.getAllValues().get(0);
+//        byte[] actual = Arrays.copyOfRange(firstBuf.array(), firstBuf.position(), expectedResult.length);
+//        assertArrayEquals(expectedResult, actual);
+//        assertTrue(firstFlag);
+
+        List<byte[]> capturedBuffers = new ArrayList<>();
+        List<Boolean> capturedFlags = new ArrayList<>();
+
+        doAnswer(invocation -> {
+            ByteBuffer buf = invocation.getArgument(0);
+            boolean isFinal = invocation.getArgument(1);
+
+            // Copy the bytes immediately, so later modifications don't affect this snapshot
+            byte[] snapshot = Arrays.copyOfRange(buf.array(), buf.position(), buf.limit());
+            capturedBuffers.add(snapshot);
+            capturedFlags.add(isFinal);
+
+            return null;
+        }).when(binarySender).send(any(ByteBuffer.class), anyBoolean());
+        block.getNextDataBlockUsage(rs, 1, false);
+
+        byte[] actualFirst21 = Arrays.copyOfRange(capturedBuffers.get(0), 0, 22);
+
+        assertArrayEquals(expectedResult, actualFirst21);
+        assertFalse(capturedFlags.get(0));
+
+
 
     }
 
