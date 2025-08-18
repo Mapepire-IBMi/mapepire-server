@@ -280,5 +280,135 @@ public class BlobTest {
         assertTrue(secondFlag);
     }
 
+    @Test
+    public void testMultipleRowsMultipleBlobsPerRow() throws SQLException, IOException {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("id", "query7");
+        BinarySender binarySender = mock(BinarySender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+
+
+        BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
+        byte[] blob1Data = {1, 2, 3, 4, 5};
+        byte[] blob2Data = {6, 7, 8};
+
+        byte[] expected1 = {
+                6, 'q', 'u', 'e', 'r', 'y', '7', // queryId
+                0,              // rowId
+                11, 'b', 'l','o','b','C','o','l','u','m','n','1',         // colName "a"
+                5, 1, 2, 3, 4 ,5      // blob
+        };
+
+        byte[] expected2 = {
+                0,              // rowId
+                11, 'b', 'l','o','b','C','o','l','u','m','n','2',
+                3, 6, 7, 8   // blob
+        };
+
+        byte[] expected3 = {
+                1,              // rowId
+                11, 'b', 'l','o','b','C','o','l','u','m','n','1',
+                5, 1, 2, 3, 4 ,5      // blob
+        };
+
+        byte[] expected4 = {
+                1,              // rowId
+                11, 'b', 'l','o','b','C','o','l','u','m','n','2',
+                3, 6, 7, 8   // blob
+        };
+
+
+        Blob blob1 = new SerialBlob(blob1Data);
+        Blob blob2 = new SerialBlob(blob2Data);
+
+        // Use rowsByIndex to support getBinaryStream(int columnIndex)
+        List<List<Object>> rowsByIndex = new ArrayList<>();
+        rowsByIndex.add(Arrays.asList(blob1, blob2));
+        rowsByIndex.add(Arrays.asList(blob1, blob2));
+
+        Map<String, Object> row1 = new HashMap<>();
+        Map<String, Object> row2 = new HashMap<>();
+
+        row1.put("blobColumn1", blob1);
+        row1.put("blobColumn2", blob2);
+
+        row2.put("blobColumn1", blob1);
+        row2.put("blobColumn2", blob2);
+
+
+        List<Map<String, Object>> rows = Arrays.asList(row1, row2);
+        MockResultSet rs = new MockResultSet(rows, rowsByIndex);
+        block.getNextDataBlockUsage(rs, 2, false);
+
+        verify(binarySender, times(4)).send(any(ByteBuffer.class), anyBoolean());
+
+        // Assert - capture arguments
+        ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
+        ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        verify(binarySender, times(4)).send(bufferCaptor.capture(), booleanCaptor.capture());
+
+        // Verify first call
+        ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
+        Boolean firstFlag = booleanCaptor.getAllValues().get(0);
+        byte[] actual = Arrays.copyOfRange(firstBuf.array(), firstBuf.position(), firstBuf.limit());
+        assertArrayEquals(expected1, actual);
+        assertFalse(firstFlag);
+
+        // Verify second call
+        ByteBuffer secondBuf = bufferCaptor.getAllValues().get(1);
+        Boolean secondFlag = booleanCaptor.getAllValues().get(1);
+        byte[] actualSecond = Arrays.copyOfRange(secondBuf.array(), secondBuf.position(), secondBuf.limit());
+        assertArrayEquals(expected2, actualSecond);
+        assertFalse(secondFlag);
+
+        // Verify third call
+        ByteBuffer thirdBuf = bufferCaptor.getAllValues().get(2);
+        Boolean thirdFlag = booleanCaptor.getAllValues().get(2);
+        byte[] actualThird = Arrays.copyOfRange(thirdBuf.array(), thirdBuf.position(), thirdBuf.limit());
+        assertArrayEquals(expected3, actualThird);
+        assertFalse(thirdFlag);
+
+        // Verify fourth call
+        ByteBuffer fourthBuf = bufferCaptor.getAllValues().get(3);
+        Boolean fourthFlag = booleanCaptor.getAllValues().get(3);
+        byte[] actualFourth = Arrays.copyOfRange(fourthBuf.array(), fourthBuf.position(), fourthBuf.limit());
+        assertArrayEquals(expected4, actualFourth);
+        assertTrue(fourthFlag);
+    }
+
+
+    @Test
+    public void testSendingSingleRowWithEmptyBlob() throws SQLException, IOException {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("id", "12345");
+        BinarySender binarySender = mock(BinarySender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+
+
+        BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
+        byte[] blobData = {};
+        Blob blob = new SerialBlob(blobData);
+
+        // Use rowsByIndex to support getBinaryStream(int columnIndex)
+        List<List<Object>> rowsByIndex = new ArrayList<>();
+        rowsByIndex.add(Arrays.asList(blob));
+
+        Map<String, Object> row1 = new HashMap<>();
+        row1.put("blob", blob);
+        List<Map<String, Object>> rows = Arrays.asList(row1);
+        MockResultSet rs = new MockResultSet(rows, rowsByIndex);
+        block.getNextDataBlockUsage(rs, 1, false);
+
+        verify(binarySender, times(0)).send(any(ByteBuffer.class), anyBoolean());
+
+        // Assert - capture arguments
+        ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
+        ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        verify(binarySender, times(0)).send(bufferCaptor.capture(), booleanCaptor.capture());
+
+    }
+
 
 }

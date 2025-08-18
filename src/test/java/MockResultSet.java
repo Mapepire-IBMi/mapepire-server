@@ -26,6 +26,9 @@ public class MockResultSet implements ResultSet {
     public ResultSetMetaData getMetaData() throws SQLException {
         return new ResultSetMetaData() {
             private final List<String> columns = new ArrayList<>(rows.get(0).keySet());
+            { // instance initializer
+                Collections.sort(columns);
+            }
 
             @Override
             public int getColumnCount() throws SQLException {
