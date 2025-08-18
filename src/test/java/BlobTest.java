@@ -121,7 +121,7 @@ public class BlobTest {
     }
 
     @Test
-    public void testBlockRetrievableReq() throws SQLException, IOException {
+    public void testSendingSingleBlob() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "12345");
         BinarySender binarySender = mock(BinarySender.class);
@@ -130,7 +130,7 @@ public class BlobTest {
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
         byte[] blobData = {1, 2, 3, 4, 5};
-        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 4, 98, 108, 111, 98, 1, 2, 3, 4, 5};
+        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
         Blob blob = new SerialBlob(blobData);
 
         // Use rowsByIndex to support getBinaryStream(int columnIndex)

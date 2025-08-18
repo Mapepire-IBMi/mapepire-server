@@ -124,6 +124,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             final LinkedHashMap<String, Object> mapRowData = new LinkedHashMap<String, Object>();
             final LinkedList<Object> terseRowData = new LinkedList<Object>();
             final int numCols = _rs.getMetaData().getColumnCount();
+            int rowId = i;
+            mapRowData.put("rowId", rowId);
             for (int col = 1; col <= numCols; ++col) {
                 String column = _rs.getMetaData().getColumnName(col);
                 Object cellData = _rs.getObject(col);
@@ -141,7 +143,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Blob){
                     String id = this.getId();
                     InputStream is = _rs.getBinaryStream(col);
-                    m_io.sendResponse(is, id, column);
+                    m_io.sendResponse(is, id, column, rowId);
 
 //                    cellDataForResponse = _rs.getBytes(col);
                 }

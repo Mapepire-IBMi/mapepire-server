@@ -274,7 +274,7 @@ public class DataStreamProcessor implements Runnable {
 //        }
 //    }
 
-    public void sendResponse(final InputStream is, final String id, final String column) throws IOException {
+    public void sendResponse(final InputStream is, final String id, final String column, final int rowId) throws IOException {
         synchronized (s_replyWriterLock) {
             int curOffset = 0;
             byte[] buffer = new byte[8192];
@@ -292,6 +292,11 @@ public class DataStreamProcessor implements Runnable {
             System.arraycopy(idBytes, 0, buffer, curOffset, idBytes.length);
             curOffset += idBytes.length;
 
+            // Copy rowId
+            buffer[curOffset] = (byte) rowId;
+            curOffset += 1;
+
+
             // Copy column length
             buffer[curOffset] = (byte) column.length();
             curOffset += 1;
@@ -299,6 +304,10 @@ public class DataStreamProcessor implements Runnable {
             // copy column name
             System.arraycopy(columnNameBytes, 0, buffer, curOffset, columnNameBytes.length);
             curOffset += columnNameBytes.length;
+
+            // Copy blob length
+            buffer[curOffset] = (byte) is.available();
+            curOffset += 1;
 
 
             int bytesRead = is.read(buffer, curOffset, buffer.length - curOffset);
