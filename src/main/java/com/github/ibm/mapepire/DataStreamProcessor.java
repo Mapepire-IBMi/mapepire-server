@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DataStreamProcessor implements Runnable {
@@ -274,60 +275,72 @@ public class DataStreamProcessor implements Runnable {
 //        }
 //    }
 
-    public void sendResponse(final InputStream is, final String id, final String column, final int rowId) throws IOException {
+    public void sendResponse(final String id, final List<BlobResponseData> blobResponseDataArr) throws IOException {
         synchronized (s_replyWriterLock) {
             int curOffset = 0;
             byte[] buffer = new byte[8192];
             byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
-            byte[] columnNameBytes = column.getBytes(StandardCharsets.UTF_8);
 
-            if (idBytes.length > 255) {
-                throw new IllegalArgumentException("ID too long to encode in one byte length");
+            for (int i = 0; i < blobResponseDataArr.size(); i++){
+                buffer = new byte[8192];
+                curOffset = 0;
+                BlobResponseData blobResponseData = blobResponseDataArr.get(i);
+                String columnName = blobResponseData.getColumnName();
+                InputStream is = blobResponseData.getIs();
+                int rowId = blobResponseData.getRowId();
+
+                byte[] columnNameBytes = columnName.getBytes(StandardCharsets.UTF_8);
+
+                if (idBytes.length > 255) {
+                    throw new IllegalArgumentException("ID too long to encode in one byte length");
+                }
+
+                if (i == 0){
+                    // First byte is the length of the ID
+                    buffer[curOffset] = (byte) idBytes.length;
+                    curOffset += 1;
+                    // Copy ID bytes after the length byte
+                    System.arraycopy(idBytes, 0, buffer, curOffset, idBytes.length);
+                    curOffset += idBytes.length;
+                }
+
+                // Copy rowId
+                buffer[curOffset] = (byte) rowId;
+                curOffset += 1;
+
+
+                // Copy column length
+                buffer[curOffset] = (byte) columnName.length();
+                curOffset += 1;
+
+                // copy column name
+                System.arraycopy(columnNameBytes, 0, buffer, curOffset, columnNameBytes.length);
+                curOffset += columnNameBytes.length;
+
+                // Copy blob length
+                buffer[curOffset] = (byte) is.available();
+                curOffset += 1;
+
+
+                int bytesRead = is.read(buffer, curOffset, buffer.length - curOffset);
+                curOffset += bytesRead;
+                if (bytesRead != -1) {
+                    boolean isFinal = i == blobResponseDataArr.size() - 1 && is.available() == 0;
+                    sendByteBuffer(buffer, curOffset, isFinal);
+                }
+
+                while ((bytesRead = is.read(buffer)) != -1) {
+                    boolean isFinal = i == blobResponseDataArr.size() - 1 && is.available() == 0;
+                    sendByteBuffer(buffer, bytesRead, isFinal);
+                }
             }
 
-            // First byte is the length of the ID
-            buffer[0] = (byte) idBytes.length;
-            curOffset += 1;
-            // Copy ID bytes after the length byte
-            System.arraycopy(idBytes, 0, buffer, curOffset, idBytes.length);
-            curOffset += idBytes.length;
-
-            // Copy rowId
-            buffer[curOffset] = (byte) rowId;
-            curOffset += 1;
-
-
-            // Copy column length
-            buffer[curOffset] = (byte) column.length();
-            curOffset += 1;
-
-            // copy column name
-            System.arraycopy(columnNameBytes, 0, buffer, curOffset, columnNameBytes.length);
-            curOffset += columnNameBytes.length;
-
-            // Copy blob length
-            buffer[curOffset] = (byte) is.available();
-            curOffset += 1;
-
-
-            int bytesRead = is.read(buffer, curOffset, buffer.length - curOffset);
-            curOffset += bytesRead;
-            if (bytesRead != -1) {
-                sendByteBuffer(buffer, curOffset, is);
-            }
-
-            while ((bytesRead = is.read(buffer)) != -1) {
-                sendByteBuffer(buffer, bytesRead, is);
-            }
         }
     }
 
-    private void sendByteBuffer(byte[] buffer, int bytesRead, InputStream is) throws IOException {
+    private void sendByteBuffer(byte[] buffer, int bytesRead, boolean isFinal) throws IOException {
         // Wrap only the bytes actually read
         ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
-
-        // Check if this is the last chunk
-        boolean isFinal = is.available() == 0;
 
         m_binarySender.send(byteBuffer, isFinal);
     }

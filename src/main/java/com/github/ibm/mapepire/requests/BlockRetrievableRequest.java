@@ -4,17 +4,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.github.ibm.mapepire.BlobResponseData;
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
 import com.ibm.as400.access.AS400JDBCBlobLocator;
 import com.ibm.as400.access.AS400JDBCParameterMetaData;
+import com.github.ibm.mapepire.BlobResponseData;
 
 public abstract class BlockRetrievableRequest extends ClientRequest {
 
@@ -110,6 +109,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         if (_rs.isClosed()) {
             return ret.setDone(true);
         }
+        final List<BlobResponseData> blobResponseDataArray = new ArrayList<>();
         for (int i = 0; i < _numRows; ++i) {
             if (!_rs.next()) {
                 ret.setDone(true);
@@ -143,8 +143,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Blob){
                     String id = this.getId();
                     InputStream is = _rs.getBinaryStream(col);
-                    m_io.sendResponse(is, id, column, rowId);
-
+                    BlobResponseData blobResponseData = new BlobResponseData(is, column, rowId);
+                    blobResponseDataArray.add(blobResponseData);
 //                    cellDataForResponse = _rs.getBytes(col);
                 }
                  else {
@@ -158,6 +158,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             }
             ret.add(_isTerseDataFormat ? terseRowData : mapRowData);
         }
+        m_io.sendResponse(this.getId(), blobResponseDataArray);
         return ret;
     }
 
