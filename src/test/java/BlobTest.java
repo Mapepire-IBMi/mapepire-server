@@ -130,7 +130,7 @@ public class BlobTest {
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
         byte[] blobData = {1, 2, 3, 4, 5};
-        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0,0,0,0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
         Blob blob = new SerialBlob(blobData);
 
         // Use rowsByIndex to support getBinaryStream(int columnIndex)
@@ -171,8 +171,8 @@ public class BlobTest {
         byte[] blob1Data = {1, 2, 3, 4, 5};
         byte[] blob2Data = {6, 7, 8};
 
-        byte[] expectedResult1 = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
-        byte[] expectedResult2 = {1, 4, 98, 108, 111, 98, 0,0,0,3, 6, 7, 8}; //  rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult1 = {5, 49, 50, 51, 52, 53, 0,0,0,0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult2 = {0,0,0,1, 4, 98, 108, 111, 98, 0,0,0,3, 6, 7, 8}; //  rowId | colNameLength | colName| bloblLength| blob
 
         Blob blob1 = new SerialBlob(blob1Data);
         Blob blob2 = new SerialBlob(blob2Data);
@@ -234,13 +234,13 @@ public class BlobTest {
 
         byte[] expected1 = {
                 3, '1','2','3', // queryId
-                0,              // rowId
+                0,0,0,0,              // rowId
                 1, 'a',         // colName "a"
                 0,0,0,2, 10, 11,      // blob
         };
 
         byte[] expected2 = {
-                0,              // rowId
+                0,0,0,0,              // rowId
                 2, 'b','b',     // colName "bb"
                 0,0,0,3, 20, 21, 22   // blob
         };
@@ -294,25 +294,25 @@ public class BlobTest {
 
         byte[] expected1 = {
                 6, 'q', 'u', 'e', 'r', 'y', '7', // queryId
-                0,              // rowId
+                0,0,0,0,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','1',         // colName "a"
                 0,0,0,5, 1, 2, 3, 4 ,5      // blob
         };
 
         byte[] expected2 = {
-                0,              // rowId
+                0,0,0,0,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','2',
                 0,0,0,3, 6, 7, 8   // blob
         };
 
         byte[] expected3 = {
-                1,              // rowId
+                0,0,0,1,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','1',
                 0,0,0,5, 1, 2, 3, 4 ,5      // blob
         };
 
         byte[] expected4 = {
-                1,              // rowId
+                0,0,0,1,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','2',
                 0,0,0,3, 6, 7, 8   // blob
         };
@@ -421,7 +421,7 @@ public class BlobTest {
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
         byte[] blobData = {1, 2, 3, 4, 5};
         String strCol = "Some string column data";
-        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult = {5, 49, 50, 51, 52, 53, 0,0,0,0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
         Blob blob = new SerialBlob(blobData);
 
         // Use rowsByIndex to support getBinaryStream(int columnIndex)
@@ -477,7 +477,7 @@ public class BlobTest {
 //        };
         byte[] expectedResult = {
                 5, 49, 50, 51, 52, 53, // querylength, id
-                0,  // row id
+                0,0,0,0,  // row id
                 4, 98, 108, 111, 98, // col name length, colname
                 0, 80, 0, 0, 0, 1, 2, 3, 4, 5}; // blob length, blob
         Blob blob = new SerialBlob(blobData);
@@ -522,7 +522,7 @@ public class BlobTest {
         }).when(binarySender).send(any(ByteBuffer.class), anyBoolean());
         block.getNextDataBlockUsage(rs, 1, false);
 
-        byte[] actualFirst21 = Arrays.copyOfRange(capturedBuffers.get(0), 0, 22);
+        byte[] actualFirst21 = Arrays.copyOfRange(capturedBuffers.get(0), 0, 25);
 
         assertArrayEquals(expectedResult, actualFirst21);
         assertFalse(capturedFlags.get(0));

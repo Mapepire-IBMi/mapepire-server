@@ -305,9 +305,13 @@ public class DataStreamProcessor implements Runnable {
                 }
 
                 // Copy rowId
-                buffer[curOffset] = (byte) rowId;
-                curOffset += 1;
-
+                ByteBuffer rowIdBuffer = ByteBuffer.allocate(4);
+                rowIdBuffer.putInt(rowId); // default is big-endian
+                byte[] rowIdBytes = rowIdBuffer.array();
+                for (int j = 0; j < 4; j++){
+                    buffer[curOffset] = rowIdBytes[j];
+                    curOffset += 1;
+                }
 
                 // Copy column length
                 buffer[curOffset] = (byte) columnName.length();
