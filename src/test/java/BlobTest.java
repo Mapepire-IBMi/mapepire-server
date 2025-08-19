@@ -480,6 +480,9 @@ public class BlobTest {
                 0,0,0,0,  // row id
                 4, 98, 108, 111, 98, // col name length, colname
                 0, 80, 0, 0, 0, 1, 2, 3, 4, 5}; // blob length, blob
+
+        byte[] expectedResult2 = {
+                -19, -18, -17, -16, -15}; // blob length, blob
         Blob blob = new SerialBlob(blobData);
 
         // Use rowsByIndex to support getBinaryStream(int columnIndex)
@@ -523,8 +526,12 @@ public class BlobTest {
         block.getNextDataBlockUsage(rs, 1, false);
 
         byte[] actualFirst21 = Arrays.copyOfRange(capturedBuffers.get(0), 0, 25);
+        byte[] actualSecondBuf = Arrays.copyOfRange(capturedBuffers.get(1), 0, 5);
+
 
         assertArrayEquals(expectedResult, actualFirst21);
+        assertArrayEquals(expectedResult2, actualSecondBuf);
+
         assertFalse(capturedFlags.get(0));
 
 
