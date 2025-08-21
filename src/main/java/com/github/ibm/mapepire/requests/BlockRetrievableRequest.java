@@ -143,8 +143,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Blob){
                     String id = this.getId();
                     int blobLength = (int) ((Blob) cellData).length();
-                    InputStream is = _rs.getBinaryStream(col);
-                    BlobResponseData blobResponseData = new BlobResponseData(is, column, rowId, blobLength);
+//                    InputStream is = _rs.getBinaryStream(col);
+                    BlobResponseData blobResponseData = new BlobResponseData((Blob)cellData, column, rowId, blobLength);
                     blobResponseDataArray.add(blobResponseData);
 //                    cellDataForResponse = _rs.getBytes(col);
                 }

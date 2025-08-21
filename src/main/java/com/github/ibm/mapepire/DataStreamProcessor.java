@@ -275,7 +275,7 @@ public class DataStreamProcessor implements Runnable {
 //        }
 //    }
 
-    public void sendResponse(final String id, final List<BlobResponseData> blobResponseDataArr) throws IOException {
+    public void sendResponse(final String id, final List<BlobResponseData> blobResponseDataArr) throws IOException, SQLException {
         synchronized (s_replyWriterLock) {
             int curOffset = 0;
             byte[] buffer = new byte[8192];
@@ -286,7 +286,7 @@ public class DataStreamProcessor implements Runnable {
                 curOffset = 0;
                 BlobResponseData blobResponseData = blobResponseDataArr.get(i);
                 String columnName = blobResponseData.getColumnName();
-                InputStream is = blobResponseData.getIs();
+                InputStream is = blobResponseData.getBlob().getBinaryStream();
                 int rowId = blobResponseData.getRowId();
 
                 byte[] columnNameBytes = columnName.getBytes(StandardCharsets.UTF_8);
