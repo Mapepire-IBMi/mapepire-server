@@ -183,7 +183,7 @@
         <dependency>
             <groupId>net.sf.jt400</groupId>
             <artifactId>jt400</artifactId>
-            <version>11.2</version>
+            <version>21.0.5</version>
             <!-- comment the <scope> tag for local development -->
             <scope>provided</scope>
         </dependency>
