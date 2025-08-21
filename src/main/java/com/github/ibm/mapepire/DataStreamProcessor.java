@@ -278,10 +278,10 @@ public class DataStreamProcessor implements Runnable {
     public void sendResponse(final String id, final BlobResponseData blobResponseData) throws IOException, SQLException {
         synchronized (s_replyWriterLock) {
             int curOffset = 0;
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[4 * 1024 * 1024];
             byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
 
-                buffer = new byte[8192];
+//                buffer = new byte[8192];
                 curOffset = 0;
                 String columnName = blobResponseData.getColumnName();
                 InputStream is = blobResponseData.getBlob().getBinaryStream();
