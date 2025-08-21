@@ -160,9 +160,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 }
             }
             ret.add(_isTerseDataFormat ? terseRowData : mapRowData);
-            Map<String, Integer> blobsNeededMap = new HashMap();
-            blobsNeededMap.put("blobsNeeded", blobsNeeded);
-            ret.add(blobsNeededMap);
+            addReplyData("blobsNeeded", blobsNeeded);
         }
 //        m_io.sendResponse(this.getId(), blobResponseDataArray);
         return ret;
