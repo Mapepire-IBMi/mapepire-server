@@ -323,7 +323,7 @@ public class DataStreamProcessor implements Runnable {
 
                 // Copy blob length
                 ByteBuffer blobLength = ByteBuffer.allocate(4);
-                blobLength.putInt(is.available()); // default is big-endian
+                blobLength.putInt(blobResponseData.getLength()); // default is big-endian
                 byte[] bytes = blobLength.array();
                 for (int j = 0; j < 4; j++){
                     buffer[curOffset] = bytes[j];
@@ -332,13 +332,15 @@ public class DataStreamProcessor implements Runnable {
 
                 int bytesRead = is.read(buffer, curOffset, buffer.length - curOffset);
                 curOffset += bytesRead;
+                int totalBytesRead = bytesRead;
                 if (bytesRead != -1) {
-                    boolean isFinal = i == blobResponseDataArr.size() - 1 && is.available() == 0;
+                    boolean isFinal = i == blobResponseDataArr.size() - 1 && totalBytesRead == blobResponseData.getLength();
                     sendByteBuffer(buffer, curOffset, isFinal);
                 }
 
                 while ((bytesRead = is.read(buffer)) != -1) {
-                    boolean isFinal = i == blobResponseDataArr.size() - 1 && is.available() == 0;
+                    totalBytesRead += bytesRead;
+                    boolean isFinal = i == blobResponseDataArr.size() - 1 && totalBytesRead == blobResponseData.getLength();
                     sendByteBuffer(buffer, bytesRead, isFinal);
                 }
             }

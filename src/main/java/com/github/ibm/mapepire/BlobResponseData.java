@@ -6,11 +6,13 @@ public class BlobResponseData {
     final InputStream is;
     final String columnName;
     final int rowId;
+    final int length;
 
-    public BlobResponseData(InputStream is, String columnName, int rowId){
+    public BlobResponseData(InputStream is, String columnName, int rowId, int length){
         this.is = is;
         this.columnName = columnName;
         this.rowId = rowId;
+        this.length = length;
     }
 
     public InputStream getIs() {
@@ -23,5 +25,9 @@ public class BlobResponseData {
 
     public int getRowId(){
         return rowId;
+    }
+
+    public int getLength(){
+        return length;
     }
 }
