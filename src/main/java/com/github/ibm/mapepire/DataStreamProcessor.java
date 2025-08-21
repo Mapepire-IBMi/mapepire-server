@@ -275,16 +275,14 @@ public class DataStreamProcessor implements Runnable {
 //        }
 //    }
 
-    public void sendResponse(final String id, final List<BlobResponseData> blobResponseDataArr) throws IOException, SQLException {
+    public void sendResponse(final String id, final BlobResponseData blobResponseData) throws IOException, SQLException {
         synchronized (s_replyWriterLock) {
             int curOffset = 0;
             byte[] buffer = new byte[8192];
             byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
 
-            for (int i = 0; i < blobResponseDataArr.size(); i++){
                 buffer = new byte[8192];
                 curOffset = 0;
-                BlobResponseData blobResponseData = blobResponseDataArr.get(i);
                 String columnName = blobResponseData.getColumnName();
                 InputStream is = blobResponseData.getBlob().getBinaryStream();
                 int rowId = blobResponseData.getRowId();
@@ -295,14 +293,13 @@ public class DataStreamProcessor implements Runnable {
                     throw new IllegalArgumentException("ID too long to encode in one byte length");
                 }
 
-                if (i == 0){
                     // First byte is the length of the ID
                     buffer[curOffset] = (byte) idBytes.length;
                     curOffset += 1;
                     // Copy ID bytes after the length byte
                     System.arraycopy(idBytes, 0, buffer, curOffset, idBytes.length);
                     curOffset += idBytes.length;
-                }
+
 
                 // Copy rowId
                 ByteBuffer rowIdBuffer = ByteBuffer.allocate(4);
@@ -334,16 +331,16 @@ public class DataStreamProcessor implements Runnable {
                 curOffset += bytesRead;
                 int totalBytesRead = bytesRead;
                 if (bytesRead != -1) {
-                    boolean isFinal = i == blobResponseDataArr.size() - 1 && totalBytesRead == blobResponseData.getLength();
+                    boolean isFinal = totalBytesRead == blobResponseData.getLength();
                     sendByteBuffer(buffer, curOffset, isFinal);
                 }
 
                 while ((bytesRead = is.read(buffer)) != -1) {
                     totalBytesRead += bytesRead;
-                    boolean isFinal = i == blobResponseDataArr.size() - 1 && totalBytesRead == blobResponseData.getLength();
+                    boolean isFinal = totalBytesRead == blobResponseData.getLength();
                     sendByteBuffer(buffer, bytesRead, isFinal);
                 }
-            }
+
 
         }
     }

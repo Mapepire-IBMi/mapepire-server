@@ -124,6 +124,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             final LinkedHashMap<String, Object> mapRowData = new LinkedHashMap<String, Object>();
             final LinkedList<Object> terseRowData = new LinkedList<Object>();
             final int numCols = _rs.getMetaData().getColumnCount();
+            int blobsNeeded = 0;
             int rowId = i;
             mapRowData.put("rowId", rowId);
             for (int col = 1; col <= numCols; ++col) {
@@ -141,11 +142,12 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
                 } else if (cellData instanceof Blob){
-                    String id = this.getId();
+                    blobsNeeded++;
                     int blobLength = (int) ((Blob) cellData).length();
 //                    InputStream is = _rs.getBinaryStream(col);
                     BlobResponseData blobResponseData = new BlobResponseData((Blob)cellData, column, rowId, blobLength);
-                    blobResponseDataArray.add(blobResponseData);
+                    m_io.sendResponse(this.getId(), blobResponseData);
+//                    blobResponseDataArray.add(blobResponseData);
 //                    cellDataForResponse = _rs.getBytes(col);
                 }
                  else {
@@ -158,8 +160,11 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 }
             }
             ret.add(_isTerseDataFormat ? terseRowData : mapRowData);
+            Map<String, Integer> blobsNeededMap = new HashMap();
+            blobsNeededMap.put("blobsNeeded", blobsNeeded);
+            ret.add(blobsNeededMap);
         }
-        m_io.sendResponse(this.getId(), blobResponseDataArray);
+//        m_io.sendResponse(this.getId(), blobResponseDataArray);
         return ret;
     }
 

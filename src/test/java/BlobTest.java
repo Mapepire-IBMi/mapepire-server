@@ -172,7 +172,7 @@ public class BlobTest {
         byte[] blob2Data = {6, 7, 8};
 
         byte[] expectedResult1 = {5, 49, 50, 51, 52, 53, 0,0,0,0, 4, 98, 108, 111, 98, 0,0,0,5, 1, 2, 3, 4, 5}; // queryIdLength | queryId | rowId | colNameLength | colName| bloblLength| blob
-        byte[] expectedResult2 = {0,0,0,1, 4, 98, 108, 111, 98, 0,0,0,3, 6, 7, 8}; //  rowId | colNameLength | colName| bloblLength| blob
+        byte[] expectedResult2 = {5, 49, 50, 51, 52, 53, 0,0,0,1, 4, 98, 108, 111, 98, 0,0,0,3, 6, 7, 8}; //  rowId | colNameLength | colName| bloblLength| blob
 
         Blob blob1 = new SerialBlob(blob1Data);
         Blob blob2 = new SerialBlob(blob2Data);
@@ -205,7 +205,7 @@ public class BlobTest {
         Boolean firstFlag = booleanCaptor.getAllValues().get(0);
         byte[] actual = Arrays.copyOfRange(firstBuf.array(), firstBuf.position(), firstBuf.limit());
         assertArrayEquals(expectedResult1, actual);
-        assertFalse(firstFlag);
+        assertTrue(firstFlag);
 
         // Verify second call
         ByteBuffer secondBuf = bufferCaptor.getAllValues().get(1);
@@ -240,6 +240,7 @@ public class BlobTest {
         };
 
         byte[] expected2 = {
+                3, '1','2','3', // queryId
                 0,0,0,0,              // rowId
                 2, 'b','b',     // colName "bb"
                 0,0,0,3, 20, 21, 22   // blob
@@ -270,7 +271,7 @@ public class BlobTest {
         Boolean firstFlag = booleanCaptor.getAllValues().get(0);
         byte[] actual = Arrays.copyOfRange(firstBuf.array(), firstBuf.position(), firstBuf.limit());
         assertArrayEquals(expected1, actual);
-        assertFalse(firstFlag);
+        assertTrue(firstFlag);
 
         // Verify second call
         ByteBuffer secondBuf = bufferCaptor.getAllValues().get(1);
@@ -300,18 +301,21 @@ public class BlobTest {
         };
 
         byte[] expected2 = {
+                6, 'q', 'u', 'e', 'r', 'y', '7', // queryId
                 0,0,0,0,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','2',
                 0,0,0,3, 6, 7, 8   // blob
         };
 
         byte[] expected3 = {
+                6, 'q', 'u', 'e', 'r', 'y', '7', // queryId
                 0,0,0,1,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','1',
                 0,0,0,5, 1, 2, 3, 4 ,5      // blob
         };
 
         byte[] expected4 = {
+                6, 'q', 'u', 'e', 'r', 'y', '7', // queryId
                 0,0,0,1,              // rowId
                 11, 'b', 'l','o','b','C','o','l','u','m','n','2',
                 0,0,0,3, 6, 7, 8   // blob
@@ -353,21 +357,21 @@ public class BlobTest {
         Boolean firstFlag = booleanCaptor.getAllValues().get(0);
         byte[] actual = Arrays.copyOfRange(firstBuf.array(), firstBuf.position(), firstBuf.limit());
         assertArrayEquals(expected1, actual);
-        assertFalse(firstFlag);
+        assertTrue(firstFlag);
 
         // Verify second call
         ByteBuffer secondBuf = bufferCaptor.getAllValues().get(1);
         Boolean secondFlag = booleanCaptor.getAllValues().get(1);
         byte[] actualSecond = Arrays.copyOfRange(secondBuf.array(), secondBuf.position(), secondBuf.limit());
         assertArrayEquals(expected2, actualSecond);
-        assertFalse(secondFlag);
+        assertTrue(secondFlag);
 
         // Verify third call
         ByteBuffer thirdBuf = bufferCaptor.getAllValues().get(2);
         Boolean thirdFlag = booleanCaptor.getAllValues().get(2);
         byte[] actualThird = Arrays.copyOfRange(thirdBuf.array(), thirdBuf.position(), thirdBuf.limit());
         assertArrayEquals(expected3, actualThird);
-        assertFalse(thirdFlag);
+        assertTrue(thirdFlag);
 
         // Verify fourth call
         ByteBuffer fourthBuf = bufferCaptor.getAllValues().get(3);
