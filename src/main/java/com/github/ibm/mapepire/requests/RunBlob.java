@@ -20,7 +20,7 @@ public class RunBlob{
 
     private final PrepareSql m_prev;
 
-    public RunBlob(final byte[] binary, final List<BlobRequestData> blobRequestDataList, final PrepareSql _prev) throws SQLException {
+    public RunBlob(final byte[] binary, final List<BlobRequestData> blobRequestDataList, final PrepareSql _prev) throws Exception {
         m_prev = _prev;
         PreparedStatement stmt = m_prev.getStatement();
         for (BlobRequestData blobRequestData: blobRequestDataList){
@@ -29,7 +29,8 @@ public class RunBlob{
             int replacementIndex = blobRequestData.getReplacementIndex();
             InputStream is = new ByteArrayInputStream(binary, offset, length);
             stmt.setBinaryStream(replacementIndex, is, length);
+
         }
-        stmt.execute();
+        _prev.executeTask();
     }
 }

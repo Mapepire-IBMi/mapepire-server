@@ -32,6 +32,10 @@ public class PrepareSql extends BlockRetrievableRequest {
         return blobsNeeded;
     }
 
+    public PreparedExecute getM_executeTask(){
+        return m_executeTask;
+    }
+
     public void setBlobsNeeded(int blobsNeeded) {
         this.blobsNeeded = blobsNeeded;
     }
@@ -82,10 +86,14 @@ public class PrepareSql extends BlockRetrievableRequest {
 
         addReplyData("metadata", metaData);
         if (null != m_executeTask) {
-            m_executeTask.go();
-            this.m_rs = m_executeTask.m_rs;
-            mergeReplyData(m_executeTask);
+            executeTask();
         }
+    }
+
+    public void executeTask() throws Exception {
+        m_executeTask.go();
+        this.m_rs = m_executeTask.m_rs;
+        mergeReplyData(m_executeTask);
     }
 
     private static String getDb2ParameterName(PreparedStatement _stmt, int _i) throws SQLException {
