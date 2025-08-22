@@ -19,11 +19,21 @@ public class PrepareSql extends BlockRetrievableRequest {
 
     private PreparedStatement m_stmt = null;
     private final PreparedExecute m_executeTask;
+    private int blobsNeeded = 0;
 
     public PrepareSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj,
             final boolean _isImmediateExecute) {
         super(_io, m_conn, _reqObj);
         m_executeTask = _isImmediateExecute ? new PreparedExecute(_io, _reqObj, this) : null;
+        this.blobsNeeded = getRequestFieldInt("blobsNeeded", 0);
+    }
+
+    public int getBlobsNeeded() {
+        return blobsNeeded;
+    }
+
+    public void setBlobsNeeded(int blobsNeeded) {
+        this.blobsNeeded = blobsNeeded;
     }
 
     @Override

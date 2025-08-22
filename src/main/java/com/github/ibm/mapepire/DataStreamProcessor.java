@@ -12,10 +12,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DataStreamProcessor implements Runnable {
 
@@ -87,23 +84,32 @@ public class DataStreamProcessor implements Runnable {
 
 
     public void run(byte[] payload, int offset, int len) {
-        int cont_id = bytesToInt(payload, offset, 2);
-        int length = bytesToInt(payload, offset + 2, 4);
+        int cont_id_length = 2;
+        int cont_id = bytesToInt(payload, offset, cont_id_length);
 
-        if (payload.length - 6 != length) {
-            throw new RuntimeException("Invalid binary data recieved.");
+        List<BlobRequestData> blobRequestDataArray = new ArrayList<>();
+        int curOffset = offset + cont_id_length;
+        int replacementIndexLength = 1;
+        int sizeOfInt = 4;
+        while (curOffset < offset + len){
+            int replacementIndex = bytesToInt(payload, curOffset, replacementIndexLength);
+            curOffset += replacementIndexLength;
+
+            int length = bytesToInt(payload, curOffset, sizeOfInt);
+            curOffset += sizeOfInt;
+
+            BlobRequestData blobRequestData = new BlobRequestData(replacementIndex, length, curOffset);
+            blobRequestDataArray.add(blobRequestData);
+            curOffset += length;
         }
-
 
         PrepareSql prev = m_prepStmtMap.get(String.valueOf(cont_id));
         if (null == prev) {
             dispatch(new BadReq(this, m_conn, null, "invalid correlation ID"));
             return;
         }
-//        byte[] blob = Arrays.copyOfRange(payload, 6, payload.length);
-        int blobOffset = 6;
         try {
-            RunBlob runBlob = new RunBlob(this, payload, blobOffset, length, prev);
+            RunBlob runBlob = new RunBlob(payload, blobRequestDataArray, prev);
         } catch (Exception e) {
             System.out.println("Caught exception " + e);
         }
