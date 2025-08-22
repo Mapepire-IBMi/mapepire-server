@@ -20,11 +20,13 @@ public class PrepareSql extends BlockRetrievableRequest {
     private PreparedStatement m_stmt = null;
     private final PreparedExecute m_executeTask;
     private int blobsNeeded = 0;
+    private final boolean isImmediateExecute;
 
     public PrepareSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj,
             final boolean _isImmediateExecute) {
         super(_io, m_conn, _reqObj);
-        m_executeTask = _isImmediateExecute ? new PreparedExecute(_io, _reqObj, this) : null;
+        this.isImmediateExecute = _isImmediateExecute;
+        m_executeTask = new PreparedExecute(_io, _reqObj, this);
         this.blobsNeeded = getRequestFieldInt("blobsNeeded", 0);
     }
 
@@ -85,7 +87,7 @@ public class PrepareSql extends BlockRetrievableRequest {
         }
 
         addReplyData("metadata", metaData);
-        if (null != m_executeTask) {
+        if (isImmediateExecute) {
             executeTask();
         }
     }
@@ -121,7 +123,7 @@ public class PrepareSql extends BlockRetrievableRequest {
     }
     @Override
     public boolean isDone() {
-        if(null != m_executeTask) {
+        if (null != m_executeTask) {
             return m_isDone || m_executeTask.isDone();
         }
         // This means that the request was _only_ for a prepare, so yes we're done if we haven't fetched any data
