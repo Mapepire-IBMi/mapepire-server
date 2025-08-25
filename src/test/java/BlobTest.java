@@ -1,6 +1,7 @@
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.requests.BlockRetrievableRequest;
-import com.github.ibm.mapepire.ws.BinarySender;
+import com.github.ibm.mapepire.ws.AsyncSender;
+//import com.github.ibm.mapepire.ws.asyncSender;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -124,8 +125,8 @@ public class BlobTest {
     public void testSendingSingleRowWithBlob() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "12345");
-        BinarySender binarySender = mock(BinarySender.class);
-        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+        AsyncSender asyncSender = mock(AsyncSender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, asyncSender, null, true);
 
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
@@ -143,13 +144,13 @@ public class BlobTest {
         MockResultSet rs = new MockResultSet(rows, rowsByIndex);
         block.getNextDataBlockUsage(rs, 1, false);
 
-        verify(binarySender, times(1)).send(any(ByteBuffer.class), anyBoolean());
+        verify(asyncSender, times(1)).send(any(ByteBuffer.class), anyBoolean());
 
         // Assert - capture arguments
         ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
         ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 
-        verify(binarySender, times(1)).send(bufferCaptor.capture(), booleanCaptor.capture());
+        verify(asyncSender, times(1)).send(bufferCaptor.capture(), booleanCaptor.capture());
 
         // Verify first call
         ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
@@ -163,8 +164,8 @@ public class BlobTest {
     public void testSendingMultipleRowsWithBlobs() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "12345");
-        BinarySender binarySender = mock(BinarySender.class);
-        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+        AsyncSender asyncSender = mock(AsyncSender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, asyncSender, null, true);
 
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
@@ -192,13 +193,13 @@ public class BlobTest {
         MockResultSet rs = new MockResultSet(rows, rowsByIndex);
         block.getNextDataBlockUsage(rs, 2, false);
 
-        verify(binarySender, times(2)).send(any(ByteBuffer.class), anyBoolean());
+        verify(asyncSender, times(2)).send(any(ByteBuffer.class), anyBoolean());
 
         // Assert - capture arguments
         ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
         ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 
-        verify(binarySender, times(2)).send(bufferCaptor.capture(), booleanCaptor.capture());
+        verify(asyncSender, times(2)).send(bufferCaptor.capture(), booleanCaptor.capture());
 
         // Verify first call
         ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
@@ -220,8 +221,8 @@ public class BlobTest {
     public void testSingleRowMultipleBlobs() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "123");
-        BinarySender binarySender = mock(BinarySender.class);
-        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+        AsyncSender asyncSender = mock(AsyncSender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, asyncSender, null, true);
 
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
@@ -258,13 +259,13 @@ public class BlobTest {
         MockResultSet rs = new MockResultSet(rows, rowsByIndex);
         block.getNextDataBlockUsage(rs, 1, false);
 
-        verify(binarySender, times(2)).send(any(ByteBuffer.class), anyBoolean());
+        verify(asyncSender, times(2)).send(any(ByteBuffer.class), anyBoolean());
 
         // Assert - capture arguments
         ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
         ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 
-        verify(binarySender, times(2)).send(bufferCaptor.capture(), booleanCaptor.capture());
+        verify(asyncSender, times(2)).send(bufferCaptor.capture(), booleanCaptor.capture());
 
         // Verify first call
         ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
@@ -285,8 +286,8 @@ public class BlobTest {
     public void testMultipleRowsMultipleBlobsPerRow() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "query7");
-        BinarySender binarySender = mock(BinarySender.class);
-        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+        AsyncSender asyncSender = mock(AsyncSender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, asyncSender, null, true);
 
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
@@ -344,13 +345,13 @@ public class BlobTest {
         MockResultSet rs = new MockResultSet(rows, rowsByIndex);
         block.getNextDataBlockUsage(rs, 2, false);
 
-        verify(binarySender, times(4)).send(any(ByteBuffer.class), anyBoolean());
+        verify(asyncSender, times(4)).send(any(ByteBuffer.class), anyBoolean());
 
         // Assert - capture arguments
         ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
         ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 
-        verify(binarySender, times(4)).send(bufferCaptor.capture(), booleanCaptor.capture());
+        verify(asyncSender, times(4)).send(bufferCaptor.capture(), booleanCaptor.capture());
 
         // Verify first call
         ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
@@ -386,8 +387,8 @@ public class BlobTest {
     public void testSendingSingleRowWithEmptyBlob() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "12345");
-        BinarySender binarySender = mock(BinarySender.class);
-        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+        AsyncSender asyncSender = mock(AsyncSender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, asyncSender, null, true);
 
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
@@ -404,13 +405,13 @@ public class BlobTest {
         MockResultSet rs = new MockResultSet(rows, rowsByIndex);
         block.getNextDataBlockUsage(rs, 1, false);
 
-        verify(binarySender, times(0)).send(any(ByteBuffer.class), anyBoolean());
+        verify(asyncSender, times(0)).send(any(ByteBuffer.class), anyBoolean());
 
         // Assert - capture arguments
         ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
         ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 
-        verify(binarySender, times(0)).send(bufferCaptor.capture(), booleanCaptor.capture());
+        verify(asyncSender, times(0)).send(bufferCaptor.capture(), booleanCaptor.capture());
 
     }
 
@@ -418,8 +419,8 @@ public class BlobTest {
     public void testSendingSingleRowWithBlobandNonblobColumns() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "12345");
-        BinarySender binarySender = mock(BinarySender.class);
-        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+        AsyncSender asyncSender = mock(AsyncSender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, asyncSender, null, true);
 
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
@@ -441,13 +442,13 @@ public class BlobTest {
         MockResultSet rs = new MockResultSet(rows, rowsByIndex);
         block.getNextDataBlockUsage(rs, 1, false);
 
-        verify(binarySender, times(1)).send(any(ByteBuffer.class), anyBoolean());
+        verify(asyncSender, times(1)).send(any(ByteBuffer.class), anyBoolean());
 
         // Assert - capture arguments
         ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
         ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 
-        verify(binarySender, times(1)).send(bufferCaptor.capture(), booleanCaptor.capture());
+        verify(asyncSender, times(1)).send(bufferCaptor.capture(), booleanCaptor.capture());
 
         // Verify first call
         ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
@@ -462,8 +463,8 @@ public class BlobTest {
     public void testSendingSingleRowWithLongBlob() throws SQLException, IOException {
         JsonObject obj = new JsonObject();
         obj.addProperty("id", "12345");
-        BinarySender binarySender = mock(BinarySender.class);
-        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, binarySender, null, true);
+        AsyncSender asyncSender = mock(AsyncSender.class);
+        final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, asyncSender, null, true);
 
 
         BlockRetrievableRequestImpl block = new BlockRetrievableRequestImpl(io, null, obj);
@@ -498,13 +499,13 @@ public class BlobTest {
         List<Map<String, Object>> rows = Arrays.asList(row1);
         MockResultSet rs = new MockResultSet(rows, rowsByIndex);
 //
-//        verify(binarySender, times(641)).send(any(ByteBuffer.class), anyBoolean());
+//        verify(asyncSender, times(641)).send(any(ByteBuffer.class), anyBoolean());
 //
 //        // Assert - capture arguments
 //        ArgumentCaptor<ByteBuffer> bufferCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
 //        ArgumentCaptor<Boolean> booleanCaptor = ArgumentCaptor.forClass(Boolean.class);
 //
-//        verify(binarySender, times(641)).send(bufferCaptor.capture(), booleanCaptor.capture());
+//        verify(asyncSender, times(641)).send(bufferCaptor.capture(), booleanCaptor.capture());
 //
 //        // Verify first call
 //        ByteBuffer firstBuf = bufferCaptor.getAllValues().get(0);
@@ -526,7 +527,7 @@ public class BlobTest {
             capturedFlags.add(isFinal);
 
             return null;
-        }).when(binarySender).send(any(ByteBuffer.class), anyBoolean());
+        }).when(asyncSender).send(any(ByteBuffer.class), anyBoolean());
         block.getNextDataBlockUsage(rs, 1, false);
 
         byte[] actualFirst21 = Arrays.copyOfRange(capturedBuffers.get(0), 0, 25);
