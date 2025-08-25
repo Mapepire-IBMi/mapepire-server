@@ -146,14 +146,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     int blobLength = (int) ((Blob) cellData).length();
 //                    InputStream is = _rs.getBinaryStream(col);
                     BlobResponseData blobResponseData = new BlobResponseData((Blob)cellData, column, rowId, blobLength);
-                    new Thread(() -> {
-                        try {
-                            m_io.sendResponse(this.getId(), blobResponseData);
-                        } catch (Exception e) {
-                            e.printStackTrace(); // or log it properly
-                        }
-                    }).start();
-//                    m_io.sendResponse(this.getId(), blobResponseData);
+
+                    m_io.sendResponse(this.getId(), blobResponseData);
 //                    blobResponseDataArray.add(blobResponseData);
 //                    cellDataForResponse = _rs.getBytes(col);
                 }
