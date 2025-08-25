@@ -70,15 +70,8 @@ public class DbWebsocketClient extends WebSocketAdapter {
 
   private DataStreamProcessor getDataStreamProcessor(DbWebsocketClient endpoint, SystemConnection conn) throws UnsupportedEncodingException {
 //    BinarySender binarySender = (data, isLast) -> getRemote().sendPartialBytes(data, isLast);
-    BinarySender binarySender = (data, isLast) -> {
-      new Thread(() -> {
-        try {
-          getRemote().sendPartialBytes(data, isLast);
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      }).start();
-    };
+    AsyncSender asyncSender = new AsyncSender(this);
+
     InputStream in = new ByteArrayInputStream(new byte[0]);
 
     OutputStream outStreamText = new OutputStream() {
@@ -111,6 +104,6 @@ public class DbWebsocketClient extends WebSocketAdapter {
 
     PrintStream out = new PrintStream(outStreamText);
 
-    return new DataStreamProcessor(in, out, binarySender, conn, false);
+    return new DataStreamProcessor(in, out, asyncSender, conn, false);
   }
 }

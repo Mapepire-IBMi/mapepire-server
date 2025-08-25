@@ -1,6 +1,7 @@
 package com.github.ibm.mapepire;
 
 import com.github.ibm.mapepire.requests.*;
+import com.github.ibm.mapepire.ws.AsyncSender;
 import com.github.ibm.mapepire.ws.BinarySender;
 import com.github.ibm.mapepire.ws.DbWebsocketClient;
 import com.github.theprez.jcmdutils.StringUtils;
@@ -25,10 +26,10 @@ public class DataStreamProcessor implements Runnable {
     private final Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
     private final Map<String, PrepareSql> m_prepStmtMap = new HashMap<String, PrepareSql>();
     private final boolean m_isTestMode;
-    private final BinarySender m_binarySender;
+    private final AsyncSender m_binarySender;
 //    private final DbWebsocketClient.BinarySender m_binarySender;
 
-    public DataStreamProcessor(final InputStream _in, final PrintStream _outText, final BinarySender binarySender, final SystemConnection _conn,
+    public DataStreamProcessor(final InputStream _in, final PrintStream _outText, final AsyncSender binarySender, final SystemConnection _conn,
                                boolean _isTestMode)
             throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
