@@ -110,6 +110,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             return ret.setDone(true);
         }
         final List<BlobResponseData> blobResponseDataArray = new ArrayList<>();
+        int blobsNeeded = 0;
         for (int i = 0; i < _numRows; ++i) {
             if (!_rs.next()) {
                 ret.setDone(true);
@@ -124,7 +125,6 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             final LinkedHashMap<String, Object> mapRowData = new LinkedHashMap<String, Object>();
             final LinkedList<Object> terseRowData = new LinkedList<Object>();
             final int numCols = _rs.getMetaData().getColumnCount();
-            int blobsNeeded = 0;
             int rowId = i;
             mapRowData.put("rowId", rowId);
             for (int col = 1; col <= numCols; ++col) {
