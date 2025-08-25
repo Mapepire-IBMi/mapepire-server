@@ -1,6 +1,8 @@
 package com.github.ibm.mapepire.ws;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -17,14 +19,20 @@ public class AsyncSender {
     }
 
     public void send(ByteBuffer buffer, boolean isLast) {
-        executor.submit(() -> {
-            try {
+        try {
+
+            executor.submit(() -> {
                 RemoteEndpoint remote = session.getRemote();
-                remote.sendPartialBytes(buffer, isLast);
-            } catch (Exception e) {
-                e.printStackTrace(); // or better logging
+                try {
+                    remote.sendPartialBytes(buffer, isLast);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
-        });
+        ).get();}
+            catch (Exception e) {
+            e.printStackTrace(); // or better logging
+        }
     }
 
     public void shutdown() {

@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class DataStreamProcessor implements Runnable {
 
@@ -352,7 +353,7 @@ public class DataStreamProcessor implements Runnable {
         }
     }
 
-    private void sendByteBuffer(byte[] buffer, int bytesRead, boolean isFinal) throws IOException {
+    private void sendByteBuffer(byte[] buffer, int bytesRead, boolean isFinal) {
         // Wrap only the bytes actually read
         ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
 
