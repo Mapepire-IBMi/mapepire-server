@@ -286,7 +286,7 @@ public class DataStreamProcessor implements Runnable {
     public void sendResponse(final String id, final BlobResponseData blobResponseData) throws IOException, SQLException {
         synchronized (s_replyWriterLock) {
             int curOffset = 0;
-            byte[] buffer = new byte[8 * 1024 * 1024];
+            byte[] buffer = new byte[4 * 1024 * 1024];
             byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
 
 //                buffer = new byte[8192];
