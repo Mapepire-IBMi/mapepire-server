@@ -1030,6 +1030,4 @@ public class MockResultSet implements ResultSet {
         return false;
     }
 
-
-    // Add more getters as needed...
 }
