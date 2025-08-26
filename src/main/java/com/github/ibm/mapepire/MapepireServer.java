@@ -68,9 +68,7 @@ public class MapepireServer {
                 if (testMode) {
                     System.setIn(new FileInputStream(testFile));
                 }
-//                DbWebsocketClient.BinarySender binarySender = (data, isLast) -> remote.sendPartialBytes(data, isLast);
 //                final DataStreamProcessor io = new DataStreamProcessor(System.in, System.out, conn, testMode);
-
 //                io.run();
             } else {
                 s_isSingleMode = false;

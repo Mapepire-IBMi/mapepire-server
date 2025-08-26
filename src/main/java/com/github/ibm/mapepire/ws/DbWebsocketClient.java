@@ -2,24 +2,16 @@ package com.github.ibm.mapepire.ws;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
-import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketException;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
-import com.github.ibm.mapepire.ws.BinarySender;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
-
- /* @FunctionalInterface
-  public interface BinarySender {
-    void send(ByteBuffer buffer, boolean isLast) throws IOException;
-  }*/
 
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
     super();
@@ -42,12 +34,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
 
   @Override
   public void onWebSocketBinary(byte[] payload, int offset, int len) {
-    System.out.println(">>> onWebSocketBinary called with len=" + len);
-    // Access only the relevant portion of the data
-//    byte[] binary = Arrays.copyOfRange(payload, offset, offset + len);
     io.run(payload, offset, len);
-
-    // Now use `message` as needed
   }
 
   @Override
@@ -69,7 +56,6 @@ public class DbWebsocketClient extends WebSocketAdapter {
   }
 
   private DataStreamProcessor getDataStreamProcessor(DbWebsocketClient endpoint, SystemConnection conn) throws UnsupportedEncodingException {
-//    BinarySender binarySender = (data, isLast) -> getRemote().sendPartialBytes(data, isLast);
     AsyncSender asyncSender = new AsyncSender(this);
 
     InputStream in = new ByteArrayInputStream(new byte[0]);

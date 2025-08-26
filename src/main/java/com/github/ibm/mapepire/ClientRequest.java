@@ -122,7 +122,7 @@ public abstract class ClientRequest implements Runnable {
         return "Internal Error: " + _e.getClass().getSimpleName();
     }
 
-    protected void sendreply() throws UnsupportedEncodingException, IOException {
+    protected void sendreply() throws IOException {
         final Gson l = new GsonBuilder().serializeNulls().create();
         final String json = l.toJson(replyData);
         replyData.clear();

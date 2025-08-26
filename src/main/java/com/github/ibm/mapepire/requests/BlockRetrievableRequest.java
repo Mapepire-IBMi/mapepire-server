@@ -144,12 +144,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 } else if (cellData instanceof Blob){
                     blobsNeeded++;
                     int blobLength = (int) ((Blob) cellData).length();
-//                    InputStream is = _rs.getBinaryStream(col);
                     BlobResponseData blobResponseData = new BlobResponseData((Blob)cellData, column, rowId, blobLength);
-
                     m_io.sendResponse(this.getId(), blobResponseData);
-//                    blobResponseDataArray.add(blobResponseData);
-//                    cellDataForResponse = _rs.getBytes(col);
                 }
                  else {
                     cellDataForResponse = _rs.getString(col);
@@ -163,7 +159,6 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             ret.add(_isTerseDataFormat ? terseRowData : mapRowData);
             addReplyData("blobsNeeded", blobsNeeded);
         }
-//        m_io.sendResponse(this.getId(), blobResponseDataArray);
         return ret;
     }
 
