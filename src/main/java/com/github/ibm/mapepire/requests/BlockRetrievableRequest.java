@@ -1,29 +1,34 @@
 package com.github.ibm.mapepire.requests;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.github.ibm.mapepire.BlobResponseData;
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
+import com.ibm.as400.access.AS400JDBCBlobLocator;
 import com.ibm.as400.access.AS400JDBCParameterMetaData;
+import com.github.ibm.mapepire.BlobResponseData;
 
 public abstract class BlockRetrievableRequest extends ClientRequest {
 
     protected boolean m_isDone = false;
     protected ResultSet m_rs = null;
     protected final boolean m_isTerseData;
+    private DataStreamProcessor m_io;
 
     protected BlockRetrievableRequest(DataStreamProcessor _io, SystemConnection _conn, JsonObject _reqObj) {
         super(_io, _conn, _reqObj);
+        m_io = _io;
         m_isTerseData = getRequestFieldBoolean("terse", false);
     }
 
-    List<Object> getNextDataBlock(final int _numRows) throws SQLException {
+    List<Object> getNextDataBlock(final int _numRows) throws SQLException, IOException {
         if (m_isDone) {
             return new LinkedList<Object>();
         }
@@ -94,8 +99,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         }
     }
 
-    protected static DataBlockFetchResult getNextDataBlock(final ResultSet _rs, final int _numRows,
-                                                           final boolean _isTerseDataFormat) throws SQLException {
+    protected DataBlockFetchResult getNextDataBlock(final ResultSet _rs, final int _numRows,
+                                                           final boolean _isTerseDataFormat) throws SQLException, IOException {
         final DataBlockFetchResult ret = new DataBlockFetchResult();
 
         if (null == _rs) {
@@ -104,6 +109,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         if (_rs.isClosed()) {
             return ret.setDone(true);
         }
+        final List<BlobResponseData> blobResponseDataArray = new ArrayList<>();
+        int blobsNeeded = 0;
         for (int i = 0; i < _numRows; ++i) {
             if (!_rs.next()) {
                 ret.setDone(true);
@@ -118,6 +125,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             final LinkedHashMap<String, Object> mapRowData = new LinkedHashMap<String, Object>();
             final LinkedList<Object> terseRowData = new LinkedList<Object>();
             final int numCols = _rs.getMetaData().getColumnCount();
+            int rowId = i;
+            mapRowData.put("rowId", rowId);
             for (int col = 1; col <= numCols; ++col) {
                 String column = _rs.getMetaData().getColumnName(col);
                 Object cellData = _rs.getObject(col);
@@ -132,7 +141,13 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     }
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
-                } else {
+                } else if (cellData instanceof Blob){
+                    blobsNeeded++;
+                    int blobLength = (int) ((Blob) cellData).length();
+                    BlobResponseData blobResponseData = new BlobResponseData((Blob)cellData, column, rowId, blobLength);
+                    m_io.sendResponse(this.getId(), blobResponseData);
+                }
+                 else {
                     cellDataForResponse = _rs.getString(col);
                 }
                 if (_isTerseDataFormat) {
@@ -142,6 +157,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                 }
             }
             ret.add(_isTerseDataFormat ? terseRowData : mapRowData);
+            addReplyData("blobsNeeded", blobsNeeded);
         }
         return ret;
     }

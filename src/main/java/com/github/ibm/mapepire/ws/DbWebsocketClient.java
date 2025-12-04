@@ -7,7 +7,6 @@ import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketException;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
@@ -17,7 +16,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
     super();
     SystemConnection conn = new SystemConnection(clientHost, clientAddress,host, user, pass);
-    io = getDataStream(this, conn);
+    io = getDataStreamProcessor(this, conn);
   }
 
   @Override
@@ -31,6 +30,11 @@ public class DbWebsocketClient extends WebSocketAdapter {
   public void onWebSocketText(String message) {
     super.onWebSocketText(message);
     io.run(message);
+  }
+
+  @Override
+  public void onWebSocketBinary(byte[] payload, int offset, int len) {
+    io.run(payload, offset, len);
   }
 
   @Override
@@ -51,10 +55,12 @@ public class DbWebsocketClient extends WebSocketAdapter {
     closureLatch.await();
   }
 
-  private static DataStreamProcessor getDataStream(DbWebsocketClient endpoint, SystemConnection conn) throws UnsupportedEncodingException {
+  private DataStreamProcessor getDataStreamProcessor(DbWebsocketClient endpoint, SystemConnection conn) throws UnsupportedEncodingException {
+    AsyncSender asyncSender = new AsyncSender(this);
+
     InputStream in = new ByteArrayInputStream(new byte[0]);
 
-    OutputStream outStream = new OutputStream() {
+    OutputStream outStreamText = new OutputStream() {
       private final ByteArrayOutputStream payload = new ByteArrayOutputStream();
 
       @Override
@@ -82,8 +88,8 @@ public class DbWebsocketClient extends WebSocketAdapter {
       }
     };
 
-    PrintStream out = new PrintStream(outStream);
+    PrintStream out = new PrintStream(outStreamText);
 
-    return new DataStreamProcessor(in, out, conn, false);
+    return new DataStreamProcessor(in, out, asyncSender, conn, false);
   }
 }

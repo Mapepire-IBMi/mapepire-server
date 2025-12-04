@@ -1,15 +1,17 @@
 package com.github.ibm.mapepire;
 
 import com.github.ibm.mapepire.requests.*;
+import com.github.ibm.mapepire.ws.AsyncSender;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class DataStreamProcessor implements Runnable {
 
@@ -17,16 +19,19 @@ public class DataStreamProcessor implements Runnable {
 
     private final SystemConnection m_conn;
     private final BufferedReader m_in;
-    private final PrintStream m_out;
+    private final PrintStream m_out_text;
+
     private final Map<String, RunSql> m_queriesMap = new HashMap<String, RunSql>();
     private final Map<String, PrepareSql> m_prepStmtMap = new HashMap<String, PrepareSql>();
     private final boolean m_isTestMode;
+    private final AsyncSender m_binarySender;
 
-    public DataStreamProcessor(final InputStream _in, final PrintStream _out, final SystemConnection _conn,
-            boolean _isTestMode)
+    public DataStreamProcessor(final InputStream _in, final PrintStream _outText, final AsyncSender binarySender, final SystemConnection _conn,
+                               boolean _isTestMode)
             throws UnsupportedEncodingException {
         m_in = new BufferedReader(new InputStreamReader(_in, "UTF-8"));
-        m_out = _out;
+        m_out_text = _outText;
+        m_binarySender = binarySender;
         m_conn = _conn;
         m_isTestMode = _isTestMode;
     }
@@ -63,6 +68,48 @@ public class DataStreamProcessor implements Runnable {
         } catch (Exception e) {
             Tracer.err(e);
             System.exit(6);
+        }
+    }
+
+    private int bytesToInt(byte[] bytes, int offset, int length) {
+        int x = 0;
+        for (int i = offset; i < offset + length; i++) {
+            byte b = bytes[i];
+            x = x << 8 | b & 0xFF;
+        }
+        return x;
+    }
+
+
+    public void run(byte[] payload, int offset, int len) {
+        int cont_id_length = 2;
+        int cont_id = bytesToInt(payload, offset, cont_id_length);
+
+        List<BlobRequestData> blobRequestDataArray = new ArrayList<>();
+        int curOffset = offset + cont_id_length;
+        int replacementIndexLength = 1;
+        int sizeOfInt = 4;
+        while (curOffset < offset + len) {
+            int replacementIndex = bytesToInt(payload, curOffset, replacementIndexLength);
+            curOffset += replacementIndexLength;
+
+            int length = bytesToInt(payload, curOffset, sizeOfInt);
+            curOffset += sizeOfInt;
+
+            BlobRequestData blobRequestData = new BlobRequestData(replacementIndex, length, curOffset);
+            blobRequestDataArray.add(blobRequestData);
+            curOffset += length;
+        }
+
+        PrepareSql prev = m_prepStmtMap.get(String.valueOf(cont_id));
+        if (null == prev) {
+            dispatch(new BadReq(this, m_conn, null, "invalid correlation ID"));
+            return;
+        }
+        try {
+            RunBlob runBlob = new RunBlob(payload, blobRequestDataArray, prev);
+        } catch (Exception e) {
+            System.out.println("Caught exception " + e);
         }
     }
 
@@ -179,10 +226,83 @@ public class DataStreamProcessor implements Runnable {
 
     public void sendResponse(final String _response) throws UnsupportedEncodingException, IOException {
         synchronized (s_replyWriterLock) {
-            m_out.write((_response + "\n").getBytes("UTF-8"));
+            m_out_text.write((_response + "\n").getBytes("UTF-8"));
             Tracer.datastreamOut(_response);
-            m_out.flush();
+            m_out_text.flush();
         }
+    }
+
+    public void sendResponse(final String id, final BlobResponseData blobResponseData) throws IOException, SQLException {
+        synchronized (s_replyWriterLock) {
+            int curOffset = 0;
+            byte[] buffer = new byte[4 * 1024 * 1024];
+            byte[] idBytes = id.getBytes(StandardCharsets.UTF_8);
+
+            curOffset = 0;
+            String columnName = blobResponseData.getColumnName();
+            InputStream is = blobResponseData.getBlob().getBinaryStream();
+            int rowId = blobResponseData.getRowId();
+
+            byte[] columnNameBytes = columnName.getBytes(StandardCharsets.UTF_8);
+
+            if (idBytes.length > 255) {
+                throw new IllegalArgumentException("ID too long to encode in one byte length");
+            }
+
+            // First byte is the length of the ID
+            buffer[curOffset] = (byte) idBytes.length;
+            curOffset += 1;
+
+            // Copy ID bytes after the length byte
+            System.arraycopy(idBytes, 0, buffer, curOffset, idBytes.length);
+            curOffset += idBytes.length;
+
+            // Copy rowId
+            ByteBuffer rowIdBuffer = ByteBuffer.allocate(4);
+            rowIdBuffer.putInt(rowId); // default is big-endian
+            byte[] rowIdBytes = rowIdBuffer.array();
+            for (int j = 0; j < 4; j++) {
+                buffer[curOffset] = rowIdBytes[j];
+                curOffset += 1;
+            }
+
+            // Copy column length
+            buffer[curOffset] = (byte) columnName.length();
+            curOffset += 1;
+
+            // copy column name
+            System.arraycopy(columnNameBytes, 0, buffer, curOffset, columnNameBytes.length);
+            curOffset += columnNameBytes.length;
+
+            // Copy blob length
+            ByteBuffer blobLength = ByteBuffer.allocate(4);
+            blobLength.putInt(blobResponseData.getLength()); // default is big-endian
+            byte[] bytes = blobLength.array();
+            for (int j = 0; j < 4; j++) {
+                buffer[curOffset] = bytes[j];
+                curOffset += 1;
+            }
+
+            int bytesRead = is.read(buffer, curOffset, buffer.length - curOffset);
+            curOffset += bytesRead;
+            int totalBytesRead = bytesRead;
+            if (bytesRead != -1) {
+                boolean isFinal = totalBytesRead == blobResponseData.getLength();
+                sendByteBuffer(buffer, curOffset, isFinal);
+            }
+
+            while ((bytesRead = is.read(buffer)) != -1) {
+                totalBytesRead += bytesRead;
+                boolean isFinal = totalBytesRead == blobResponseData.getLength();
+                sendByteBuffer(buffer, bytesRead, isFinal);
+            }
+        }
+    }
+
+    private void sendByteBuffer(byte[] buffer, int bytesRead, boolean isFinal) {
+        // Wrap only the bytes actually read
+        ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
+        m_binarySender.send(byteBuffer, isFinal);
     }
 
     public void end() {
