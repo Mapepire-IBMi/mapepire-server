@@ -172,6 +172,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             columnAttrs.put("nullable", _md.isNullable(i));
             columnAttrs.put("readOnly", _md.isReadOnly(i));
             columnAttrs.put("writeable", _md.isWritable(i));
+            columnAttrs.put("table", _md.getTableName(i));
             columnMetaData.add(columnAttrs);
         }
         metaData.put("columns", columnMetaData);

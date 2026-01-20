@@ -49,6 +49,13 @@ public class PrepareSql extends BlockRetrievableRequest {
                 columnAttrs.put("type", rsMetaData.getColumnTypeName(i));
                 columnAttrs.put("display_size", rsMetaData.getColumnDisplaySize(i));
                 columnAttrs.put("label", rsMetaData.getColumnLabel(i));
+	            columnAttrs.put("precision", rsMetaData.getPrecision(i));
+	            columnAttrs.put("scale", rsMetaData.getScale(i));
+	            columnAttrs.put("autoIncrement", rsMetaData.isAutoIncrement(i));
+	            columnAttrs.put("nullable", rsMetaData.isNullable(i));
+	            columnAttrs.put("readOnly", rsMetaData.isReadOnly(i));
+	            columnAttrs.put("writeable", rsMetaData.isWritable(i));
+	            columnAttrs.put("table", rsMetaData.getTableName(i));
                 columnMetaData.add(columnAttrs);
             }
             metaData.put("columns", columnMetaData);
