@@ -77,7 +77,7 @@ public class DoVe extends BlockRetrievableRequest {
             }
         }
 
-        // Validate that we successfully retrieved the QQQDBVE identifier before proceeding
+        // Validate that it successfully retrieved the QQQDBVE identifier before proceeding
         if (idStr == null && idBytes == null) {
             throw new RuntimeException("Unable to locate QQQDBVE id in QTEMP.QDOVEOUT (QQRID=3014)");
         }
@@ -86,8 +86,8 @@ public class DoVe extends BlockRetrievableRequest {
                 "call QSYS.QQQDBVE(?,?,?,?)")) {
             // FIX: Detect the actual parameter type before binding to avoid "Data type mismatch" error.
             // The jt400 driver may describe QQQDBVE param 1 as VARCHAR or BINARY depending on
-            // translate-binary and other settings. Previously we always used setBytes(), which fails
-            // when the driver expects a character type. Now we check metadata and bind appropriately.
+            // translate-binary and other settings. Previously it used setBytes(), which fails
+            // when the driver expects a character type. Now we check the metadata first and bind it the right way.
             ParameterMetaData pmd = callStmt.getParameterMetaData();
             int p1Type = Types.OTHER;
             try {
