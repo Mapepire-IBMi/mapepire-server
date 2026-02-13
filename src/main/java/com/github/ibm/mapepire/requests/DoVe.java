@@ -129,7 +129,7 @@ public class DoVe extends BlockRetrievableRequest {
         try (Statement dbMonStmt = jdbcConn.createStatement()) {
             dbMonStmt.execute("drop table QTEMP.QDOVEOUT");
         } catch (Exception e) {
-            Tracer.info(e.getMessage());
+            Tracer.info(e.getMessage()); 
         }
     }
 }
