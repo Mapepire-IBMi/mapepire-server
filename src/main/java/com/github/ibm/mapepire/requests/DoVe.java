@@ -99,11 +99,9 @@ public class DoVe extends BlockRetrievableRequest {
 
             // Bind param 1 as bytes or string depending on what the driver expects
             if (p1Type == Types.BINARY || p1Type == Types.VARBINARY || p1Type == Types.LONGVARBINARY) {
-                if (idBytes == null && idStr != null) idBytes = idStr.getBytes("ISO-8859-1");
                 callStmt.setBytes(1, idBytes);
             } else {
                 // VARCHAR, CHAR, or other character types
-                if (idStr == null && idBytes != null) idStr = new String(idBytes, "ISO-8859-1");
                 callStmt.setString(1, idStr);
             }
 
