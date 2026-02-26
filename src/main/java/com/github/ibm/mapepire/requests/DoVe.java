@@ -92,7 +92,7 @@ public class DoVe extends BlockRetrievableRequest {
             int p1Type = Types.OTHER;
             try {
                 p1Type = pmd.getParameterType(1);
-            } catch (Exception e) {
+            } catch (SQLException e) {
                 // If metadata isn't available, default to VARCHAR (safest/most common case)
                 p1Type = Types.VARCHAR;
             }
