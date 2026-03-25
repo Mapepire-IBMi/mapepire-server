@@ -26,6 +26,7 @@ import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;
 import com.github.ibm.mapepire.certstuff.ServerCertInfo;
+import com.github.ibm.mapepire.http.InstallLocationServlet;
 import com.github.ibm.mapepire.http.Routes;
 import com.github.ibm.mapepire.http.VersionServlet;
 import com.github.ibm.mapepire.ws.DbSocketCreator;
@@ -120,6 +121,7 @@ public class MapepireServer {
                 ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
                 context.setContextPath("/");
                 context.addServlet(new ServletHolder(VersionServlet.class), Routes.VERSION);
+                context.addServlet(new ServletHolder(InstallLocationServlet.class), Routes.SOURCE);
 
                 Constraint constraint = new Constraint();
                 constraint.setName("Disable TRACE");
