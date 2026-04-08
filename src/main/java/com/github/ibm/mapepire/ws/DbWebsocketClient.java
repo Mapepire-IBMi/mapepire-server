@@ -1,30 +1,42 @@
 package com.github.ibm.mapepire.ws;
 
+import com.github.ibm.mapepire.ConnectionTraceContext;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
+import com.github.ibm.mapepire.Tracer;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
+  private final String connectionId; // ✅ NEW: Unique ID for per-connection tracing
 
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
     super();
-    SystemConnection conn = new SystemConnection(clientHost, clientAddress,host, user, pass);
+    // ✅ NEW: Generate unique connection ID
+    this.connectionId = UUID.randomUUID().toString();
+    
+    SystemConnection conn = new SystemConnection(clientHost, clientAddress, host, user, pass);
     io = getDataStream(this, conn);
+    
+    // ✅ NEW: Initialize per-connection trace context
+    Tracer.get().setConnectionId(connectionId);
+    Tracer.info("WebSocket connection established: " + connectionId + 
+                " (Client: " + clientHost + ", User: " + user + ")");
   }
 
   @Override
   public void onWebSocketConnect(Session sess) {
     super.onWebSocketConnect(sess);
     sess.setIdleTimeout(Integer.MAX_VALUE);
-    System.out.println("Socket Connected: " + sess);
+    Tracer.info("Socket Connected: " + sess + " [Connection ID: " + connectionId + "]");
   }
 
   @Override
@@ -37,6 +49,13 @@ public class DbWebsocketClient extends WebSocketAdapter {
   public void onWebSocketClose(int statusCode, String reason) {
     io.end();
     super.onWebSocketClose(statusCode, reason);
+    
+    // ✅ NEW: Log connection closure
+    Tracer.info("WebSocket connection closed: " + connectionId + 
+                " (Status: " + statusCode + ", Reason: " + reason + ")");
+    
+    // ✅ NEW: Cleanup per-connection trace context
+    ConnectionTraceContext.remove(connectionId);
     closureLatch.countDown();
   }
 
@@ -44,7 +63,9 @@ public class DbWebsocketClient extends WebSocketAdapter {
   public void onWebSocketError(Throwable cause) {
     io.end();
     super.onWebSocketError(cause);
-    // cause.printStackTrace(System.err);
+    // ✅ NEW: Log error to per-connection trace
+    Tracer.err("WebSocket error on connection " + connectionId + ": " + cause.getMessage());
+    Tracer.err(cause);
   }
 
   public void awaitClosure() throws InterruptedException {
@@ -74,7 +95,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
             try {
               endpoint.getRemote().sendString(message);
             } catch (WebSocketException e){
-              System.err.println("Could not send message due to error: " + e.getMessage());
+              Tracer.err("Could not send message on connection " + endpoint.connectionId + ": " + e.getMessage());
             }
           }
         }

@@ -110,6 +110,17 @@ public class Tracer {
                 return "" + m_data;
             }
         }
+        public EventType getEventType() {
+            return m_type;
+        }
+
+        public String getFormattedDate() {
+            return getDateFormatter().format(m_date);
+        }
+
+        public String getDataAsString() {
+            return getRawTraceString();
+        }
     }
 
     private static Tracer s_instance = new Tracer();
@@ -156,7 +167,7 @@ public class Tracer {
         return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss.SSS");
     }
 
-    private static class InMemCache<T> {
+    public static class InMemCache<T> {
         private final AtomicInteger m_ctr = new AtomicInteger(0);
         private final int m_capacity;
         private final LinkedHashMap<Integer, T> m_data;
@@ -195,6 +206,8 @@ public class Tracer {
     private TraceLevel m_traceLevel = TraceLevel.INPUT_AND_ERRORS;
     private TraceLevel m_jtOpenTraceLevel = TraceLevel.OFF;
     private Dest m_jtopenDest = Dest.IN_MEM;
+
+    private String m_connectionId = null; // ✅ NEW: For per-connection tracing in daemon mode
 
     private Tracer() {
         PrintWriter jt400PrintWriter = new PrintWriter(new Writer() {
@@ -242,18 +255,36 @@ public class Tracer {
         }
     }
 
-    public Tracer setTraceLevel(TraceLevel _l) {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
-        m_traceLevel = _l;
+    /**
+    * Set the connection ID for per-connection tracing in daemon mode.
+    * ✅ NEW METHOD: Enables per-connection trace isolation
+    * 
+    * @param connectionId unique identifier for the connection
+    * @return this Tracer instance for method chaining
+    */
+    public Tracer setConnectionId(String connectionId) {
+        this.m_connectionId = connectionId;
         return this;
     }
 
+    /**
+    * Get the current connection ID.
+    * ✅ NEW METHOD
+    * 
+    * @return the connection ID, or null if not set
+    */
+    public String getConnectionId() {
+        return m_connectionId;
+    }
+
+    public Tracer setTraceLevel(TraceLevel _l) {
+    // ✅ FIXED: Allow tracing in daemon mode (removed single mode check)
+    m_traceLevel = _l;
+    return this;
+    }
+
     public Tracer setJtOpenTraceLevel(TraceLevel _l) {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
+        // ✅ FIXED: Allow JtOpen tracing in daemon mode (removed single mode check)
         switch (_l) {
             case OFF:
                 Trace.setTraceOn(false);
@@ -280,9 +311,7 @@ public class Tracer {
     }
 
     public Tracer setDest(Dest _dest) {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
+  // ✅ FIXED: Allow destination changes in daemon mode (removed single mode check)
         if (m_dest == _dest) {
             return this;
         }
@@ -299,9 +328,7 @@ public class Tracer {
     }
 
     public Tracer setJtOpenDest(Dest _dest) throws FileNotFoundException, UnsupportedEncodingException, IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
+       // ✅ FIXED: Allow destination changes in daemon mode (removed single mode check)
         if (m_jtopenDest == _dest) {
             return this;
         }
@@ -315,9 +342,7 @@ public class Tracer {
     }
 
     public String getDestString() throws IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return "unknown";
-        }
+    // ✅ FIXED: Return actual destination instead of "unknown" in daemon mode
         switch (m_dest) {
             case FILE:
                 return getFile().getAbsolutePath();
@@ -329,9 +354,7 @@ public class Tracer {
     }
 
     public String getJtOpenDestString() throws IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return "unknown";
-        }
+    // ✅ FIXED: Return actual destination instead of "unknown" in daemon mode
         switch (m_dest) {
             case FILE:
                 return getJtOpenFile().getAbsolutePath();
@@ -351,10 +374,13 @@ public class Tracer {
     }
 
     public StringBuffer getRawData() throws IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return new StringBuffer("<prohibited>");
-        }
-        StringBuffer buf = new StringBuffer();
+        // ✅ FIXED: Support daemon mode per-connection trace retrieval
+        if (!MapepireServer.isSingleMode() && m_connectionId != null) {
+            return ConnectionTraceContext.getTraceDataAsHtml(m_connectionId);
+    }
+
+    // Single mode behavior (unchanged)
+    StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_dest) {
             buf.append("<html><body bgcolor=\"white\">\n\n");
             synchronized (m_inMem) {
@@ -410,8 +436,18 @@ public class Tracer {
         if (!_t.isLoggedAt(m_traceLevel)) {
             return this;
         }
+
+        Entry entry = new Entry(_t, _data);
+
+        // ✅ NEW: Daemon mode - use per-connection context
+        if (!MapepireServer.isSingleMode() && m_connectionId != null) {
+            ConnectionTraceContext.getOrCreate(m_connectionId).add(entry);
+            return this;
+        }
+
+        // Existing single mode behavior
         if (Dest.IN_MEM == m_dest) {
-            m_inMem.add(new Entry(_t, _data));
+            m_inMem.add(entry);
             return this;
         }
         if (null == m_fileWriter) {
