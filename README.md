@@ -49,7 +49,7 @@ The following request types are currently supported
 | `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement <br/> `terse`: return data in terse format | 
 | `execute`         | Execute prepared SQL statement  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` <br /> `parameters`: array parameter values corresponding to any parameter markers used. If `parameters` is an array of arrays, then the sql operations are executed as a batch. |   `data`: the data |
 | `prepare_sql_execute`         | Prepare and execute SQL statement  | `parameters`: array parameter values <br/> `terse`: return data in terse format |  `data`: the data |
-| `sqlmore`     | fetch more rows from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request <br/> `rows`: the maximum number of rows to return | `data`: the data <br/> `is_done`: whether all rows were fetched | 
+| `sqlmore`     | fetch more rows from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request <br/> `rows`: the maximum number of rows to return <br/> `allRows`: whether to return all rows | `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `sqlclose`     | close cursor from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request |  | 
 | `getdbjob`     | Get server job for database tasks  |  | `job`: the server job | 
 | `getversion`   | Get version info  |  | `build_date`: build date <br/> `version`: version | 

@@ -15,7 +15,8 @@ public class RunSqlMore extends ClientRequest {
 
     @Override
     protected void go() throws Exception {
-        final int numRows = super.getRequestFieldInt("rows", 1000);
+        final boolean allRows = super.getRequestFieldBoolean("allRows", false);
+        final int numRows = allRows ? Integer.MAX_VALUE : super.getRequestFieldInt("rows", 1000);
         addReplyData("data", m_prev.getNextDataBlock(numRows));
         addReplyData("is_done", m_prev.isDone());
     }
