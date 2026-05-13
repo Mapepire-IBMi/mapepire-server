@@ -211,7 +211,7 @@ public class ConnectionTraceContext {
             if (buffer != null && buffer.isExpired(maxAge)) {
                 traceContexts.remove(connectionId);
                 cleanedCount++;
-                Tracer.info("Cleaned up expired trace buffer for connection: " + connectionId);
+                Tracer.globalInfo("Cleaned up expired trace buffer for connection: " + connectionId);
             }
         }
         return cleanedCount;

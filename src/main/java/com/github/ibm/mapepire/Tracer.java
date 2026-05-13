@@ -136,28 +136,125 @@ public class Tracer {
         return new String(baos.toByteArray());
     }
 
-    public static Tracer get() {
+    /**
+     * Get the global Tracer instance for application-wide logging.
+     * For per-connection tracing in daemon mode, use getNew(String connectionId) instead.
+     *
+     * @return the global Tracer instance
+     */
+    public static Tracer getGlobalTracer() {
         return s_instance;
     }
 
+    /**
+     * @deprecated Use getGlobalTracer() instead for clarity
+     */
+    @Deprecated
+    public static Tracer get() {
+        return getGlobalTracer();
+    }
+
+    /**
+     * Create a new Tracer instance for per-connection tracing in daemon mode.
+     * This ensures trace isolation between different client connections.
+     *
+     * @param connectionId unique identifier for the connection
+     * @return a new Tracer instance configured for this connection
+     */
+    public static Tracer getNew(String connectionId) {
+        Tracer tracer = new Tracer();
+        tracer.m_connectionId = connectionId;
+        return tracer;
+    }
+
+    /**
+     * Log an info message to the global tracer.
+     * For per-connection logging, use the instance method on a connection-specific Tracer.
+     *
+     * @param _data the data to log
+     */
+    public static void globalInfo(Object _data) {
+        getGlobalTracer().Trace(EventType.INFO, _data);
+    }
+
+    /**
+     * @deprecated Use globalInfo() instead for clarity
+     */
+    @Deprecated
     public static void info(Object _data) {
-        get().Trace(EventType.INFO, _data);
+        globalInfo(_data);
     }
 
+    /**
+     * Log a warning message to the global tracer.
+     * For per-connection logging, use the instance method on a connection-specific Tracer.
+     *
+     * @param _data the data to log
+     */
+    public static void globalWarn(Object _data) {
+        getGlobalTracer().Trace(EventType.WARN, _data);
+    }
+
+    /**
+     * @deprecated Use globalWarn() instead for clarity
+     */
+    @Deprecated
     public static void warn(Object _data) {
-        get().Trace(EventType.WARN, _data);
+        globalWarn(_data);
     }
 
+    /**
+     * Log an error message to the global tracer.
+     * For per-connection logging, use the instance method on a connection-specific Tracer.
+     *
+     * @param _data the data to log
+     */
+    public static void globalErr(Object _data) {
+        getGlobalTracer().Trace(EventType.ERR, _data);
+    }
+
+    /**
+     * @deprecated Use globalErr() instead for clarity
+     */
+    @Deprecated
     public static void err(Object _data) {
-        get().Trace(EventType.ERR, _data);
+        globalErr(_data);
     }
 
+    /**
+     * Log incoming datastream to the global tracer.
+     * For per-connection logging, use the instance method on a connection-specific Tracer.
+     *
+     * @param _data the data to log
+     */
+    public static void globalDatastreamIn(Object _data) {
+        getGlobalTracer().Trace(EventType.DATASTREAM_IN, _data);
+    }
+
+    /**
+     * @deprecated Use globalDatastreamIn() instead for clarity
+     */
+    @Deprecated
     public static void datastreamIn(Object _data) {
-        get().Trace(EventType.DATASTREAM_IN, _data);
+        globalDatastreamIn(_data);
     }
 
+    /**
+     * Log outgoing datastream to the global tracer.
+     * For per-connection logging, use the instance method on a connection-specific Tracer.
+     *
+     * @param _data the data to log
+     */
+    public static void globalDatastreamOut(Object _data) {
+        getGlobalTracer().Trace(EventType.DATASTREAM_OUT, _data);
+    }
+
+    /**
+     * @deprecated Use globalDatastreamOut() instead for clarity
+     */
+    @Deprecated
     public static void datastreamOut(Object _data) {
-        get().Trace(EventType.DATASTREAM_OUT, _data);
+        globalDatastreamOut(_data);
     }
 
     private static DateFormat getDateFormatter() {
@@ -256,25 +353,62 @@ public class Tracer {
     }
 
     /**
-    * Set the connection ID for per-connection tracing in daemon mode.
-    * ✅ NEW METHOD: Enables per-connection trace isolation
-    * 
-    * @param connectionId unique identifier for the connection
-    * @return this Tracer instance for method chaining
-    */
-    public Tracer setConnectionId(String connectionId) {
-        this.m_connectionId = connectionId;
-        return this;
+     * Get the current connection ID for this Tracer instance.
+     *
+     * @return the connection ID, or null if this is the global tracer
+     */
+    public String getConnectionId() {
+        return m_connectionId;
     }
 
     /**
-    * Get the current connection ID.
-    * ✅ NEW METHOD
-    * 
-    * @return the connection ID, or null if not set
-    */
-    public String getConnectionId() {
-        return m_connectionId;
+     * Instance method to log info messages.
+     * Use this on connection-specific Tracer instances.
+     *
+     * @param _data the data to log
+     */
+    public void info(Object _data) {
+        Trace(EventType.INFO, _data);
+    }
+
+    /**
+     * Instance method to log warning messages.
+     * Use this on connection-specific Tracer instances.
+     *
+     * @param _data the data to log
+     */
+    public void warn(Object _data) {
+        Trace(EventType.WARN, _data);
+    }
+
+    /**
+     * Instance method to log error messages.
+     * Use this on connection-specific Tracer instances.
+     *
+     * @param _data the data to log
+     */
+    public void err(Object _data) {
+        Trace(EventType.ERR, _data);
+    }
+
+    /**
+     * Instance method to log incoming datastream.
+     * Use this on connection-specific Tracer instances.
+     *
+     * @param _data the data to log
+     */
+    public void datastreamIn(Object _data) {
+        Trace(EventType.DATASTREAM_IN, _data);
+    }
+
+    /**
+     * Instance method to log outgoing datastream.
+     * Use this on connection-specific Tracer instances.
+     *
+     * @param _data the data to log
+     */
+    public void datastreamOut(Object _data) {
+        Trace(EventType.DATASTREAM_OUT, _data);
     }
 
     public Tracer setTraceLevel(TraceLevel _l) {
