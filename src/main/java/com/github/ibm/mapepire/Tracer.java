@@ -136,28 +136,135 @@ public class Tracer {
         return new String(baos.toByteArray());
     }
 
-    public static Tracer get() {
+    /**
+     * Get the global Tracer instance for application-wide logging.
+     * For per-connection tracing in daemon mode, use getNew(String connectionId) instead.
+     *
+     * @return the global Tracer instance
+     */
+    public static Tracer getGlobalTracer() {
         return s_instance;
     }
 
+    /**
+     * @deprecated Use getGlobalTracer() instead for clarity
+     */
+    @Deprecated
+    public static Tracer get() {
+        return getGlobalTracer();
+    }
+
+    /**
+     * Create a new Tracer instance for per-connection tracing in daemon mode.
+     * This ensures trace isolation between different client connections.
+     *
+     * @param connectionId unique identifier for the connection
+     * @return a new Tracer instance configured for this connection
+     */
+    public static Tracer getNew(String connectionId) {
+        Tracer tracer = new Tracer();
+        tracer.m_connectionId = connectionId;
+        return tracer;
+    }
+
+    /**
+     * Log an info message to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call info() on it.
+     *
+     * @param _data the data to log
+     */
     public static void info(Object _data) {
-        get().Trace(EventType.INFO, _data);
+        getGlobalTracer().logInfo(_data);
     }
 
+    /**
+     * Log a warning message to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call warn() on it.
+     *
+     * @param _data the data to log
+     */
     public static void warn(Object _data) {
-        get().Trace(EventType.WARN, _data);
+        getGlobalTracer().logWarn(_data);
     }
 
+    /**
+     * Log an error message to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call err() on it.
+     *
+     * @param _data the data to log
+     */
     public static void err(Object _data) {
-        get().Trace(EventType.ERR, _data);
+        getGlobalTracer().logErr(_data);
     }
 
+    /**
+     * Log incoming datastream to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call datastreamIn() on it.
+     *
+     * @param _data the data to log
+     */
     public static void datastreamIn(Object _data) {
-        get().Trace(EventType.DATASTREAM_IN, _data);
+        getGlobalTracer().logDatastreamIn(_data);
     }
 
+    /**
+     * Log outgoing datastream to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call datastreamOut() on it.
+     *
+     * @param _data the data to log
+     */
     public static void datastreamOut(Object _data) {
-        get().Trace(EventType.DATASTREAM_OUT, _data);
+        getGlobalTracer().logDatastreamOut(_data);
+    }
+
+    /**
+     * Instance method: Log an info message to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data the data to log
+     */
+    public void logInfo(Object _data) {
+        Trace(EventType.INFO, _data);
+    }
+
+    /**
+     * Instance method: Log a warning message to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data the data to log
+     */
+    public void logWarn(Object _data) {
+        Trace(EventType.WARN, _data);
+    }
+
+    /**
+     * Instance method: Log an error message to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data the data to log
+     */
+    public void logErr(Object _data) {
+        Trace(EventType.ERR, _data);
+    }
+
+    /**
+     * Instance method: Log incoming datastream to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data the data to log
+     */
+    public void logDatastreamIn(Object _data) {
+        Trace(EventType.DATASTREAM_IN, _data);
+    }
+
+    /**
+     * Instance method: Log outgoing datastream to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data the data to log
+     */
+    public void logDatastreamOut(Object _data) {
+        Trace(EventType.DATASTREAM_OUT, _data);
     }
 
     private static DateFormat getDateFormatter() {
@@ -256,23 +363,10 @@ public class Tracer {
     }
 
     /**
-    * Set the connection ID for per-connection tracing in daemon mode.
-    * ✅ NEW METHOD: Enables per-connection trace isolation
-    * 
-    * @param connectionId unique identifier for the connection
-    * @return this Tracer instance for method chaining
-    */
-    public Tracer setConnectionId(String connectionId) {
-        this.m_connectionId = connectionId;
-        return this;
-    }
-
-    /**
-    * Get the current connection ID.
-    * ✅ NEW METHOD
-    * 
-    * @return the connection ID, or null if not set
-    */
+     * Get the current connection ID for this Tracer instance.
+     *
+     * @return the connection ID, or null if this is the global tracer
+     */
     public String getConnectionId() {
         return m_connectionId;
     }

@@ -100,6 +100,7 @@ public class SystemConnection {
     private final ClientSpecialRegisters m_clientRegs;
     private String m_applicationName;
     private final String clientAddress;
+    private final Tracer m_tracer;
 
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
@@ -109,9 +110,10 @@ public class SystemConnection {
         this.m_clientRegs = clientRegs;
         this.clientAddress = clientRegs.getClientAddress();
         this.userProfile = System.getProperty("user.name");
+        this.m_tracer = Tracer.getGlobalTracer(); // Single mode uses global tracer
     }
 
-    public SystemConnection(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
+    public SystemConnection(String clientHost, String clientAddress, String host, String user, String pass, Tracer tracer) throws IOException {
         super();
         if (MapepireServer.isSingleMode()) {
             throw new IOException("Improper usage");
@@ -130,6 +132,7 @@ public class SystemConnection {
         this.password = pass;
         this.clientAddress = clientAddress;
         this.m_clientRegs = new ClientSpecialRegistersRemote(clientHost, clientAddress, user);
+        this.m_tracer = tracer; // Daemon mode uses per-connection tracer
     }
 
     public static boolean isRunningOnIBMi() {
@@ -154,7 +157,7 @@ public class SystemConnection {
             }
             return c.getClass().getMethod("getServerJobName").invoke(c).toString();
         } catch (Exception e) {
-            Tracer.err(e);
+            m_tracer.logErr(e);
             return "??????/??????/??????";
         }
     }
@@ -171,7 +174,7 @@ public class SystemConnection {
             try {
                 m_conn.close();
             } catch (SQLException e) {
-                Tracer.err(e);
+                m_tracer.logErr(e);
             }
             m_conn = null;
         }
