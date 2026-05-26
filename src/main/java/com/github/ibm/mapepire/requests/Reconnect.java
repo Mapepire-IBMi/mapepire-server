@@ -3,8 +3,7 @@ package com.github.ibm.mapepire.requests;
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
-import com.github.ibm.mapepire.SystemConnection.ConnectionOptions;
-import com.github.ibm.mapepire.SystemConnection.ConnectionOptions.ConnectionMethod;
+import com.github.ibm.mapepire.SystemConnection.ConnectionMethod;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -19,24 +18,27 @@ public class Reconnect extends ClientRequest {
         final JsonElement props = getRequestField("props");
         final JsonElement connectionType = getRequestField("technique");
         final JsonElement applicationName = getRequestField("application");
-        final ConnectionOptions opts = new ConnectionOptions();
-
+        
+        ConnectionMethod technique = ConnectionMethod.CLI;
         if (null != connectionType) {
             try {
-                ConnectionMethod technique = ConnectionMethod.valueOf(connectionType.getAsString().toUpperCase());
-                opts.setConnectionMethod(technique);
+                technique = ConnectionMethod.valueOf(connectionType.getAsString().toUpperCase());
             } catch (Exception e) {
                 throw new RuntimeException("Invalid connection technique specified");
             }
         }
+        
+        String jdbcProps = null;
         if (null != props) {
-            opts.setJdbcProperties(props.getAsString());
+            jdbcProps = props.getAsString();
         }
+        
         String appName = null;
         if (null != applicationName) {
             appName = applicationName.getAsString();
         }
-        getSystemConnection().reconnect(opts, appName);
+        
+        getSystemConnection().reconnect(technique, jdbcProps, appName);
         addReplyData("job", getSystemConnection().getJdbcJobName());
     }
 
