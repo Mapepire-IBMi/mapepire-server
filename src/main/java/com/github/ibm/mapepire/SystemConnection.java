@@ -147,13 +147,8 @@ public class SystemConnection {
             // Create AS400JDBCConnection from AS400 object
             AS400JDBCDriver driver = new AS400JDBCDriver();
             
-            // Determine the database name based on connection method
-            String databaseName = "*LOCAL";
-            if (!isRunningOnIBMi() || _connectionMethod == ConnectionMethod.TCP) {
-                databaseName = systemName;
-            }
-            
-            m_conn = driver.connect(as400System, jdbcProps, databaseName);
+            // Connect with null database name (database name should only be used for IASP connections)
+            m_conn = driver.connect(as400System, jdbcProps, null);
             m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
         } catch (Exception e) {
