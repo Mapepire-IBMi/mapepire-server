@@ -14,9 +14,9 @@ public class DbWebsocketClient extends WebSocketAdapter {
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
 
-  DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
+  DbWebsocketClient(String clientHost, String clientAddress, String host, String user, char[] pass) throws IOException {
     super();
-    SystemConnection conn = new SystemConnection(clientHost, clientAddress,host, user, pass);
+    SystemConnection conn = new SystemConnection(clientHost, clientAddress, host, user, pass);
     io = getDataStream(this, conn);
   }
 

@@ -66,11 +66,17 @@ public class DbSocketCreator implements WebSocketCreator
         // base64 decode
         String asBase64 = auth.substring(6).trim();
         byte[] decoded = Base64.getDecoder().decode(asBase64);
-        String userPass = new String(decoded, StandardCharsets.UTF_8);
+        
+        // Parse username and password from decoded bytes without creating String for password
+        int colonIndex = -1;
+        for (int i = 0; i < decoded.length; i++) {
+            if (decoded[i] == ':') {
+                colonIndex = i;
+                break;
+            }
+        }
 
-        String[] parts = userPass.split(":");
-
-        if (parts.length != 2) {
+        if (colonIndex == -1 || colonIndex == 0 || colonIndex == decoded.length - 1) {
             try {
                 jettyServerUpgradeResponse.sendForbidden("Invalid Authorization header");
             } catch (IOException e) {
@@ -81,7 +87,17 @@ public class DbSocketCreator implements WebSocketCreator
         }
         
         try {
-            return new DbWebsocketClient(jettyServerUpgradeRequest.getRemoteHostName(), jettyServerUpgradeRequest.getRemoteAddress(), DbSocketCreator.getHost(), parts[0], parts[1]);
+            // Extract username as String
+            String username = new String(decoded, 0, colonIndex, StandardCharsets.UTF_8);
+            
+            // Extract password as char[] directly without creating intermediate String
+            int passwordLength = decoded.length - colonIndex - 1;
+            char[] password = new char[passwordLength];
+            for (int i = 0; i < passwordLength; i++) {
+                password[i] = (char) decoded[colonIndex + 1 + i];
+            }
+            
+            return new DbWebsocketClient(jettyServerUpgradeRequest.getRemoteHostName(), jettyServerUpgradeRequest.getRemoteAddress(), DbSocketCreator.getHost(), username, password);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
