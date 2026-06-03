@@ -1,6 +1,7 @@
 package com.github.ibm.mapepire.requests;
 
 import java.sql.*;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -61,6 +62,16 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     jsonValue = value.toString().trim();
                 } else if (value instanceof Number || value instanceof Boolean) {
                     jsonValue = value;
+                } else if (value instanceof Blob) {
+                    Blob blob = (Blob) value;
+                    jsonValue = Base64.getEncoder().encodeToString(blob.getBytes(1, (int) blob.length()));
+                    blob.free();
+                } else if (value instanceof Clob) {
+                    Clob clob = (Clob) value;
+                    jsonValue = clob.getSubString(1, (int) clob.length());
+                    clob.free();
+                } else if (value instanceof byte[]) {
+                    jsonValue = Base64.getEncoder().encodeToString((byte[]) value);
                 } else {
                     jsonValue = stmt.getString(i);
                 }
@@ -132,6 +143,16 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     }
                 } else if (cellData instanceof Number || cellData instanceof Boolean) {
                     cellDataForResponse = cellData;
+                } else if (cellData instanceof Blob) {
+                    Blob blob = (Blob) cellData;
+                    cellDataForResponse = Base64.getEncoder().encodeToString(blob.getBytes(1, (int) blob.length()));
+                    blob.free();
+                } else if (cellData instanceof Clob) {
+                    Clob clob = (Clob) cellData;
+                    cellDataForResponse = clob.getSubString(1, (int) clob.length());
+                    clob.free();
+                } else if (cellData instanceof byte[]) {
+                    cellDataForResponse = Base64.getEncoder().encodeToString((byte[]) cellData);
                 } else {
                     cellDataForResponse = _rs.getString(col);
                 }
