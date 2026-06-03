@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.LinkedList;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
@@ -78,11 +79,26 @@ public class PreparedExecute extends BlockRetrievableRequest {
                 } else if (stmt instanceof CallableStatement
                         && ParameterMetaData.parameterModeInOut == stmt.getParameterMetaData().getParameterMode(i)) {
                     ((CallableStatement) stmt).registerOutParameter(i, stmt.getParameterMetaData().getParameterType(i));
-                    stmt.setString(i, element.getAsString());
+                    setParameterValue(stmt, i, element.getAsString());
                 } else {
-                    stmt.setString(i, element.getAsString());
+                    setParameterValue(stmt, i, element.getAsString());
                 }
             }
+        }
+    }
+
+    private static void setParameterValue(PreparedStatement stmt, int i, String value) throws SQLException {
+        int paramType = stmt.getParameterMetaData().getParameterType(i);
+        switch (paramType) {
+            case Types.BLOB:
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+                stmt.setBytes(i, Base64.getDecoder().decode(value));
+                break;
+            default:
+                stmt.setString(i, value);
+                break;
         }
     }
 
