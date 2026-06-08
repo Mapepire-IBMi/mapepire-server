@@ -72,7 +72,7 @@ public class BlobServlet extends HttpServlet {
             entry.cleanup();
             Tracer.err(e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Blob data unavailable: " + e.getMessage());
+                    "Blob data unavailable");
             return;
         }
 
