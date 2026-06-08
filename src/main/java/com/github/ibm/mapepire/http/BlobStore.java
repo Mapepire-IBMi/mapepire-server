@@ -61,12 +61,8 @@ public class BlobStore {
     }
 
     // -------------------------------------------------------------------------
-    // TTL configuration
+    // TTL configuration (read-only at runtime — set via BLOB_TOKEN_TTL env var)
     // -------------------------------------------------------------------------
-
-    public static void setTtlSeconds(long ttl) {
-        s_ttlSeconds = ttl;
-    }
 
     public static long getTtlSeconds() {
         return s_ttlSeconds;
