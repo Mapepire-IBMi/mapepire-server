@@ -123,6 +123,7 @@ public class MapepireServer {
                 context.setContextPath("/");
                 context.addServlet(new ServletHolder(VersionServlet.class), Routes.VERSION);
                 context.addServlet(new ServletHolder(InstallLocationServlet.class), Routes.SOURCE);
+                context.addServlet(new ServletHolder(BlobServlet.class), Routes.BLOB);
 
                 Constraint constraint = new Constraint();
                 constraint.setName("Disable TRACE");
@@ -176,8 +177,9 @@ public class MapepireServer {
                 NativeWebSocketServletContainerInitializer.configure(context,
                         (servletContext, nativeWebSocketConfiguration) -> {
                             nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
-                            // Configure max message size
-                            int maxWsMessageSize = 50 * 1024 * 1024; // 50MB
+                            // Max WS message size — default Integer.MAX_VALUE (unlimited).
+                            // Can be capped via MAX_WS_MESSAGE_SIZE env var if desired.
+                            int maxWsMessageSize = Integer.MAX_VALUE;
                             String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
                             if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
                                 maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
