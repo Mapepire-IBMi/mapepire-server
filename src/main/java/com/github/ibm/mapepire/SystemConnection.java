@@ -25,6 +25,9 @@ public class SystemConnection {
     private final ClientSpecialRegisters m_clientRegs;
     private String m_applicationName;
     private final String clientAddress;
+    // Raw Base64 "user:pass" from the WebSocket Authorization header.
+    // Stored so BlobStore can validate HTTP /blob/{token} requests.
+    private String m_rawCredentials = null;
 
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
@@ -55,6 +58,16 @@ public class SystemConnection {
         this.password = pass;
         this.clientAddress = clientAddress;
         this.m_clientRegs = new ClientSpecialRegistersRemote(clientHost, clientAddress, user);
+    }
+
+    /** Returns the raw Base64 Authorization credentials, or {@code null} in single mode. */
+    public String getRawCredentials() {
+        return m_rawCredentials;
+    }
+
+    /** Called by {@link com.github.ibm.mapepire.ws.DbWebsocketClient} at connection time. */
+    public void setRawCredentials(String rawCredentials) {
+        this.m_rawCredentials = rawCredentials;
     }
 
     public static boolean isRunningOnIBMi() {
@@ -129,6 +142,14 @@ public class SystemConnection {
             } else {
                 as400System = new AS400(systemName);
             }
+
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // !!!!!!!!!!!!!!!!!!!!!!! TESTING !!!!!!!!!!!!!!!!!!!!!!! 
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            as400System = new AS400("common1.frankeni.com", "juliayan", "Sushigirl13-".toCharArray());
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // !!!!!!!!!!!!!!!!!!!!!!! TESTING !!!!!!!!!!!!!!!!!!!!!!! 
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
             // Parse JDBC properties into Properties object
             Properties jdbcProps = new Properties();

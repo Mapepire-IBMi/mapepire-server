@@ -26,6 +26,7 @@ import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;
 import com.github.ibm.mapepire.certstuff.ServerCertInfo;
+import com.github.ibm.mapepire.http.BlobServlet;
 import com.github.ibm.mapepire.http.InstallLocationServlet;
 import com.github.ibm.mapepire.http.Routes;
 import com.github.ibm.mapepire.http.VersionServlet;

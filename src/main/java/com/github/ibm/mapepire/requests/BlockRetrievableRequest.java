@@ -1,5 +1,7 @@
 package com.github.ibm.mapepire.requests;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -9,7 +11,10 @@ import java.util.Map;
 
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
+import com.github.ibm.mapepire.MapepireServer;
 import com.github.ibm.mapepire.SystemConnection;
+import com.github.ibm.mapepire.Tracer;
+import com.github.ibm.mapepire.http.BlobStore;
 import com.google.gson.JsonObject;
 import com.ibm.as400.access.AS400JDBCParameterMetaData;
 
@@ -28,7 +33,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         if (m_isDone) {
             return new LinkedList<Object>();
         }
-        DataBlockFetchResult result = getNextDataBlock(m_rs, _numRows, m_isTerseData);
+        DataBlockFetchResult result = getNextDataBlock(m_rs, _numRows, m_isTerseData, getSystemConnection());
         m_isDone = result.isDone();
         return result.m_data;
     }
@@ -41,6 +46,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         CallableStatement stmt = (CallableStatement) _stmt;
         ParameterMetaData parmMeta = stmt.getParameterMetaData();
         int numParams = parmMeta.getParameterCount();
+        SystemConnection conn = getSystemConnection();
         for (int i = 1; i <= numParams; ++i) {
             Map<String, Object> parmInfo = new LinkedHashMap<String, Object>();
             parmInfo.put("index", i);
@@ -64,14 +70,14 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     jsonValue = value;
                 } else if (value instanceof Blob) {
                     Blob blob = (Blob) value;
-                    jsonValue = Base64.getEncoder().encodeToString(blob.getBytes(1, (int) blob.length()));
+                    jsonValue = serializeBlob(blob.getBinaryStream(), blob.length(), conn);
                     blob.free();
                 } else if (value instanceof Clob) {
                     Clob clob = (Clob) value;
                     jsonValue = clob.getSubString(1, (int) clob.length());
                     clob.free();
                 } else if (value instanceof byte[]) {
-                    jsonValue = Base64.getEncoder().encodeToString((byte[]) value);
+                    jsonValue = serializeBytes((byte[]) value, conn);
                 } else {
                     jsonValue = stmt.getString(i);
                 }
@@ -106,7 +112,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     }
 
     protected static DataBlockFetchResult getNextDataBlock(final ResultSet _rs, final int _numRows,
-                                                           final boolean _isTerseDataFormat) throws SQLException {
+                                                           final boolean _isTerseDataFormat,
+                                                           final SystemConnection _conn) throws SQLException {
         final DataBlockFetchResult ret = new DataBlockFetchResult();
 
         if (null == _rs) {
@@ -145,14 +152,14 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     cellDataForResponse = cellData;
                 } else if (cellData instanceof Blob) {
                     Blob blob = (Blob) cellData;
-                    cellDataForResponse = Base64.getEncoder().encodeToString(blob.getBytes(1, (int) blob.length()));
+                    cellDataForResponse = serializeBlob(blob.getBinaryStream(), blob.length(), _conn);
                     blob.free();
                 } else if (cellData instanceof Clob) {
                     Clob clob = (Clob) cellData;
                     cellDataForResponse = clob.getSubString(1, (int) clob.length());
                     clob.free();
                 } else if (cellData instanceof byte[]) {
-                    cellDataForResponse = Base64.getEncoder().encodeToString((byte[]) cellData);
+                    cellDataForResponse = serializeBytes((byte[]) cellData, _conn);
                 } else {
                     cellDataForResponse = _rs.getString(col);
                 }
@@ -165,6 +172,64 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             ret.add(_isTerseDataFormat ? terseRowData : mapRowData);
         }
         return ret;
+    }
+
+    // -------------------------------------------------------------------------
+    // BLOB serialization helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Serialize a BLOB value for the JSON response.
+     * In daemon mode: stores in {@link BlobStore} and returns a {@code {blob_url, size}} map.
+     * In single mode (no HTTP server): falls back to inline Base64.
+     */
+    private static Object serializeBlob(InputStream stream, long length, SystemConnection conn) {
+        if (MapepireServer.isSingleMode()) {
+            // Single mode has no HTTP server — fall back to inline Base64
+            try {
+                byte[] bytes = readAllBytes(stream);
+                return Base64.getEncoder().encodeToString(bytes);
+            } catch (Exception e) {
+                Tracer.err(e);
+                return null;
+            }
+        }
+        try {
+            String token = BlobStore.getInstance().store(stream, length, conn.getRawCredentials());
+            Map<String, Object> ref = new LinkedHashMap<>();
+            ref.put("blob_url", "/blob/" + token);
+            ref.put("size", length);
+            return ref;
+        } catch (IOException e) {
+            Tracer.err(e);
+            return null;
+        }
+    }
+
+    private static Object serializeBytes(byte[] bytes, SystemConnection conn) {
+        if (MapepireServer.isSingleMode()) {
+            return Base64.getEncoder().encodeToString(bytes);
+        }
+        try {
+            String token = BlobStore.getInstance().store(bytes, conn.getRawCredentials());
+            Map<String, Object> ref = new LinkedHashMap<>();
+            ref.put("blob_url", "/blob/" + token);
+            ref.put("size", (long) bytes.length);
+            return ref;
+        } catch (IOException e) {
+            Tracer.err(e);
+            return null;
+        }
+    }
+
+    private static byte[] readAllBytes(InputStream in) throws IOException {
+        java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+        byte[] chunk = new byte[65536];
+        int read;
+        while ((read = in.read(chunk)) != -1) {
+            buf.write(chunk, 0, read);
+        }
+        return buf.toByteArray();
     }
 
     public boolean isDone() {
