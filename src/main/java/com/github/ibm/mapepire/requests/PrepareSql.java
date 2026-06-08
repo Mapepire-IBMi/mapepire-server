@@ -117,4 +117,19 @@ public class PrepareSql extends BlockRetrievableRequest {
         return true;
     }
 
+    /**
+     * Delegate to the execute task so that any deferred ResultSet close
+     * (needed when a large-blob async spool is in progress) is triggered
+     * after the WebSocket reply is sent. Without this, m_deferredFetchResult
+     * is set on the PreparedExecute instance but processAfterReplySent() would
+     * only run on this PrepareSql instance, silently skipping the deferred close.
+     */
+    @Override
+    protected void processAfterReplySent() {
+        super.processAfterReplySent();
+        if (m_executeTask != null) {
+            m_executeTask.processAfterReplySent();
+        }
+    }
+
 }
