@@ -97,7 +97,7 @@ public class DbSocketCreator implements WebSocketCreator
                 password[i] = (char) decoded[colonIndex + 1 + i];
             }
             
-            return new DbWebsocketClient(jettyServerUpgradeRequest.getRemoteHostName(), jettyServerUpgradeRequest.getRemoteAddress(), DbSocketCreator.getHost(), username, password);
+            return new DbWebsocketClient(jettyServerUpgradeRequest.getRemoteHostName(), jettyServerUpgradeRequest.getRemoteAddress(), DbSocketCreator.getHost(), username, password, asBase64);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

@@ -114,7 +114,7 @@ public class DoVe extends BlockRetrievableRequest {
             }
             ResultSet veData = callStmt.getResultSet();
             addReplyData("vemetadata", getResultMetaDataForResponse(veData.getMetaData(), getSystemConnection()));
-            addReplyData("vedata", super.getNextDataBlock(veData, Integer.MAX_VALUE, m_isTerseData).getData());
+            addReplyData("vedata", super.getNextDataBlock(veData, Integer.MAX_VALUE, m_isTerseData, getSystemConnection()).getData());
             if (null != this.m_rs) {
                 addReplyData("metadata", getResultMetaDataForResponse());
                 addReplyData("data", super.getNextDataBlock(numRows));

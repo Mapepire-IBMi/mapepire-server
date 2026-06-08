@@ -10,6 +10,7 @@ import java.util.Base64;
 import java.util.LinkedList;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
+import com.github.ibm.mapepire.http.BlobStore;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -93,9 +94,16 @@ public class PreparedExecute extends BlockRetrievableRequest {
             case Types.BLOB:
             case Types.BINARY:
             case Types.VARBINARY:
-            case Types.LONGVARBINARY:
-                stmt.setBytes(i, Base64.getDecoder().decode(value));
+            case Types.LONGVARBINARY: {
+                byte[] bytes = Base64.getDecoder().decode(value);
+                if (bytes.length > BlobStore.MEMORY_THRESHOLD_BYTES) {
+                    // Stream large blobs directly to avoid double-buffering in heap
+                    stmt.setBinaryStream(i, new java.io.ByteArrayInputStream(bytes), bytes.length);
+                } else {
+                    stmt.setBytes(i, bytes);
+                }
                 break;
+            }
             default:
                 stmt.setString(i, value);
                 break;
