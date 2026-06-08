@@ -17,6 +17,11 @@ import java.io.OutputStream;
  * <p>The caller must supply the same Basic-Auth credentials that were used
  * when the originating WebSocket connection ran the query. The token itself
  * is single-use and expires after the configured TTL.</p>
+ *
+ * <p>For large BLOBs the backing data may still be spooling to disk when this
+ * request arrives. {@link BlobStore.BlobEntry#openStream()} will block until
+ * the spool is complete before any response bytes are written, ensuring the
+ * HTTP status code is always set correctly before the body begins.</p>
  */
 public class BlobServlet extends HttpServlet {
 
@@ -56,14 +61,29 @@ public class BlobServlet extends HttpServlet {
             return;
         }
 
+        // ---- Wait for spool (if still in progress) and open stream ----------
+        // openStream() blocks until the background spool thread finishes or the
+        // TTL elapses. We must open the stream BEFORE committing any response
+        // headers so that a spool failure can still be reported as a 500.
+        InputStream in = null;
+        try {
+            in = entry.openStream();
+        } catch (IOException e) {
+            entry.cleanup();
+            Tracer.err(e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Blob data unavailable: " + e.getMessage());
+            return;
+        }
+
         // ---- Stream bytes ---------------------------------------------------
+        // Headers are committed only after openStream() succeeds, ensuring the
+        // status code is always meaningful.
         resp.setContentType("application/octet-stream");
         resp.setHeader("Content-Length", String.valueOf(entry.size));
         resp.setHeader("Cache-Control", "no-store");
 
-        InputStream in = null;
         try {
-            in = entry.openStream();
             OutputStream out = resp.getOutputStream();
             byte[] buf = new byte[65536];
             int read;
@@ -73,9 +93,7 @@ public class BlobServlet extends HttpServlet {
             out.flush();
             Tracer.info("BlobServlet: streamed token " + token + " (" + entry.size + " bytes)");
         } finally {
-            if (in != null) {
-                try { in.close(); } catch (IOException ignored) {}
-            }
+            try { in.close(); } catch (IOException ignored) {}
             entry.cleanup();
         }
     }

@@ -70,8 +70,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     jsonValue = value;
                 } else if (value instanceof Blob) {
                     Blob blob = (Blob) value;
-                    jsonValue = serializeBlob(blob.getBinaryStream(), blob.length(), conn);
-                    blob.free();
+                    // serializeBlob owns blob.free() — do NOT call it here
+                    jsonValue = serializeBlob(blob, blob.length(), conn);
                 } else if (value instanceof Clob) {
                     Clob clob = (Clob) value;
                     jsonValue = clob.getSubString(1, (int) clob.length());
@@ -152,8 +152,10 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                     cellDataForResponse = cellData;
                 } else if (cellData instanceof Blob) {
                     Blob blob = (Blob) cellData;
-                    cellDataForResponse = serializeBlob(blob.getBinaryStream(), blob.length(), _conn);
-                    blob.free();
+                    // NOTE: do NOT call blob.free() here — serializeBlob owns the lifecycle.
+                    // For large blobs it hands the Blob to a background spool thread which
+                    // calls free() itself. For small blobs serializeBlob calls free() inline.
+                    cellDataForResponse = serializeBlob(blob, blob.length(), _conn);
                 } else if (cellData instanceof Clob) {
                     Clob clob = (Clob) cellData;
                     cellDataForResponse = clob.getSubString(1, (int) clob.length());
@@ -180,14 +182,23 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
 
     /**
      * Serialize a BLOB value for the JSON response.
-     * In daemon mode: stores in {@link BlobStore} and returns a {@code {blob_url, size}} map.
-     * In single mode (no HTTP server): falls back to inline Base64.
+     *
+     * <p>In daemon mode: stores in {@link BlobStore} and returns a
+     * {@code {blob_url, size}} map. For small blobs the bytes are read
+     * synchronously and {@link Blob#free()} is called before returning.
+     * For large blobs the {@link Blob} object is handed to a background
+     * spool thread in {@link BlobStore} which calls {@link Blob#free()}
+     * when the spool completes — the caller must <em>not</em> free it.</p>
+     *
+     * <p>In single mode (no HTTP server): falls back to inline Base64,
+     * then frees the Blob.</p>
      */
-    private static Object serializeBlob(InputStream stream, long length, SystemConnection conn) {
+    private static Object serializeBlob(Blob blob, long length, SystemConnection conn) {
         if (MapepireServer.isSingleMode()) {
             // Single mode has no HTTP server — fall back to inline Base64
             try {
-                byte[] bytes = readAllBytes(stream);
+                byte[] bytes = readAllBytes(blob.getBinaryStream());
+                blob.free();
                 return Base64.getEncoder().encodeToString(bytes);
             } catch (Exception e) {
                 Tracer.err(e);
@@ -195,13 +206,15 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             }
         }
         try {
-            String token = BlobStore.getInstance().store(stream, length, conn.getRawCredentials());
+            // BlobStore.store(Blob, ...) owns blob.free() from this point on
+            String token = BlobStore.getInstance().store(blob, length, conn.getRawCredentials());
             Map<String, Object> ref = new LinkedHashMap<>();
             ref.put("blob_url", "/blob/" + token);
             ref.put("size", length);
             return ref;
         } catch (IOException e) {
             Tracer.err(e);
+            try { blob.free(); } catch (Exception ignored) {}
             return null;
         }
     }

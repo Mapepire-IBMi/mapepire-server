@@ -4,11 +4,14 @@ import com.github.ibm.mapepire.Tracer;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -16,9 +19,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Singleton store for BLOB tokens.
  *
- * <p>BLOBs <= {@link #MEMORY_THRESHOLD_BYTES} are held in a {@code byte[]}.
- * BLOBs above that threshold are spooled to a JVM temp file so that heap
- * pressure is bounded regardless of BLOB size.</p>
+ * <p>BLOBs &lt;= {@link #MEMORY_THRESHOLD_BYTES} are held in a {@code byte[]}.
+ * BLOBs above that threshold are spooled to a JVM temp file in a background
+ * thread so that the WebSocket response (carrying the {@code blob_url}) is
+ * returned to the client immediately, without waiting for the full spool to
+ * complete. The HTTP GET on {@code /blob/{token}} will wait (up to the TTL)
+ * for the spool to finish before streaming bytes.</p>
  *
  * <p>Each entry carries the Basic-Auth credentials of the connection that
  * produced it so that {@link BlobServlet} can re-validate the caller.</p>
@@ -30,7 +36,7 @@ public class BlobStore {
     // BLOBs larger than this are spooled to disk instead of held in memory
     public static final int MEMORY_THRESHOLD_BYTES = 1024 * 1024; // 1 MB
 
-    // Default TTL in seconds — overridable via setconfig / env var
+    // Default TTL in seconds — overridable via BLOB_TOKEN_TTL env var
     private static volatile long s_ttlSeconds = 60;
 
     private static final BlobStore s_instance = new BlobStore();
@@ -96,22 +102,46 @@ public class BlobStore {
     }
 
     /**
-     * Store a BLOB from an {@link InputStream} of known length — avoids
-     * materialising the full byte[] in heap for large BLOBs.
+     * Store a BLOB from a live JDBC {@link Blob} object.
+     *
+     * <p>For blobs above {@link #MEMORY_THRESHOLD_BYTES} the spool to disk runs
+     * in a background thread so this method returns — and the caller can send the
+     * WebSocket response with the {@code blob_url} — immediately, without waiting
+     * for all bytes to land on disk. The HTTP GET on {@code /blob/{token}} will
+     * block until the spool is complete (or the TTL elapses).</p>
+     *
+     * <p>The {@link Blob} stream is opened <em>inside</em> the spool thread for
+     * large blobs so that the JDBC cursor can advance freely once this method
+     * returns. {@link Blob#free()} is called by the spool thread when it finishes.</p>
+     *
+     * <p>For small blobs the bytes are read synchronously into memory before
+     * returning, then {@link Blob#free()} is called immediately.</p>
      */
-    public String store(InputStream data, long length, String credentials) throws IOException {
+    public String store(Blob blob, long length, String credentials) throws IOException {
         String token = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plusSeconds(s_ttlSeconds);
 
         BlobEntry entry;
         if (length <= MEMORY_THRESHOLD_BYTES) {
-            byte[] bytes = readAllBytes(data);
-            entry = BlobEntry.ofBytes(bytes, expiresAt, credentials);
+            // Small blob — materialise into heap now so the Blob/cursor can be freed immediately
+            try {
+                byte[] bytes = readAllBytes(blob.getBinaryStream());
+                blob.free();
+                entry = BlobEntry.ofBytes(bytes, expiresAt, credentials);
+            } catch (SQLException e) {
+                throw new IOException("Failed to read BLOB data", e);
+            }
+            m_entries.put(token, entry);
+            Tracer.info("BlobStore: stored token " + token + " size=" + length + " expires=" + expiresAt);
         } else {
-            entry = BlobEntry.ofStream(data, expiresAt, credentials);
+            // Large blob — register token immediately, spool to disk in background.
+            // The Blob object is passed to the spool thread which opens the stream
+            // and calls free() itself — the caller must NOT free the Blob after this.
+            entry = BlobEntry.ofBlobAsync(blob, length, expiresAt, credentials, token);
+            m_entries.put(token, entry);
+            Tracer.info("BlobStore: registered token " + token + " size=" + length
+                    + " expires=" + expiresAt + " (spool in progress)");
         }
-        m_entries.put(token, entry);
-        Tracer.info("BlobStore: stored token " + token + " size=" + length + " expires=" + expiresAt);
         return token;
     }
 
@@ -123,6 +153,10 @@ public class BlobStore {
      * Retrieve and <em>consume</em> a token. Returns {@code null} if the token
      * is unknown or has expired. The entry is removed immediately on retrieval
      * (single-use) and any temp file is deleted after streaming.
+     *
+     * <p>If the backing spool is still in progress, this method returns the
+     * entry anyway — {@link BlobEntry#openStream()} will block until the spool
+     * completes or the TTL elapses.</p>
      */
     public BlobEntry consume(String token) {
         BlobEntry entry = m_entries.remove(token);
@@ -172,24 +206,43 @@ public class BlobStore {
     // -------------------------------------------------------------------------
 
     public static class BlobEntry {
-        // Exactly one of these is set
-        private final byte[] m_bytes;
-        private final File m_file;
+        // Exactly one of these is set once the entry is ready
+        private volatile byte[] m_bytes;
+        private volatile File   m_file;
 
         public final long size;
         public final Instant expiresAt;
         public final String credentials; // Base64 "user:pass"
 
-        private BlobEntry(byte[] bytes, File file, long size, Instant expiresAt, String credentials) {
-            this.m_bytes = bytes;
-            this.m_file = file;
-            this.size = size;
-            this.expiresAt = expiresAt;
-            this.credentials = credentials;
+        /**
+         * Latch that is counted down to zero when the backing data is fully
+         * available (either already at construction for in-memory entries, or
+         * when the background spool thread finishes for large blobs).
+         */
+        private final CountDownLatch m_ready;
+
+        /**
+         * Non-null if the background spool thread encountered an error.
+         * Checked by {@link #openStream()} after the latch releases.
+         */
+        private volatile IOException m_spoolError;
+
+        private BlobEntry(byte[] bytes, File file, long size, Instant expiresAt,
+                          String credentials, CountDownLatch ready) {
+            this.m_bytes      = bytes;
+            this.m_file       = file;
+            this.size         = size;
+            this.expiresAt    = expiresAt;
+            this.credentials  = credentials;
+            this.m_ready      = ready;
         }
 
+        // -- factories --------------------------------------------------------
+
         static BlobEntry ofBytes(byte[] bytes, Instant expiresAt, String credentials) {
-            return new BlobEntry(bytes, null, bytes.length, expiresAt, credentials);
+            // Already ready — latch starts at 0
+            CountDownLatch ready = new CountDownLatch(0);
+            return new BlobEntry(bytes, null, bytes.length, expiresAt, credentials, ready);
         }
 
         static BlobEntry ofFile(byte[] bytes, Instant expiresAt, String credentials) throws IOException {
@@ -198,31 +251,93 @@ public class BlobStore {
             try (FileOutputStream fos = new FileOutputStream(tmp)) {
                 fos.write(bytes);
             }
-            return new BlobEntry(null, tmp, bytes.length, expiresAt, credentials);
-        }
-
-        static BlobEntry ofStream(InputStream in, Instant expiresAt, String credentials) throws IOException {
-            File tmp = Files.createTempFile("mapepire-blob-", ".tmp").toFile();
-            tmp.deleteOnExit();
-            long size = 0;
-            try (FileOutputStream fos = new FileOutputStream(tmp)) {
-                byte[] buf = new byte[65536];
-                int read;
-                while ((read = in.read(buf)) != -1) {
-                    fos.write(buf, 0, read);
-                    size += read;
-                }
-            }
-            return new BlobEntry(null, tmp, size, expiresAt, credentials);
+            // Already ready — latch starts at 0
+            CountDownLatch ready = new CountDownLatch(0);
+            return new BlobEntry(null, tmp, bytes.length, expiresAt, credentials, ready);
         }
 
         /**
-         * Open an InputStream over this entry's data. Caller is responsible
-         * for closing it. The temp file (if any) is deleted after the stream
-         * is exhausted — callers should call {@link #cleanup()} in a finally
-         * block if streaming fails.
+         * Create an entry whose data is spooled to a temp file in a background
+         * thread from a live JDBC {@link Blob}. The entry is returned immediately
+         * so the caller can register the token and send the WebSocket response
+         * without waiting.
+         *
+         * <p>The {@link Blob} stream is opened inside the thread (not before),
+         * so the JDBC cursor is free to advance as soon as this method returns.
+         * {@link Blob#free()} is called by the thread in its {@code finally} block.</p>
+         *
+         * <p>{@link #openStream()} will block (up to the TTL) until the spool
+         * thread signals the latch.</p>
+         */
+        static BlobEntry ofBlobAsync(Blob blob, long declaredLength,
+                                     Instant expiresAt, String credentials,
+                                     String tokenForLogging) throws IOException {
+            File tmp = Files.createTempFile("mapepire-blob-", ".tmp").toFile();
+            tmp.deleteOnExit();
+
+            // Latch starts at 1 — spool thread counts it down when done
+            CountDownLatch ready = new CountDownLatch(1);
+            BlobEntry entry = new BlobEntry(null, tmp, declaredLength, expiresAt, credentials, ready);
+
+            Thread spoolThread = new Thread(() -> {
+                try (FileOutputStream fos = new FileOutputStream(tmp);
+                     InputStream in = blob.getBinaryStream()) {
+                    byte[] buf = new byte[65536];
+                    int read;
+                    long total = 0;
+                    while ((read = in.read(buf)) != -1) {
+                        fos.write(buf, 0, read);
+                        total += read;
+                    }
+                    Tracer.info("BlobStore: spool complete for token " + tokenForLogging
+                            + " (" + total + " bytes)");
+                } catch (IOException | SQLException e) {
+                    Tracer.err(e);
+                    entry.m_spoolError = (e instanceof IOException)
+                            ? (IOException) e
+                            : new IOException("JDBC Blob read failed: " + e.getMessage(), e);
+                } finally {
+                    try { blob.free(); } catch (SQLException ignored) {}
+                    ready.countDown();
+                }
+            }, "BlobStore-spool-" + tokenForLogging);
+            spoolThread.setDaemon(true);
+            spoolThread.start();
+
+            return entry;
+        }
+
+        // -- accessors --------------------------------------------------------
+
+        /**
+         * Open an InputStream over this entry's data.
+         *
+         * <p>If the blob is still being spooled to disk, this method blocks
+         * until the spool finishes or the TTL elapses (whichever comes first).
+         * If the spool fails or the wait times out, an {@link IOException} is
+         * thrown and the caller should invoke {@link #cleanup()} in a
+         * {@code finally} block.</p>
+         *
+         * <p>Caller is responsible for closing the returned stream.</p>
          */
         public InputStream openStream() throws IOException {
+            if (m_ready.getCount() > 0) {
+                // Still spooling — wait up to the remaining TTL
+                long waitSeconds = Math.max(1L,
+                        expiresAt.getEpochSecond() - Instant.now().getEpochSecond());
+                try {
+                    boolean completed = m_ready.await(waitSeconds, TimeUnit.SECONDS);
+                    if (!completed) {
+                        throw new IOException("Blob spool timed out after " + waitSeconds + "s");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted while waiting for blob spool", e);
+                }
+            }
+            if (m_spoolError != null) {
+                throw new IOException("Blob spool failed: " + m_spoolError.getMessage(), m_spoolError);
+            }
             if (m_bytes != null) {
                 return new ByteArrayInputStream(m_bytes);
             }
