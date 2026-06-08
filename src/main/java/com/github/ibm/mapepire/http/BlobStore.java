@@ -211,7 +211,8 @@ public class BlobStore {
         private volatile File   m_file;
 
         public final long size;
-        public final Instant expiresAt;
+        // volatile so the spool thread can push expiresAt forward once done
+        public volatile Instant expiresAt;
         public final String credentials; // Base64 "user:pass"
 
         /**
@@ -266,8 +267,13 @@ public class BlobStore {
          * so the JDBC cursor is free to advance as soon as this method returns.
          * {@link Blob#free()} is called by the thread in its {@code finally} block.</p>
          *
-         * <p>{@link #openStream()} will block (up to the TTL) until the spool
-         * thread signals the latch.</p>
+         * <p>The TTL countdown starts when the spool <em>finishes</em>, not when
+         * the token is registered. This ensures the client always gets a full TTL
+         * window to fetch the blob regardless of how long the spool takes. The
+         * sweeper skips entries whose spool is still in progress.</p>
+         *
+         * <p>{@link #openStream()} will block until the spool thread signals the
+         * latch (no timeout — the spool is driven by JDBC, not the client).</p>
          */
         static BlobEntry ofBlobAsync(Blob blob, long declaredLength,
                                      Instant expiresAt, String credentials,
@@ -275,9 +281,13 @@ public class BlobStore {
             File tmp = Files.createTempFile("mapepire-blob-", ".tmp").toFile();
             tmp.deleteOnExit();
 
-            // Latch starts at 1 — spool thread counts it down when done
+            // Latch starts at 1 — spool thread counts it down when done.
+            // expiresAt is set to FAR_FUTURE while spooling so the sweeper
+            // leaves it alone; the spool thread resets it to now+TTL on completion.
             CountDownLatch ready = new CountDownLatch(1);
-            BlobEntry entry = new BlobEntry(null, tmp, declaredLength, expiresAt, credentials, ready);
+            BlobEntry entry = new BlobEntry(null, tmp, declaredLength,
+                    Instant.MAX /* placeholder — updated by spool thread */,
+                    credentials, ready);
 
             Thread spoolThread = new Thread(() -> {
                 try (FileOutputStream fos = new FileOutputStream(tmp);
@@ -289,13 +299,17 @@ public class BlobStore {
                         fos.write(buf, 0, read);
                         total += read;
                     }
+                    // Spool finished — start the TTL clock now
+                    entry.expiresAt = Instant.now().plusSeconds(s_ttlSeconds);
                     Tracer.info("BlobStore: spool complete for token " + tokenForLogging
-                            + " (" + total + " bytes)");
+                            + " (" + total + " bytes), expires=" + entry.expiresAt);
                 } catch (IOException | SQLException e) {
                     Tracer.err(e);
                     entry.m_spoolError = (e instanceof IOException)
                             ? (IOException) e
                             : new IOException("JDBC Blob read failed: " + e.getMessage(), e);
+                    // On failure, expire immediately so the sweeper cleans it up
+                    entry.expiresAt = Instant.now();
                 } finally {
                     try { blob.free(); } catch (SQLException ignored) {}
                     ready.countDown();
@@ -322,14 +336,11 @@ public class BlobStore {
          */
         public InputStream openStream() throws IOException {
             if (m_ready.getCount() > 0) {
-                // Still spooling — wait up to the remaining TTL
-                long waitSeconds = Math.max(1L,
-                        expiresAt.getEpochSecond() - Instant.now().getEpochSecond());
+                // Still spooling — wait indefinitely for the JDBC read to finish.
+                // TTL is reset to now+TTL by the spool thread on completion so the
+                // client always gets a full window; no artificial timeout here.
                 try {
-                    boolean completed = m_ready.await(waitSeconds, TimeUnit.SECONDS);
-                    if (!completed) {
-                        throw new IOException("Blob spool timed out after " + waitSeconds + "s");
-                    }
+                    m_ready.await();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new IOException("Interrupted while waiting for blob spool", e);
