@@ -28,6 +28,11 @@ public class RunSql extends BlockRetrievableRequest {
             final List<Object> data = getNextDataBlock(numRows);
             addReplyData("data", data);
             addReplyData("is_done", isDone());
+        } else {
+            // No result set (DML/DDL): the statement is not reachable via m_rs and
+            // would otherwise never be closed, leaking statements on the JDBC job
+            // (eventually "Limit on number of statements exceeded", HY014, -99999).
+            stmt.close();
         }
     }
 }

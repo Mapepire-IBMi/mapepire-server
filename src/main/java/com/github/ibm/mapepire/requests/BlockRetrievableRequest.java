@@ -150,6 +150,16 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         return m_isDone;
     }
 
+    protected void close() throws SQLException {
+        if (null != m_rs && !m_rs.isClosed()) {
+            final Statement stmt = m_rs.getStatement();
+            m_rs.close();
+            if (null != stmt && !stmt.isClosed()) {
+                stmt.close();
+            }
+        }
+    }
+
     protected Map<String, Object> getResultMetaDataForResponse() throws SQLException {
         return getResultMetaDataForResponse(this.m_rs.getMetaData(), getSystemConnection());
     }

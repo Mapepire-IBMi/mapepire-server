@@ -35,7 +35,7 @@ public class PrepareSql extends BlockRetrievableRequest {
         }else {
             m_stmt = jdbcConn.prepareStatement(sql);
         }
-        
+
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
 
         final ResultSetMetaData rsMetaData = m_stmt.getMetaData();
@@ -108,6 +108,18 @@ public class PrepareSql extends BlockRetrievableRequest {
     PreparedStatement getStatement() {
         return m_stmt;
     }
+
+    @Override
+    protected void close() throws SQLException {
+        // Closing the prepared statement also closes any open result set it owns.
+        // Without this, DML statements (m_rs == null) and paged result sets leak
+        // statement handles on the JDBC job, eventually causing
+        // "Limit on number of statements exceeded" (HY014, -99999).
+        if (null != m_stmt && !m_stmt.isClosed()) {
+            m_stmt.close();
+        }
+    }
+
     @Override
     public boolean isDone() {
         if(null != m_executeTask) {

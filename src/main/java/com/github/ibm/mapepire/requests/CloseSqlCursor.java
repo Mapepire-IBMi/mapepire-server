@@ -1,7 +1,5 @@
 package com.github.ibm.mapepire.requests;
 
-import java.sql.ResultSet;
-
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.google.gson.JsonObject;
@@ -17,13 +15,7 @@ public class CloseSqlCursor extends ClientRequest {
 
     @Override
     protected void go() throws Exception {
-        ResultSet rs = m_prev.m_rs;
-        if(null == rs) {
-            return;
-        }
-        if(!rs.isClosed()) {
-            rs.close();
-        }
+        m_prev.close();
     }
 
 }
