@@ -79,8 +79,12 @@ public class BlobServlet extends HttpServlet {
         // ---- Stream bytes ---------------------------------------------------
         // Headers are committed only after openStream() succeeds, ensuring the
         // status code is always meaningful.
+        // Use actual file size after spool completes — may differ from the JDBC-declared
+        // length for some IBM i LOB types.
+        long actualSize = entry.getActualSize();
         resp.setContentType("application/octet-stream");
-        resp.setHeader("Content-Length", String.valueOf(entry.size));
+        resp.setHeader("Content-Disposition", "attachment; filename=\"blob\"");
+        resp.setHeader("Content-Length", String.valueOf(actualSize));
         resp.setHeader("Cache-Control", "no-store");
 
         try {
@@ -91,7 +95,9 @@ public class BlobServlet extends HttpServlet {
                 out.write(buf, 0, read);
             }
             out.flush();
-            Tracer.info("BlobServlet: streamed token " + token + " (" + entry.size + " bytes)");
+            // Sanitise token before logging to prevent log injection.
+            String safeToken = token.replaceAll("[^a-fA-F0-9\\-]", "?");
+            Tracer.info("BlobServlet: streamed token " + safeToken + " (" + actualSize + " bytes)");
         } finally {
             try { in.close(); } catch (IOException ignored) {}
             entry.cleanup();
