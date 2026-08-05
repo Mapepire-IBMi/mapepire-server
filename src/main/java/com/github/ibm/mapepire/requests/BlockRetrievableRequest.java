@@ -27,6 +27,12 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     /** Holds a deferred ResultSet close (with pending spool entries) until after the WS reply is sent. */
     private DataBlockFetchResult m_deferredFetchResult = null;
 
+    /**
+     * Tracks large output-param BLOBs that are being async-spooled.
+     * Drained in processAfterReplySent() alongside result-set spools.
+     */
+    private final List<BlobStore.BlobEntry> m_pendingOutputParamSpools = new LinkedList<>();
+
     protected BlockRetrievableRequest(DataStreamProcessor _io, SystemConnection _conn, JsonObject _reqObj) {
         super(_io, _conn, _reqObj);
         m_isTerseData = getRequestFieldBoolean("terse", false);
@@ -59,7 +65,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             parmInfo.put("index", i);
             parmInfo.put("type", parmMeta.getParameterTypeName(i));
             parmInfo.put("precision", parmMeta.getPrecision(i));
-            parmInfo.put("scale", parmMeta.getScale(numParams));
+            parmInfo.put("scale", parmMeta.getScale(i));
             if (parmMeta instanceof AS400JDBCParameterMetaData) {
                 AS400JDBCParameterMetaData db2ParmMeta = (AS400JDBCParameterMetaData) parmMeta;
                 parmInfo.put("name", db2ParmMeta.getDB2ParameterName(i));
@@ -87,9 +93,13 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                             jsonValue = null;
                         }
                     } else {
-                        DataBlockFetchResult dummy = new DataBlockFetchResult();
-                        BlobStore.BlobEntry bentry = serializeBlob(blob, blob.length(), conn, dummy);
-                        jsonValue = bentry != null ? blobEntryToRef(bentry, blob.length()) : null;
+                        // Capture length before serializeBlob — for small blobs,
+                        // storeAndReturnEntry calls blob.free(), so blob.length()
+                        // after that throws HY010.
+                        long blobLength = blob.length();
+                        BlobStore.BlobEntry bentry = serializeBlob(blob, blobLength, conn,
+                                m_pendingOutputParamSpools);
+                        jsonValue = bentry != null ? blobEntryToRef(bentry, blobLength) : null;
                     }
                 } else if (value instanceof Clob) {
                     Clob clob = (Clob) value;
@@ -116,7 +126,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         ResultSet m_deferredRs = null;
         boolean   m_deferredCloseStatement = false;
 
-        /** BlobEntries from async spools — must call awaitSpoolStreamOpen() before closing RS. */
+        /** BlobEntries from async spools — awaited via awaitReady() before closing RS. */
         final List<BlobStore.BlobEntry> m_pendingSpools = new LinkedList<>();
 
         private DataBlockFetchResult setDone(final boolean _b) {
@@ -230,7 +240,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                         // Capture length before serializeBlob, which calls blob.free()
                         // for small blobs — calling blob.length() after free() throws HY010.
                         long blobLength = blob.length();
-                        BlobStore.BlobEntry entry = serializeBlob(blob, blobLength, _conn, ret);
+                        BlobStore.BlobEntry entry = serializeBlob(blob, blobLength, _conn, ret.m_pendingSpools);
                         cellDataForResponse = entry != null ? blobEntryToRef(entry, blobLength) : null;
                     }
                 } else if (cellData instanceof Clob) {
@@ -257,17 +267,23 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     // BLOB serialization helpers
     // -------------------------------------------------------------------------
 
-    /** Daemon-mode only: stores in {@link BlobStore}, tracks the entry for deferred RS close. */
+    /**
+     * Daemon-mode only: stores blob in {@link BlobStore} and tracks any async spool
+     * entry in the supplied list so the caller can defer closing the JDBC resource.
+     *
+     * <p>Accepts either a {@link DataBlockFetchResult#m_pendingSpools} list (result-set
+     * path) or {@link #m_pendingOutputParamSpools} (output-parameter path).</p>
+     */
     private static BlobStore.BlobEntry serializeBlob(Blob blob, long length,
                                                       SystemConnection conn,
-                                                      DataBlockFetchResult result) {
+                                                      List<BlobStore.BlobEntry> pendingSpools) {
         try {
             // BlobStore.storeAndReturnEntry owns blob.free() from this point on
             BlobStore.BlobEntry entry = BlobStore.getInstance().storeAndReturnEntry(blob, length, conn.getRawCredentials());
             // Only track entries that have a live async spool thread — small blobs
             // are stored synchronously and their latch is already at 0.
             if (entry != null && entry.isAsyncSpool()) {
-                result.m_pendingSpools.add(entry);
+                pendingSpools.add(entry);
             }
             return entry;
         } catch (IOException e) {
@@ -279,7 +295,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
 
     private static Map<String, Object> blobEntryToRef(BlobStore.BlobEntry entry, long length) {
         Map<String, Object> ref = new LinkedHashMap<>();
-        ref.put("blob_url", "/blob/" + entry.token);
+        ref.put("blob_url", "/blob/" + entry.getToken());
         ref.put("size", length);
         return ref;
     }
@@ -317,7 +333,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     /**
      * Called by {@link com.github.ibm.mapepire.ClientRequest#run()} after the WebSocket
      * reply has been sent. Closes any ResultSet that was deferred to allow async blob
-     * spool threads to open their JDBC streams first.
+     * spool threads to finish writing, and waits for any output-parameter async spools.
      */
     @Override
     protected void processAfterReplySent() {
@@ -325,6 +341,13 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             m_deferredFetchResult.closeDeferredResultSet();
             m_deferredFetchResult = null;
         }
+        // Drain any async output-parameter blob spools.
+        for (BlobStore.BlobEntry e : m_pendingOutputParamSpools) {
+            try { e.awaitReady(); } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        m_pendingOutputParamSpools.clear();
     }
 
     protected Map<String, Object> getResultMetaDataForResponse() throws SQLException {
@@ -350,6 +373,12 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             columnAttrs.put("readOnly", _md.isReadOnly(i));
             columnAttrs.put("writeable", _md.isWritable(i));
             columnAttrs.put("table", _md.getTableName(i));
+            // Signal to clients that this column's value will be a blob_url object
+            // in daemon mode rather than an inline string value.
+            int colType = _md.getColumnType(i);
+            boolean isBlobType = colType == Types.BLOB || colType == Types.BINARY
+                    || colType == Types.VARBINARY || colType == Types.LONGVARBINARY;
+            columnAttrs.put("blob_as_url", isBlobType && !MapepireServer.isSingleMode());
             columnMetaData.add(columnAttrs);
         }
         metaData.put("columns", columnMetaData);

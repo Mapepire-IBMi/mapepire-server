@@ -104,6 +104,14 @@ public class PreparedExecute extends BlockRetrievableRequest {
                 }
                 break;
             }
+            // Character LOBs — pass through as a plain string. Explicit cases here
+            // make intent clear and protect the default branch from future changes.
+            case Types.CLOB:
+            case Types.NCLOB:
+            case Types.LONGVARCHAR:
+            case Types.LONGNVARCHAR:
+                stmt.setString(i, value);
+                break;
             default:
                 stmt.setString(i, value);
                 break;
