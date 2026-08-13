@@ -4,31 +4,25 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
-import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
-import com.ibm.as400.access.Trace;
 
 public class Tracer {
     public enum Dest {
         FILE,
-        IN_MEM
+        IN_MEM, 
+        DEV_NULL_OR_STDERR
     }
 
     public enum TraceLevel {
@@ -123,10 +117,15 @@ public class Tracer {
         }
     }
 
-    private static Tracer s_instance = new Tracer();
+    private static final String GLOBAL_CONNECTION_ID = "global";
+
+    // The global tracer is explicitly protected (that is, there's no static "getter" for it)
+    // as we don't want to expose full control of the global tracer. 
+    private static Tracer s_globalTracer = new Tracer(true);
     private static String s_pseudoPid = ("" + Math.random()).replace(".", "").replace("0", "");
 
     private static DateFormat s_dateFormatter = null;
+    private static AtomicLong s_connectionIdGenerator = new AtomicLong(0);
 
     public static String exceptionToStackTrace(Throwable m_data) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -136,23 +135,6 @@ public class Tracer {
         return new String(baos.toByteArray());
     }
 
-    /**
-     * Get the global Tracer instance for application-wide logging.
-     * For per-connection tracing in daemon mode, use getNew(String connectionId) instead.
-     *
-     * @return the global Tracer instance
-     */
-    public static Tracer getGlobalTracer() {
-        return s_instance;
-    }
-
-    /**
-     * @deprecated Use getGlobalTracer() instead for clarity
-     */
-    @Deprecated
-    public static Tracer get() {
-        return getGlobalTracer();
-    }
 
     /**
      * Create a new Tracer instance for per-connection tracing in daemon mode.
@@ -161,10 +143,8 @@ public class Tracer {
      * @param connectionId unique identifier for the connection
      * @return a new Tracer instance configured for this connection
      */
-    public static Tracer getNew(String connectionId) {
-        Tracer tracer = new Tracer();
-        tracer.m_connectionId = connectionId;
-        return tracer;
+    public static Tracer getNew() {
+        return new Tracer(false);
     }
 
     /**
@@ -173,8 +153,8 @@ public class Tracer {
      *
      * @param _data the data to log
      */
-    public static void info(Object _data) {
-        getGlobalTracer().logInfo(_data);
+    public static void globalInfo(Object _data) {
+        s_globalTracer.logInfo(_data);
     }
 
     /**
@@ -183,8 +163,8 @@ public class Tracer {
      *
      * @param _data the data to log
      */
-    public static void warn(Object _data) {
-        getGlobalTracer().logWarn(_data);
+    public static void globalWarn(Object _data) {
+        s_globalTracer.logWarn(_data);
     }
 
     /**
@@ -193,8 +173,8 @@ public class Tracer {
      *
      * @param _data the data to log
      */
-    public static void err(Object _data) {
-        getGlobalTracer().logErr(_data);
+    public static void globalErr(Object _data) {
+        s_globalTracer.logErr(_data);
     }
 
     /**
@@ -203,8 +183,8 @@ public class Tracer {
      *
      * @param _data the data to log
      */
-    public static void datastreamIn(Object _data) {
-        getGlobalTracer().logDatastreamIn(_data);
+    public static void globalDatastreamIn(Object _data) {
+        s_globalTracer.logDatastreamIn(_data);
     }
 
     /**
@@ -213,8 +193,8 @@ public class Tracer {
      *
      * @param _data the data to log
      */
-    public static void datastreamOut(Object _data) {
-        getGlobalTracer().logDatastreamOut(_data);
+    public static void globalDatastreamOut(Object _data) {
+        s_globalTracer.logDatastreamOut(_data);
     }
 
     /**
@@ -300,66 +280,23 @@ public class Tracer {
 
     private InMemCache<Entry> m_inMem = new InMemCache<Entry>(100);
 
-    private InMemCache<String> m_jtOpenInMem = new InMemCache<String>(16 * 1024);
-
     private Dest m_dest = Dest.IN_MEM;
 
     private OutputStreamWriter m_fileWriter = null;
-    private PrintWriter m_jtOpenFileWriter = null;
 
     private File m_destFile = null;
-    private File m_jtOpenDestFile = null;
 
-    private TraceLevel m_traceLevel = TraceLevel.INPUT_AND_ERRORS;
-    private TraceLevel m_jtOpenTraceLevel = TraceLevel.OFF;
-    private Dest m_jtopenDest = Dest.IN_MEM;
+    private TraceLevel m_traceLevel;
 
-    private String m_connectionId = null; // ✅ NEW: For per-connection tracing in daemon mode
+    private final String m_connectionId; // ✅ NEW: For per-connection tracing in daemon mode
 
-    private Tracer() {
-        PrintWriter jt400PrintWriter = new PrintWriter(new Writer() {
-            @Override
-            public void write(char[] _cbuf, int _off, int _len) throws IOException {
-                String data = new String(_cbuf, _off, _len);
-                if (Dest.IN_MEM == m_jtopenDest) {
-                    m_jtOpenInMem.add(data);
-                    return;
-                }
-                if (null == m_jtOpenFileWriter) {
-                    try {
-                        m_jtOpenFileWriter = new PrintWriter(getJtOpenFile(), "UTF-8");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        m_jtopenDest = Dest.IN_MEM;
-                        m_jtOpenInMem.add(data);
-                    }
-                }
-                m_jtOpenFileWriter.write(data);
-                if (data.contains("\n")) {
-                    m_jtOpenFileWriter.flush();
-                }
-            }
+    private final boolean m_isGlobal;
 
-            @Override
-            public void flush() throws IOException {
-                if (null != m_jtOpenFileWriter) {
-                    m_jtOpenFileWriter.flush();
-                }
-            }
-
-            @Override
-            public void close() throws IOException {
-                if (null != m_jtOpenFileWriter) {
-                    m_jtOpenFileWriter.close();
-                    m_jtOpenFileWriter = null;
-                }
-            }
-        });
-        try {
-            Trace.setPrintWriter(jt400PrintWriter);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private Tracer(boolean _isGlobal) {
+        m_connectionId = _isGlobal ? GLOBAL_CONNECTION_ID : (""+s_connectionIdGenerator.incrementAndGet());
+        m_isGlobal = _isGlobal;
+        m_traceLevel = _isGlobal? TraceLevel.ON :TraceLevel.INPUT_AND_ERRORS;
+        m_dest = _isGlobal ? Dest.DEV_NULL_OR_STDERR : Dest.IN_MEM;
     }
 
     /**
@@ -372,40 +309,13 @@ public class Tracer {
     }
 
     public Tracer setTraceLevel(TraceLevel _l) {
-    // ✅ FIXED: Allow tracing in daemon mode (removed single mode check)
-    m_traceLevel = _l;
-    return this;
-    }
-
-    public Tracer setJtOpenTraceLevel(TraceLevel _l) {
-        // ✅ FIXED: Allow JtOpen tracing in daemon mode (removed single mode check)
-        switch (_l) {
-            case OFF:
-                Trace.setTraceOn(false);
-                Trace.setTraceAllOn(false);
-                Trace.setTraceDatastreamOn(false);
-                break;
-            case ON:
-                Trace.setTraceOn(true);
-                Trace.setTraceAllOn(true);
-                Trace.setTraceDatastreamOn(false);
-                break;
-            case DATASTREAM:
-                Trace.setTraceOn(true);
-                Trace.setTraceAllOn(true);
-                Trace.setTraceDatastreamOn(true);
-                break;
-            case ERRORS:
-                Trace.setTraceOn(true);
-                Trace.setTraceAllOn(false);
-                Trace.setTraceErrorOn(true);
-                break;
-        }
+        // ✅ FIXED: Allow tracing in daemon mode (removed single mode check)
+        m_traceLevel = _l;
         return this;
     }
 
     public Tracer setDest(Dest _dest) {
-  // ✅ FIXED: Allow destination changes in daemon mode (removed single mode check)
+        // ✅ FIXED: Allow destination changes in daemon mode (removed single mode check)
         if (m_dest == _dest) {
             return this;
         }
@@ -421,37 +331,10 @@ public class Tracer {
         return this;
     }
 
-    public Tracer setJtOpenDest(Dest _dest) throws FileNotFoundException, UnsupportedEncodingException, IOException {
-       // ✅ FIXED: Allow destination changes in daemon mode (removed single mode check)
-        if (m_jtopenDest == _dest) {
-            return this;
-        }
-        if (Dest.FILE == m_dest && null != m_jtOpenFileWriter) {
-            m_jtOpenFileWriter.flush();
-            m_jtOpenFileWriter.close();
-            m_jtOpenFileWriter = null;
-        }
-        m_jtopenDest = _dest;
-        return this;
-    }
-
     public String getDestString() throws IOException {
-    // ✅ FIXED: Return actual destination instead of "unknown" in daemon mode
         switch (m_dest) {
             case FILE:
                 return getFile().getAbsolutePath();
-            case IN_MEM:
-                return "IN_MEM";
-            default:
-                return "unknown";
-        }
-    }
-
-    public String getJtOpenDestString() throws IOException {
-    // ✅ FIXED: Return actual destination instead of "unknown" in daemon mode
-        switch (m_dest) {
-            case FILE:
-                return getJtOpenFile().getAbsolutePath();
             case IN_MEM:
                 return "IN_MEM";
             default:
@@ -463,18 +346,8 @@ public class Tracer {
         return m_traceLevel;
     }
 
-    public TraceLevel getJtOpenTraceLevel() {
-        return m_jtOpenTraceLevel;
-    }
-
     public StringBuffer getRawData() throws IOException {
-        // ✅ FIXED: Support daemon mode per-connection trace retrieval
-        if (!MapepireServer.isSingleMode() && m_connectionId != null) {
-            return ConnectionTraceContext.getTraceDataAsHtml(m_connectionId);
-    }
-
-    // Single mode behavior (unchanged)
-    StringBuffer buf = new StringBuffer();
+        StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_dest) {
             buf.append("<html><body bgcolor=\"white\">\n\n");
             synchronized (m_inMem) {
@@ -484,8 +357,7 @@ public class Tracer {
                 }
             }
         } else {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(getFile()), "UTF-8"))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(getFile()), "UTF-8"))) {
                 String lineString = null;
                 while (null != (lineString = reader.readLine())) {
                     buf.append(lineString);
@@ -497,31 +369,6 @@ public class Tracer {
         return buf;
     }
 
-    public StringBuffer getJtOpenRawData() throws UnsupportedEncodingException, FileNotFoundException, IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return new StringBuffer("<prohibited>");
-        }
-        StringBuffer buf = new StringBuffer();
-        if (Dest.IN_MEM == m_jtopenDest) {
-            synchronized (m_jtOpenInMem) {
-                for (String l : m_jtOpenInMem.getEntries()) {
-                    buf.append(l);
-                }
-            }
-        } else {
-            Trace.getPrintWriter().flush();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(getJtOpenFile()), "UTF-8"))) {
-                String lineString = null;
-                while (null != (lineString = reader.readLine())) {
-                    buf.append(lineString);
-                    buf.append("\r\n");
-                }
-            }
-        }
-        return buf;
-    }
-
     private Tracer Trace(EventType _t, Object _data) {
         // TODO: audit fallback cases with use of printStackTrace() throughout
         if ((_data instanceof Throwable) && !System.getProperty("os.name", "").contains("400")) {
@@ -530,16 +377,24 @@ public class Tracer {
         if (!_t.isLoggedAt(m_traceLevel)) {
             return this;
         }
-
-        Entry entry = new Entry(_t, _data);
-
-        // ✅ NEW: Daemon mode - use per-connection context
-        if (!MapepireServer.isSingleMode() && m_connectionId != null) {
-            ConnectionTraceContext.getOrCreate(m_connectionId).add(entry);
+        if(null == _data) { 
             return this;
         }
 
-        // Existing single mode behavior
+        if(m_isGlobal) {
+            final String simpleData = String.format("%s: %s", _t.name(), _data.toString());
+            SystemNativeUtils.writeToJobLog(s_globalTracer, simpleData);
+            if(m_dest == Dest.DEV_NULL_OR_STDERR) { 
+                System.err.println(simpleData);
+            }
+        }
+        
+        if (m_dest == Dest.DEV_NULL_OR_STDERR) {
+            return this;
+        }
+
+        Entry entry = new Entry(_t, _data);
+
         if (Dest.IN_MEM == m_dest) {
             m_inMem.add(entry);
             return this;
@@ -568,39 +423,14 @@ public class Tracer {
         return this;
     }
 
-    private File getFile() throws IOException {
+    private synchronized File getFile() throws IOException {
         if (null != m_destFile) {
             return m_destFile;
         }
-        try {
-            URL location = Tracer.class.getProtectionDomain().getCodeSource().getLocation();
-            File f = new File(location.toURI());
-            File dir = f.isDirectory() ? f : f.getParentFile();
-            String dateStr = getDateFormatter().format(new Date());
-            String fileName = String.format("vsc-%s-%s.html", dateStr, s_pseudoPid);
-            File ret = m_destFile = new File(dir, fileName);
-            ret.createNewFile();
-            return m_destFile = ret;
-        } catch (Exception e) {
-            return m_destFile = File.createTempFile("VSCode", ".html");
-        }
-    }
-
-    private File getJtOpenFile() throws IOException {
-        if (null != m_jtOpenDestFile) {
-            return m_jtOpenDestFile;
-        }
-        try {
-            URL location = Tracer.class.getProtectionDomain().getCodeSource().getLocation();
-            File f = new File(location.toURI());
-            File dir = f.isDirectory() ? f : f.getParentFile();
-            String dateStr = getDateFormatter().format(new Date());
-            String fileName = String.format("vsc-jtopen-%s-%s.txt", dateStr, s_pseudoPid);
-            File ret = new File(dir, fileName);
-            ret.createNewFile();
-            return m_jtOpenDestFile = ret;
-        } catch (Exception e) {
-            return m_jtOpenDestFile = File.createTempFile("VSCode-jtopen", ".txt");
-        }
+        String dateStr = getDateFormatter().format(new Date());
+        String filePrefix = String.format("vscode-%s-%s-", dateStr, s_pseudoPid);
+        File ret = m_destFile = File.createTempFile(filePrefix, ".html");
+        ret.createNewFile();
+        return m_destFile = ret;
     }
 }

@@ -14,11 +14,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class DbWebsocketClient extends WebSocketAdapter {
-  private static final AtomicLong connectionIdGenerator = new AtomicLong(0);
   
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
-  private final String connectionId;
   private final Tracer tracer;
 
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
