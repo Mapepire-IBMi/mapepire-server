@@ -36,11 +36,14 @@ public class AuthRule {
 
     private final int m_lineNumber;
 
-    public AuthRule(final int _lineNumber, final RuleType _type, final String _user, final String _ip) {
+    private final String m_fileName;
+
+    public AuthRule(final int _lineNumber, final String _fileName, final RuleType _type, final String _user, final String _ip) {
         m_ruleType = _type;
         m_user = _user;
         m_ip = _ip;
         m_lineNumber = _lineNumber;
+        m_fileName = _fileName;
         m_userPattern = Pattern.compile(getRegexFromSplattedLiteral(_user), Pattern.CASE_INSENSITIVE);
         m_ipPattern = Pattern.compile(getRegexFromSplattedLiteral(_ip), Pattern.CASE_INSENSITIVE);
     }
@@ -79,4 +82,7 @@ public class AuthRule {
         return m_lineNumber;
     }
 
+    public String getFileName() {
+        return m_fileName;
+    }
 }
