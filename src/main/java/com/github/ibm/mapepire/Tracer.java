@@ -391,7 +391,7 @@ public class Tracer {
             }
         }
         
-        if (m_dest == Dest.DEV_NULL_OR_STDERR) {
+        if (Dest.DEV_NULL_OR_STDERR == m_dest) {
             return this;
         }
 

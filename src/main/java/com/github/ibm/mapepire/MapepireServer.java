@@ -79,7 +79,6 @@ public class MapepireServer {
                 // Make sure we can process our security rules file, if it exists
                 AuthFile.getDefault().getRules();
 
-                Tracer.getGlobalTracer().setDest(Dest.FILE);
                 if(args.remove("--traceErrors")) {
                     Tracer.getGlobalTracer().setTraceLevel(TraceLevel.ERRORS);
                 }
