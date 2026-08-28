@@ -1,8 +1,10 @@
 package com.github.ibm.mapepire;
 
+import java.io.IOException;
+
 public class SystemNativeUtils {
 
-    private static native void writeToJobLog0(final String _msg);
+    private static native void writeToJobLog0(final String _msg) throws IOException;
 
     private static native long getPid0();
 
@@ -14,8 +16,12 @@ public class SystemNativeUtils {
 
     public static void writeToJobLog(final Tracer _tracer, final String _msg) {
         if (s_isNativeLoaded) {
-            // TODO: handle messages too long for job log
-            writeToJobLog0(_msg);
+            try {
+                writeToJobLog0(_msg.replace("\r", "").trim());
+            } catch (IOException e) {
+                // the best we can do...
+                e.printStackTrace();
+            }
         } else {
             _tracer.logInfo("Job log message not logged: " + _msg);
         }
