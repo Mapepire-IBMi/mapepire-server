@@ -8,3 +8,6 @@ src/main/java/com/github/theprez/codefori/Version.java
 .env
 test.txt
 src/main/java/com/github/ibm/mapepire/Version.java
+*.dmp
+*.phd
+*.log

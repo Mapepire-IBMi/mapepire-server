@@ -433,4 +433,8 @@ public class Tracer {
         ret.createNewFile();
         return m_destFile = ret;
     }
+
+    public static Tracer getGlobalTracer() {
+        return s_globalTracer;
+    }
 }

@@ -12,7 +12,7 @@ class LocalHostResolver {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName().toLowerCase();
         } catch (IOException e) {
-            Tracer.warn(e);
+            Tracer.globalWarn(e);
             Process p = Runtime.getRuntime().exec("/QOpenSys/usr/bin/hostname");
             try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 return br.readLine().toLowerCase().trim();

@@ -24,7 +24,7 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
         try {
             location = ClientSpecialRegistersVSCode.class.getProtectionDomain().getCodeSource().getLocation().toString();
         } catch (Exception e) {
-            Tracer.err(e);
+            Tracer.globalErr(e);
         }
         m_accountingString = "location: " + location;
     }

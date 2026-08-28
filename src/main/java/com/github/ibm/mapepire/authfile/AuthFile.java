@@ -53,17 +53,17 @@ public class AuthFile {
             return m_rules;
         }
         if(!m_file.isFile()) {
-            Tracer.info("IP security rules file not found. Disabling IP security. File location: "+m_file.getAbsolutePath());
+            Tracer.globalInfo("IP security rules file not found. Disabling IP security. File location: "+m_file.getAbsolutePath());
             return m_rules = Collections.emptyList();
         }
         if(!m_file.canRead()) {
-            Tracer.err("IP security rules file not readable. Disabling IP security. File location: "+m_file.getAbsolutePath());
+            Tracer.globalErr("IP security rules file not readable. Disabling IP security. File location: "+m_file.getAbsolutePath());
             throw new FileNotFoundException(m_file.getAbsolutePath());
         }
         if(m_file.canWrite()) {
-            Tracer.warn("WARNING: IP security rules file is writable: "+m_file.getAbsolutePath());
+            Tracer.globalWarn("WARNING: IP security rules file is writable: "+m_file.getAbsolutePath());
             ProcessResult chmodResult = ProcessLauncher.exec("/QOpenSys/usr/bin/chmod o-w "+m_file.getAbsolutePath());
-            Tracer.info("Exit code from chmod command: "+chmodResult.getExitStatus());
+            Tracer.globalInfo("Exit code from chmod command: "+chmodResult.getExitStatus());
         }
         final List<AuthRule> ret = new LinkedList<AuthRule>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(m_file), "UTF-8"))) {
@@ -107,12 +107,12 @@ public class AuthFile {
             }
         }
         if (null == lastMatchingRule) {
-            Tracer.info(String.format("Connection for %s@%s has no matching governance rule", _user, _ip));
+            Tracer.globalInfo(String.format("Connection for %s@%s has no matching governance rule", _user, _ip));
             return;
         }
         if (null != lastMatchingRule && RuleType.DENY == lastMatchingRule.getRuleType()) {
             throw new IOException("Connection refused by security rule at line " + lastMatchingRule.getLineNumber());
         }
-        Tracer.info(String.format("Connection for %s@%s allowed by security rule at line %d", _user, _ip, lastMatchingRule.getLineNumber()));
+        Tracer.globalInfo(String.format("Connection for %s@%s allowed by security rule at line %d", _user, _ip, lastMatchingRule.getLineNumber()));
     }
 }

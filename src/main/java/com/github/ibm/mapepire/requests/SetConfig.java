@@ -3,7 +3,6 @@ package com.github.ibm.mapepire.requests;
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
-import com.github.ibm.mapepire.Tracer;
 import com.github.ibm.mapepire.Tracer.Dest;
 import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.google.gson.JsonElement;
@@ -25,7 +24,7 @@ public class SetConfig extends ClientRequest {
                 if (null == newDest) {
                     throw new RuntimeException("Invalid trace destination specified: " + traceDest);
                 }
-                Tracer.get().setDest(newDest);
+                getConnection().getTracer().setDest(newDest);
             }
         }
         {
@@ -36,35 +35,11 @@ public class SetConfig extends ClientRequest {
                 if (null == newLevel) {
                     throw new RuntimeException("Invalid trace level specified: "+traceLevel);
                 }
-                Tracer.get().setTraceLevel(newLevel);
+                getConnection().getTracer().setTraceLevel(newLevel);
             }
         }
-        {
-            JsonElement jtOpenTraceDestFld = getRequestField("jtopentracedest");
-            if (null != jtOpenTraceDestFld) {
-                String traceDest = jtOpenTraceDestFld.getAsString();
-                Dest newDest = Dest.valueOf(traceDest.trim().toUpperCase());
-                if (null == newDest) {
-                    throw new RuntimeException("Invalid trace destination specified: " + traceDest);
-                }
-                Tracer.get().setJtOpenDest(newDest);
-            }
-        }
-        {
-            JsonElement jtopenTraceLevelFld = getRequestField("jtopentracelevel");
-            if (null != jtopenTraceLevelFld) {
-                String traceLevel = jtopenTraceLevelFld.getAsString();
-                TraceLevel newLevel = TraceLevel.valueOf(traceLevel.trim().toUpperCase());
-                if (null == newLevel) {
-                    throw new RuntimeException("Invalid jtopen trace level specified: "+traceLevel);
-                }
-                Tracer.get().setJtOpenTraceLevel(newLevel);
-            }
-        }
-        addReplyData("tracedest", Tracer.get().getDestString());
-        addReplyData("tracelevel", "" + Tracer.get().getTraceLevel().name());
-        addReplyData("jtopentracedest", Tracer.get().getJtOpenDestString());
-        addReplyData("jtopentracelevel", "" + Tracer.get().getJtOpenTraceLevel().name());
+        addReplyData("tracedest", getConnection().getTracer().getDestString());
+        addReplyData("tracelevel", "" + getConnection().getTracer().getTraceLevel().name());
 
     }
 

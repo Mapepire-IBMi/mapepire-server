@@ -79,19 +79,19 @@ public class MapepireServer {
                 // Make sure we can process our security rules file, if it exists
                 AuthFile.getDefault().getRules();
 
-                Tracer.get().setDest(Dest.FILE);
+                Tracer.getGlobalTracer().setDest(Dest.FILE);
                 if(args.remove("--traceErrors")) {
-                    Tracer.get().setTraceLevel(TraceLevel.ERRORS);
+                    Tracer.getGlobalTracer().setTraceLevel(TraceLevel.ERRORS);
                 }
                 if(args.remove("--traceOn")) {
-                    Tracer.get().setTraceLevel(TraceLevel.ON);
+                    Tracer.getGlobalTracer().setTraceLevel(TraceLevel.ON);
                 }
                 if(args.remove("--traceDs")) {
-                    Tracer.get().setTraceLevel(TraceLevel.DATASTREAM);
+                    Tracer.getGlobalTracer().setTraceLevel(TraceLevel.DATASTREAM);
                 }
                 AppLogger logger = AppLogger.getSingleton(args.remove("-v"));
                 logger.printf("Starting daemon...");
-                Tracer.info("Starting daemon...");
+                Tracer.globalInfo("Starting daemon...");
                 DbSocketCreator.enableDaemon();
                 
                 server = new Server();
@@ -101,7 +101,7 @@ public class MapepireServer {
                 if (StringUtils.isNonEmpty(isUnsecure) && isUnsecure.equals("true")) {
                     String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
                     logger.println_err("\n\n" + uhOhWarning + "\n\n");
-                    Tracer.warn(uhOhWarning);
+                    Tracer.globalWarn(uhOhWarning);
                     connector = new ServerConnector(server);
                 } else {
                     SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
@@ -110,7 +110,7 @@ public class MapepireServer {
                     sslContextFactory.setKeyStorePassword(serverCertInfo.getStorePass());
                     sslContextFactory.setCertAlias(serverCertInfo.getAlias());
                     sslContextFactory.setKeyManagerPassword(serverCertInfo.getKeyPass());
-                    Tracer.info("Using key store " + serverCertInfo.getKeyStoreFile().getAbsolutePath());
+                    Tracer.globalInfo("Using key store " + serverCertInfo.getKeyStoreFile().getAbsolutePath());
                     connector = new ServerConnector(server, sslContextFactory);
                 }
 
@@ -199,9 +199,9 @@ public class MapepireServer {
                 }
             }
         } catch (final Exception e) {
-            Tracer.err(e);
+            Tracer.globalErr(e);
         }
-        Tracer.warn("data stream processing completed (end of request stream?)");
+        Tracer.globalWarn("data stream processing completed (end of request stream?)");
         System.err.println("bye");
         System.exit(12);
     }

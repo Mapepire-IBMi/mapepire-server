@@ -110,7 +110,7 @@ public class SystemConnection {
         this.m_clientRegs = clientRegs;
         this.clientAddress = clientRegs.getClientAddress();
         this.userProfile = System.getProperty("user.name");
-        this.m_tracer = Tracer.getGlobalTracer(); // Single mode uses global tracer
+        this.m_tracer = Tracer.getNew();
     }
 
     public SystemConnection(String clientHost, String clientAddress, String host, String user, String pass, Tracer tracer) throws IOException {
@@ -206,5 +206,12 @@ public class SystemConnection {
         } catch (Exception e) {
             throw new SQLException(e);
         }
+    }
+
+    public Tracer getTracer() {
+        return m_tracer;
+    }
+    public String getConnectionId() {
+        return getTracer().getConnectionId();
     }
 }
