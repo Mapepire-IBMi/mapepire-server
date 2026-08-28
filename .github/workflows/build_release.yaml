@@ -65,10 +65,11 @@ jobs:
         mv conf/iprules.conf staging/opt/mapepire/iprules.conf
         mv conf/iprules-single.conf staging/opt/mapepire/iprules-single.conf
 
-    - name: Create distribution .zip and move JAR file
+    - name: Create distribution .zip, .tar, and move JAR file
       run: |
         pushd staging/opt/mapepire
         zip -r ../../../mapepire-server-${{ env.project_version }}.zip bin lib iprules.conf iprules-single.conf
+        tar -czf ../../../mapepire-server-${{ env.project_version }}.tar.gz bin lib iprules.conf iprules-single.conf
         mv lib/mapepire/mapepire-server.jar ../../../mapepire-server.jar
         popd
 
@@ -79,6 +80,7 @@ jobs:
         name: v${{ env.project_version }}
         files: |
           mapepire-server-${{ env.project_version }}.zip
+          mapepire-server-${{ env.project_version }}.tar.gz
           mapepire-server.jar
 
     - name: Install NPM Dependencies

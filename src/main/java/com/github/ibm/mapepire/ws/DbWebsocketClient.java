@@ -16,7 +16,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
   private final DataStreamProcessor io;
   private final Tracer tracer;
 
-  DbWebsocketClient(String clientHost, String clientAddress, String host, String user, String pass) throws IOException {
+  DbWebsocketClient(String clientHost, String clientAddress, String host, String user, char[] pass) throws IOException {
     super();
 
     // Create per-connection tracer instance
