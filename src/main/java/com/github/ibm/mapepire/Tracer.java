@@ -17,12 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-
 public class Tracer {
     public enum Dest {
-        FILE,
-        IN_MEM, 
-        DEV_NULL_OR_STDERR
+        FILE, IN_MEM, DEV_NULL_OR_STDERR
     }
 
     public enum TraceLevel {
@@ -34,11 +31,7 @@ public class Tracer {
     }
 
     public enum EventType {
-        INFO,
-        WARN,
-        DATASTREAM_IN,
-        DATASTREAM_OUT,
-        ERR;
+        INFO, WARN, DATASTREAM_IN, DATASTREAM_OUT, ERR;
 
         public boolean isLoggedAt(TraceLevel _l) {
             switch (_l) {
@@ -92,8 +85,7 @@ public class Tracer {
             String rawTraceData = getRawTraceString();
             String ret = "\n<hr>\n";
             ret += String.format("<b>[%s]: </b><i>%s</i>\n", m_type.name(), getDateFormatter().format(m_date));
-            ret += String.format("<font color=\"%s\">\n<blockquote>\n<pre>\n%s\n</pre>\n</blockquote>\n</font>",
-                    m_type.getHtmlColor(), rawTraceData);
+            ret += String.format("<font color=\"%s\">\n<blockquote>\n<pre>\n%s\n</pre>\n</blockquote>\n</font>", m_type.getHtmlColor(), rawTraceData);
             return m_html = ret;
         }
 
@@ -104,6 +96,7 @@ public class Tracer {
                 return "" + m_data;
             }
         }
+
         public EventType getEventType() {
             return m_type;
         }
@@ -120,7 +113,7 @@ public class Tracer {
     private static final String GLOBAL_CONNECTION_ID = "global";
 
     // The global tracer is explicitly protected (that is, there's no static "getter" for it)
-    // as we don't want to expose full control of the global tracer. 
+    // as we don't want to expose full control of the global tracer.
     private static Tracer s_globalTracer = new Tracer(true);
     private static String s_pseudoPid = ("" + Math.random()).replace(".", "").replace("0", "");
 
@@ -135,12 +128,12 @@ public class Tracer {
         return new String(baos.toByteArray());
     }
 
-
     /**
      * Create a new Tracer instance for per-connection tracing in daemon mode.
      * This ensures trace isolation between different client connections.
      *
-     * @param connectionId unique identifier for the connection
+     * @param connectionId
+     *            unique identifier for the connection
      * @return a new Tracer instance configured for this connection
      */
     public static Tracer getNew() {
@@ -151,7 +144,8 @@ public class Tracer {
      * Log an info message to the global tracer (static method for backward compatibility).
      * For per-connection logging, create a Tracer instance via getNew() and call info() on it.
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public static void globalInfo(Object _data) {
         s_globalTracer.logInfo(_data);
@@ -161,7 +155,8 @@ public class Tracer {
      * Log a warning message to the global tracer (static method for backward compatibility).
      * For per-connection logging, create a Tracer instance via getNew() and call warn() on it.
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public static void globalWarn(Object _data) {
         s_globalTracer.logWarn(_data);
@@ -171,7 +166,8 @@ public class Tracer {
      * Log an error message to the global tracer (static method for backward compatibility).
      * For per-connection logging, create a Tracer instance via getNew() and call err() on it.
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public static void globalErr(Object _data) {
         s_globalTracer.logErr(_data);
@@ -181,7 +177,8 @@ public class Tracer {
      * Log incoming datastream to the global tracer (static method for backward compatibility).
      * For per-connection logging, create a Tracer instance via getNew() and call datastreamIn() on it.
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public static void globalDatastreamIn(Object _data) {
         s_globalTracer.logDatastreamIn(_data);
@@ -191,7 +188,8 @@ public class Tracer {
      * Log outgoing datastream to the global tracer (static method for backward compatibility).
      * For per-connection logging, create a Tracer instance via getNew() and call datastreamOut() on it.
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public static void globalDatastreamOut(Object _data) {
         s_globalTracer.logDatastreamOut(_data);
@@ -201,7 +199,8 @@ public class Tracer {
      * Instance method: Log an info message to this Tracer instance.
      * Use this on per-connection tracers created via getNew().
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public void logInfo(Object _data) {
         Trace(EventType.INFO, _data);
@@ -211,7 +210,8 @@ public class Tracer {
      * Instance method: Log a warning message to this Tracer instance.
      * Use this on per-connection tracers created via getNew().
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public void logWarn(Object _data) {
         Trace(EventType.WARN, _data);
@@ -221,7 +221,8 @@ public class Tracer {
      * Instance method: Log an error message to this Tracer instance.
      * Use this on per-connection tracers created via getNew().
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public void logErr(Object _data) {
         Trace(EventType.ERR, _data);
@@ -231,7 +232,8 @@ public class Tracer {
      * Instance method: Log incoming datastream to this Tracer instance.
      * Use this on per-connection tracers created via getNew().
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public void logDatastreamIn(Object _data) {
         Trace(EventType.DATASTREAM_IN, _data);
@@ -241,7 +243,8 @@ public class Tracer {
      * Instance method: Log outgoing datastream to this Tracer instance.
      * Use this on per-connection tracers created via getNew().
      *
-     * @param _data the data to log
+     * @param _data
+     *            the data to log
      */
     public void logDatastreamOut(Object _data) {
         Trace(EventType.DATASTREAM_OUT, _data);
@@ -293,9 +296,9 @@ public class Tracer {
     private final boolean m_isGlobal;
 
     private Tracer(boolean _isGlobal) {
-        m_connectionId = _isGlobal ? GLOBAL_CONNECTION_ID : (""+s_connectionIdGenerator.incrementAndGet());
+        m_connectionId = _isGlobal ? GLOBAL_CONNECTION_ID : ("" + s_connectionIdGenerator.incrementAndGet());
         m_isGlobal = _isGlobal;
-        m_traceLevel = _isGlobal? TraceLevel.ON :TraceLevel.INPUT_AND_ERRORS;
+        m_traceLevel = _isGlobal ? TraceLevel.ON : TraceLevel.INPUT_AND_ERRORS;
         m_dest = _isGlobal ? Dest.DEV_NULL_OR_STDERR : Dest.IN_MEM;
     }
 
@@ -377,20 +380,21 @@ public class Tracer {
         if (!_t.isLoggedAt(m_traceLevel)) {
             return this;
         }
-        if(null == _data) { 
+        if (null == _data) {
             return this;
         }
 
-        if(m_isGlobal) {
+        if (m_isGlobal) {
             final String simpleData = String.format("%s: %s", _t.name(), _data.toString());
-            if(SystemNativeUtils.isNativeLoaded()) {
-                SystemNativeUtils.writeToJobLog(s_globalTracer, simpleData);
-            }
-            if(m_dest == Dest.DEV_NULL_OR_STDERR) { 
+            if (SystemNativeUtils.isNativeLoaded()) {
+                SystemNativeUtils.writeToJobLog(simpleData);
+                return this;
+            } else if (m_dest == Dest.DEV_NULL_OR_STDERR) {
                 System.err.println(simpleData);
+                return this;
             }
         }
-        
+
         if (Dest.DEV_NULL_OR_STDERR == m_dest) {
             return this;
         }
@@ -405,10 +409,7 @@ public class Tracer {
             try {
                 m_fileWriter = new OutputStreamWriter(new FileOutputStream(getFile(), true), "UTF-8");
                 m_fileWriter.write("<html><body bgcolor=\"white\">\n\n");
-                m_fileWriter.write(
-                        new Entry(EventType.INFO,
-                                String.format("Tracing enabled to file '%s'", m_destFile.getAbsolutePath()))
-                                .asHtml());
+                m_fileWriter.write(new Entry(EventType.INFO, String.format("Tracing enabled to file '%s'", m_destFile.getAbsolutePath())).asHtml());
             } catch (Exception e) {
                 e.printStackTrace();
                 m_dest = Dest.IN_MEM;

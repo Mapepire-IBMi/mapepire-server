@@ -201,7 +201,6 @@ public class MapepireServer {
             Tracer.globalErr(e);
         }
         Tracer.globalWarn("data stream processing completed (end of request stream?)");
-        System.err.println("bye");
         System.exit(12);
     }
 

@@ -189,8 +189,7 @@ public class DataStreamProcessor implements Runnable {
         try {
             m_conn.getJdbcConnection().close();
         } catch (SQLException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            m_conn.getTracer().logErr(e);
         }
     }
 
