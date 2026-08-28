@@ -13,3 +13,5 @@ src/main/java/com/github/ibm/mapepire/Version.java
 *.log
 *.class
 src/main/java/com/github/ibm/mapepire/Version.java
+*.trc
+*.txt
