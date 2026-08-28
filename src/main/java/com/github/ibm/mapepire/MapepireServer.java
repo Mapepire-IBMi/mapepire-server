@@ -55,7 +55,7 @@ public class MapepireServer {
         }
 
         try {
-
+            SystemNativeUtils.printfToJobLog( "Mapepire starting...");
             if (args.remove("--single")) {
                 s_isSingleMode = true;
                 // Make sure we can process our security rules file, if it exists
