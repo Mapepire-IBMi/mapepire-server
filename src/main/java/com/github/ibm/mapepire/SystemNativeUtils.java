@@ -35,4 +35,8 @@ public class SystemNativeUtils {
         return s_isNativeLoaded ? getPid0() : -1L;
     }
 
+    public static boolean isNativeLoaded() {
+        return s_isNativeLoaded;
+    }
+
 }

@@ -383,7 +383,9 @@ public class Tracer {
 
         if(m_isGlobal) {
             final String simpleData = String.format("%s: %s", _t.name(), _data.toString());
-            SystemNativeUtils.writeToJobLog(s_globalTracer, simpleData);
+            if(SystemNativeUtils.isNativeLoaded()) {
+                SystemNativeUtils.writeToJobLog(s_globalTracer, simpleData);
+            }
             if(m_dest == Dest.DEV_NULL_OR_STDERR) { 
                 System.err.println(simpleData);
             }
