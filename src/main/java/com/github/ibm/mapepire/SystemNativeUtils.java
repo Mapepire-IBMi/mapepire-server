@@ -17,6 +17,7 @@ public class SystemNativeUtils {
             boolean isNativeLoaded = false;
             try {
                 System.load(System.getProperty("mapepire.natives", DEFAULT_NATIVE_PATH));
+                System.err.println("INFO: Job logging facilities loaded");
                 isNativeLoaded = true;
             } catch (Throwable _t) {
                 _t.printStackTrace();
