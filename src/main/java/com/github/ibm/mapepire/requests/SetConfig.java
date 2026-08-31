@@ -3,6 +3,7 @@ package com.github.ibm.mapepire.requests;
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
+import com.github.ibm.mapepire.Tracer;
 import com.github.ibm.mapepire.Tracer.Dest;
 import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.google.gson.JsonElement;
@@ -25,6 +26,9 @@ public class SetConfig extends ClientRequest {
                     throw new RuntimeException("Invalid trace destination specified: " + traceDest);
                 }
                 getConnection().getTracer().setDest(newDest);
+                String logString = String.format("Connection id %s (%s) logging to %s",
+                    getConnectionId(), ""+getConnection().getCSRs(), getConnection().getTracer().getDestString());
+                Tracer.getGlobalTracer().logInfo(logString);
             }
         }
         {

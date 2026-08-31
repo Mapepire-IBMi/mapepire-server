@@ -217,4 +217,7 @@ public class SystemConnection {
     public String getConnectionId() {
         return getTracer().getConnectionId();
     }
+    public ClientSpecialRegisters getCSRs() {
+        return m_clientRegs;
+    }
 }

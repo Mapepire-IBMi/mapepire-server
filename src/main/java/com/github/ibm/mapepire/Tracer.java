@@ -16,6 +16,8 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import com.ibm.as400.access.Trace;
+import com.ibm.ibmi_util.SystemNativeUtils;
 
 public class Tracer {
     public enum Dest {
@@ -439,5 +441,30 @@ public class Tracer {
 
     public static Tracer getGlobalTracer() {
         return s_globalTracer;
+    }
+
+    public static String getJtOpenStatusString() {
+        //@formatter:off
+        final String components = String.format("CONVERSION:%B,DATASTREAM:%B,DIAGNOSTIC:%B,ERROR:%B,INFO:%B,PCML:%B,PROXY:%B,THREAD:%B", 
+                Trace.isTraceConversionOn(),
+                Trace.isTraceDatastreamOn(),
+                Trace.isTraceDiagnosticOn(),
+                Trace.isTraceErrorOn(),
+                Trace.isTraceInformationOn(),
+                Trace.isTracePCMLOn(),
+                Trace.isTraceProxyOn(),
+                Trace.isTraceThreadOn()
+            );
+        String ret = String.format("Java Toolbox tracing status: %B\n"+
+        "Java Toolbox JDBC tracing status: %B\n"+
+        "Java toolbox tracing file: %s\n"+
+        "Java Toolbox Components status: %s", 
+                Trace.isTraceOn(),
+                Trace.isTraceJDBCOn(),
+                ""+Trace.getFileName(),
+                components
+        );
+        //@formatter:on
+        return ret;
     }
 }

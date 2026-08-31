@@ -32,6 +32,8 @@ import com.github.ibm.mapepire.http.VersionServlet;
 import com.github.ibm.mapepire.ws.DbSocketCreator;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
+import com.ibm.ibmi_util.SystemNativeUtils;
+import com.ibm.ibmi_util.SystemNativeUtils.JobLogEnabling;
 
 public class MapepireServer {
     private static Server server;
@@ -55,7 +57,11 @@ public class MapepireServer {
         }
 
         try {
-            SystemNativeUtils.printfToJobLog( "Mapepire starting...");
+            SystemNativeUtils.swapUser();
+            SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
+            SystemNativeUtils.writeToJobLog( "Mapepire starting...");
+            SystemNativeUtils.writeToJobLog(Tracer.getJtOpenStatusString());
+
             if (args.remove("--single")) {
                 s_isSingleMode = true;
                 // Make sure we can process our security rules file, if it exists
