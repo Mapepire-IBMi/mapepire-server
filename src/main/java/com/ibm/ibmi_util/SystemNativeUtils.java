@@ -42,7 +42,7 @@ public class SystemNativeUtils {
     public static void writeToJobLog(final String _msg) {
         if (s_isNativeLoaded) {
             try {
-                writeToJobLog0(_msg.replace("\r", "").trim());
+                writeToJobLog0(_msg.replace("\r", "").trim()+"\n");
             } catch (final IOException e) {
                 // the best we can do...
                 e.printStackTrace();
