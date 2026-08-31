@@ -443,6 +443,24 @@ public class Tracer {
         return s_globalTracer;
     }
 
+    public static String getJtOpenComponentStatusString() {
+        //@formatter:off
+        final String components = String.format("CONVERSION:%B,DATASTREAM:%B,DIAGNOSTIC:%B,ERROR:%B,INFO:%B,PCML:%B,PROXY:%B,THREAD:%B", 
+                Trace.isTraceConversionOn(),
+                Trace.isTraceDatastreamOn(),
+                Trace.isTraceDiagnosticOn(),
+                Trace.isTraceErrorOn(),
+                Trace.isTraceInformationOn(),
+                Trace.isTracePCMLOn(),
+                Trace.isTraceProxyOn(),
+                Trace.isTraceThreadOn()
+            );
+        String ret = String.format(
+        "Java Toolbox Components status: %s", 
+                components);
+        //@formatter:on
+        return ret;
+    }
     public static String getJtOpenStatusString() {
         //@formatter:off
         final String components = String.format("CONVERSION:%B,DATASTREAM:%B,DIAGNOSTIC:%B,ERROR:%B,INFO:%B,PCML:%B,PROXY:%B,THREAD:%B", 
@@ -455,16 +473,15 @@ public class Tracer {
                 Trace.isTraceProxyOn(),
                 Trace.isTraceThreadOn()
             );
-        String ret = String.format("Java Toolbox tracing status: %B\n"+
-        "Java Toolbox JDBC tracing status: %B\n"+
-        "Java toolbox tracing file: %s\n"+
-        "Java Toolbox Components status: %s", 
+        String ret = String.format("Java Toolbox tracing: %B,\n"+
+        "Java Toolbox JDBC tracing: %B",
                 Trace.isTraceOn(),
-                Trace.isTraceJDBCOn(),
-                ""+Trace.getFileName(),
-                components
-        );
+                Trace.isTraceJDBCOn()
+                );
         //@formatter:on
         return ret;
+    }
+    public static String getJtOpenFileString() {
+        return "Java toolbox trace file: "+Trace.getFileName();
     }
 }

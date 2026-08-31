@@ -61,6 +61,8 @@ public class MapepireServer {
             SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
             SystemNativeUtils.writeToJobLog( "Mapepire starting...");
             SystemNativeUtils.writeToJobLog(Tracer.getJtOpenStatusString());
+            SystemNativeUtils.writeToJobLog(Tracer.getJtOpenComponentStatusString());
+            SystemNativeUtils.writeToJobLog(Tracer.getJtOpenFileString());
 
             if (args.remove("--single")) {
                 s_isSingleMode = true;
