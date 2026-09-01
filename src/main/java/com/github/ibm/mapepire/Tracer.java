@@ -434,7 +434,7 @@ public class Tracer {
         String dateStr = getDateFormatter().format(new Date());
         String filePrefix = String.format("vscode-%s-%s-", dateStr, s_pseudoPid);
 
-        File logDir = new File("/QOpenSys/QIBM/UserData/AI/mapepire/logs");
+        File logDir = new File("/QOpenSys/QIBM/UserData/AI/db_server/logs");
         final File ret;
         if (logDir.isDirectory() && logDir.canWrite()) {
             ret = File.createTempFile(filePrefix, ".html", logDir);
