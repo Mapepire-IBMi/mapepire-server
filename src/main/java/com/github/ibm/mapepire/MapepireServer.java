@@ -1,6 +1,12 @@
 package com.github.ibm.mapepire;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.io.PrintStream;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -63,6 +69,30 @@ public class MapepireServer {
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenComponentStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenFileString());
+            if(SystemNativeUtils.isNativeLoaded()) {
+                final PipedInputStream pipeIn = new PipedInputStream();
+                final PipedOutputStream pipeOut = new PipedOutputStream(pipeIn);
+                final PrintStream origErr = System.err;
+                System.setErr(new PrintStream(pipeOut));
+                new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                        BufferedReader isr = new BufferedReader(new InputStreamReader(pipeIn));
+                        String line=null;
+                            while(null != (line = isr.readLine())) {
+                                origErr.println(line);
+                                Tracer.getGlobalTracer().logInfo(line);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.setErr(origErr);
+                        }
+                    }
+                    
+                }, "StdErrLoggerMain").start();
+            }
 
             if (args.remove("--single")) {
                 s_isSingleMode = true;
