@@ -434,8 +434,14 @@ public class Tracer {
         }
         String dateStr = getDateFormatter().format(new Date());
         String filePrefix = String.format("vscode-%s-%s-", dateStr, s_pseudoPid);
-        File ret = m_destFile = File.createTempFile(filePrefix, ".html");
-        ret.createNewFile();
+
+        File logDir = new File("/QOpenSys/QIBM/UserData/AI/mapepire/logs");
+        final File ret;
+        if (logDir.isDirectory() && logDir.canWrite()) {
+            ret = File.createTempFile(filePrefix, ".html", logDir);
+        } else {
+            ret = File.createTempFile(filePrefix, ".html");
+        }
         return m_destFile = ret;
     }
 
@@ -461,6 +467,7 @@ public class Tracer {
         //@formatter:on
         return ret;
     }
+
     public static String getJtOpenStatusString() {
         //@formatter:off
         final String components = String.format("CONVERSION:%B,DATASTREAM:%B,DIAGNOSTIC:%B,ERROR:%B,INFO:%B,PCML:%B,PROXY:%B,THREAD:%B", 
@@ -481,7 +488,8 @@ public class Tracer {
         //@formatter:on
         return ret;
     }
+
     public static String getJtOpenFileString() {
-        return "Java toolbox trace file: "+Trace.getFileName();
+        return "Java toolbox trace file: " + Trace.getFileName();
     }
 }
