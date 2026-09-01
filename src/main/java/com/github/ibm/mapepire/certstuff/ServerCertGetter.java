@@ -44,7 +44,7 @@ public class ServerCertGetter {
     private final File m_userCertFile;
 
     public ServerCertGetter() {
-        final File userHomeDir = new File(System.getProperty("user.home"));
+        final File userHomeDir = new File(System.getProperty("user.home")); //TODO: handle user swaps
         final File dotDir = new File(userHomeDir, ".mapepire");
         dotDir.mkdirs();
         m_letsEncrypt = ServerCertLetsEncrypt.get(findLetsEncryptCertDir());
@@ -86,14 +86,14 @@ public class ServerCertGetter {
     }
 
     public ServerCertInfo get() throws IOException, InterruptedException {
-        if (m_userCertFile.isFile()) {
+        if (m_userCertFile.isFile() && m_userCertFile.canRead()) {
             Tracer.globalInfo("Reusing user-defined server certificate in " + m_userCertFile.getAbsolutePath());
             return new ServerCertJKS(m_userCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(),
                     StoreDefaults.getAlias());
         } else if (null != m_letsEncrypt) {
             Tracer.globalInfo("Using LetsEncrypt certificate file " + m_letsEncrypt.getKeyStoreFile().getAbsolutePath());
             return m_letsEncrypt;
-        } else if (m_defaultCertFile.isFile()) {
+        } else if (m_defaultCertFile.isFile() && m_defaultCertFile.canRead()) {
             Tracer.globalInfo("Reusing previously-generated default certificate in " + m_defaultCertFile.getAbsolutePath());
             return new ServerCertJKS(m_defaultCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(),
                     StoreDefaults.getAlias());

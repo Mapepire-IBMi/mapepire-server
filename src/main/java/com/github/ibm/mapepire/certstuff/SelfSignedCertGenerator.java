@@ -43,10 +43,10 @@ public class SelfSignedCertGenerator {
                 "3654"
         };
 
-        final Process p = Runtime.getRuntime().exec(cmdArray);
+        final Process p = Runtime.getRuntime().exec(cmdArray, null, new File("/tmp"));
 
-        final Thread stdoutLogger = new StreamLogger(p.getInputStream(), false);
-        final Thread stderrLogger = new StreamLogger(p.getErrorStream(), true);
+        final StreamLogger stdoutLogger = new StreamLogger(p.getInputStream(), false);
+        final StreamLogger stderrLogger = new StreamLogger(p.getErrorStream(), true);
         stderrLogger.start();
         stdoutLogger.start();
 
@@ -72,6 +72,7 @@ public class SelfSignedCertGenerator {
                         while (null != (line = reader.readLine())) {
                             if (_isError) {
                                 Tracer.globalWarn(line);
+
                             } else {
                                 Tracer.globalInfo(line);
                             }

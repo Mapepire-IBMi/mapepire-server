@@ -55,7 +55,7 @@ public class ServerCertPEM implements ServerCertInfo {
         };
         String[] env = new String[] { "QIBM_USE_DESCRIPTOR_STDIO=Y" }; // no idea why this is needed, but without it,
                                                                        // openssl fails with a -1 return code
-        Process p = Runtime.getRuntime().exec(cmd, env);
+        Process p = Runtime.getRuntime().exec(cmd, env, new File("/tmp"));
         try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
             String line = null;
             while (null != (line = br.readLine())) {
