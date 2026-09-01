@@ -439,6 +439,14 @@ public class Tracer {
         final File ret;
         if (logDir.isDirectory() && logDir.canWrite()) {
             ret = File.createTempFile(filePrefix, ".html", logDir);
+        } else if ("QUSER".equalsIgnoreCase(System.getProperty("user.name"))) {
+            logDir.mkdirs();
+            Process p = Runtime.getRuntime().exec(new String[] { "/QOpenSys/usr/bin/chmod", "600", logDir.getAbsolutePath() });
+            if (0 == p.exitValue()) {
+                ret = File.createTempFile(filePrefix, ".html", logDir);
+            } else {
+                ret = File.createTempFile(filePrefix, ".html");
+            }
         } else {
             ret = File.createTempFile(filePrefix, ".html");
         }
