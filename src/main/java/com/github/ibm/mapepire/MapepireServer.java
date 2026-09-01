@@ -57,12 +57,13 @@ public class MapepireServer {
         }
 
         try {
-            SystemNativeUtils.swapUser();
+            String userProfile = SystemNativeUtils.swapUser();
             SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
-            SystemNativeUtils.writeToJobLog( "Mapepire starting...");
-            SystemNativeUtils.writeToJobLog(Tracer.getJtOpenStatusString());
-            SystemNativeUtils.writeToJobLog(Tracer.getJtOpenComponentStatusString());
-            SystemNativeUtils.writeToJobLog(Tracer.getJtOpenFileString());
+            Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
+            Tracer.getGlobalTracer().logInfo( "Mapepire starting...");
+            Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenStatusString());
+            Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenComponentStatusString());
+            Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenFileString());
 
             if (args.remove("--single")) {
                 s_isSingleMode = true;

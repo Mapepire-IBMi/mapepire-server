@@ -42,7 +42,7 @@ public class SystemNativeUtils {
     public static void writeToJobLog(final String _msg) {
         if (s_isNativeLoaded) {
             try {
-                writeToJobLog0(_msg.replace("\r", "").trim()+"\n");
+                writeToJobLog0(_msg.replace("\r", "").trim() + "\n");
             } catch (final IOException e) {
                 // the best we can do...
                 e.printStackTrace();
@@ -51,6 +51,7 @@ public class SystemNativeUtils {
             System.err.println("Unpublished job log message: " + _msg);
         }
     }
+
     public static void printfToJobLog(final String _fmt, final Object... _repldata) {
         writeToJobLog(String.format(_fmt, _repldata));
     }
@@ -71,6 +72,19 @@ public class SystemNativeUtils {
 
     private static native int swapUser0();
 
+    private static native String getCurrentUserProfile0();
+
+    public static String getCurrentUserProfileOrNull() {
+        if (!s_isNativeLoaded) {
+            return null;
+        }
+        String ret = getCurrentUserProfile0();
+        if (null != ret) {
+            ret = ret.trim();
+        }
+        return ret;
+    }
+
     public static void enableJobLogging(final JobLogEnabling _jle) throws IOException {
         if (!s_isNativeLoaded) {
             return;
@@ -81,15 +95,20 @@ public class SystemNativeUtils {
         }
     }
 
-    public static void swapUser() throws IOException {
+    public static String swapUser() throws IOException {
         if (!s_isNativeLoaded) {
-            return;
+            return System.getProperty("user.name");
         }
 
         final int rc = swapUser0();
         if (0 != rc) {
             throw new IOException("Unable to swap job user. rc=" + rc);
         }
+        String userProfile = getCurrentUserProfileOrNull();
+        if (null != userProfile) {
+            System.setProperty("user.name", userProfile);
+            return userProfile;
+        }
+        return System.getProperty("user.name");
     }
-
 }
