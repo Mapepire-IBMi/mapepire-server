@@ -204,6 +204,7 @@ public class MapepireServer {
                     logger.println_warn("Server ending gracefully");
                 } catch (Throwable t) {
                     logger.exception(t);
+                    Tracer.getGlobalTracer().logErr(t);
                 }
             }
         } catch (final Exception e) {

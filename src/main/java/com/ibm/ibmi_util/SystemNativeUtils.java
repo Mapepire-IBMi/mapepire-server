@@ -74,11 +74,24 @@ public class SystemNativeUtils {
 
     private static native String getCurrentUserProfile0();
 
+    private static native String getCurrentUserHome0();
+
     public static String getCurrentUserProfileOrNull() {
         if (!s_isNativeLoaded) {
             return null;
         }
         String ret = getCurrentUserProfile0();
+        if (null != ret) {
+            ret = ret.trim();
+        }
+        return ret;
+    }
+
+    public static String getCurrentUserHomeOrNull() {
+        if (!s_isNativeLoaded) {
+            return null;
+        }
+        String ret = getCurrentUserHome0();
         if (null != ret) {
             ret = ret.trim();
         }
@@ -107,7 +120,11 @@ public class SystemNativeUtils {
         String userProfile = getCurrentUserProfileOrNull();
         if (null != userProfile) {
             System.setProperty("user.name", userProfile);
-            return userProfile;
+        }
+        String userHome = getCurrentUserHomeOrNull();
+        System.err.println("user home is now "+userHome);
+        if (null != userHome) {
+            System.setProperty("user.home", userHome);
         }
         return System.getProperty("user.name");
     }

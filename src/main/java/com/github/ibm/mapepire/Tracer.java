@@ -386,8 +386,9 @@ public class Tracer {
             return this;
         }
 
+        Entry entry = new Entry(_t, _data);
         if (m_isGlobal) {
-            final String simpleData = String.format("%s: %s", _t.name(), _data.toString());
+            final String simpleData = String.format("%s: %s", _t.name(), entry.getRawTraceString());
             if (SystemNativeUtils.isNativeLoaded()) {
                 SystemNativeUtils.writeToJobLog(simpleData);
                 return this;
@@ -400,8 +401,6 @@ public class Tracer {
         if (Dest.DEV_NULL_OR_STDERR == m_dest) {
             return this;
         }
-
-        Entry entry = new Entry(_t, _data);
 
         if (Dest.IN_MEM == m_dest) {
             m_inMem.add(entry);
@@ -441,7 +440,7 @@ public class Tracer {
             ret = File.createTempFile(filePrefix, ".html", logDir);
         } else if ("QUSER".equalsIgnoreCase(System.getProperty("user.name"))) {
             logDir.mkdirs();
-            Process p = Runtime.getRuntime().exec(new String[] { "/QOpenSys/usr/bin/chmod", "600", logDir.getAbsolutePath() });
+            Process p = Runtime.getRuntime().exec(new String[] { "/QOpenSys/usr/bin/chmod", "600", logDir.getAbsolutePath() },null, new File("/tmp"));
             if (0 == p.exitValue()) {
                 ret = File.createTempFile(filePrefix, ".html", logDir);
             } else {
