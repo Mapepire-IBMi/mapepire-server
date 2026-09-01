@@ -198,7 +198,7 @@ public class SystemConnection {
 
     private String getConnectionString() throws IOException {
         if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == this.m_connectionMethod)) {
-            return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only") ? "jdbc:default:connection" : "jdbc:db2:" + this.getAuthString();
+            return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only") ? "jdbc:default:connection" : "jdbc:db2:*LOCAL";
         }
         return "jdbc:as400:" + this.getAuthString();
     }
