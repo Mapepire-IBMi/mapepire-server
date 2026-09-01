@@ -21,7 +21,6 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.server.NativeWebSocketServletContainerInitializer;
 import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
 
-import com.github.ibm.mapepire.Tracer.Dest;
 import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;

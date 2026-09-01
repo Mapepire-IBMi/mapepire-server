@@ -122,7 +122,6 @@ public class SystemNativeUtils {
             System.setProperty("user.name", userProfile);
         }
         String userHome = getCurrentUserHomeOrNull();
-        System.err.println("user home is now "+userHome);
         if (null != userHome) {
             System.setProperty("user.home", userHome);
         }
