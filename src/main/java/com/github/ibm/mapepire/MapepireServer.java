@@ -113,8 +113,8 @@ public class MapepireServer {
                     Tracer.getGlobalTracer().logWarn("Not swapping user profile. Deploying in this manner goes against security best practices.");
                 }else{
                     String userProfile = SystemNativeUtils.swapUser();
+                    Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
                 }
-                Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
 
                 // Needed to enforce TLS capabilities when not in single mode
                 checkJavaVersion(minimumRequiredJavaVersion);
