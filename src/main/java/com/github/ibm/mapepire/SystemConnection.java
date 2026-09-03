@@ -24,6 +24,9 @@ public class SystemConnection {
     private Connection m_conn;
     private ConnectionMethod m_connectionMethod = ConnectionMethod.CLI;
     private String m_jdbcProps = "";
+    //TODO: refactor this part to use proper coding conventions
+    //TODO: document proper coding conventions for the project
+    //TODO: document the expectations around the host, username, and password fields
     private final String host;
     private final String userProfile;
     private final char[] password;
@@ -32,6 +35,10 @@ public class SystemConnection {
     private final String clientAddress;
     private final Tracer m_tracer;
 
+    /**
+     * Constructor that is only to be used when not in single mode
+     * @throws IOException
+     */
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
             throw new IOException("Improper usage");
