@@ -62,9 +62,7 @@ public class MapepireServer {
         }
 
         try {
-            String userProfile = SystemNativeUtils.swapUser();
             SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
-            Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
             Tracer.getGlobalTracer().logInfo( "Mapepire starting...");
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenComponentStatusString());
@@ -110,6 +108,9 @@ public class MapepireServer {
                 io.run();
             } else {
                 s_isSingleMode = false;
+                
+                String userProfile = SystemNativeUtils.swapUser();
+                Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
 
                 // Needed to enforce TLS capabilities when not in single mode
                 checkJavaVersion(minimumRequiredJavaVersion);
