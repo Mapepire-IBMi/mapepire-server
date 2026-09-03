@@ -109,7 +109,11 @@ public class MapepireServer {
             } else {
                 s_isSingleMode = false;
                 
-                String userProfile = SystemNativeUtils.swapUser();
+                if(Boolean.valueOf("mapepire.skipuserswap")){
+                    Tracer.getGlobalTracer().logWarn("Not swapping user profile. Deploying in this manner goes against security best practices.");
+                }else{
+                    String userProfile = SystemNativeUtils.swapUser();
+                }
                 Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
 
                 // Needed to enforce TLS capabilities when not in single mode
