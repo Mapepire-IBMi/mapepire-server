@@ -41,7 +41,7 @@ public class SystemConnection {
         this.clientAddress = clientRegs.getClientAddress();
         this.userProfile = System.getProperty("mapepire.debug.user", System.getProperty("user.name"));
         this.m_tracer = Tracer.getNew();
-        this.host = System.getProperty("mapepire.debug.host", "127.0.0.1");
+        this.host = System.getProperty("mapepire.debug.host", null);
         String debugpw = System.getProperty("mapepire.debug.pw");
         this.password = null == debugpw ? null : debugpw.toCharArray();
 
@@ -189,7 +189,7 @@ public class SystemConnection {
                 throw new IOException("Invalid Password");
             }
         }
-        if (userProfile == null || password == null) {
+        if (MapepireServer.isSingleMode() && (userProfile == null || password == null)) {
             return getHost();
         } else {
             return String.format("%s;user=%s;password=%s", getHost(), userProfile, new String(password));
