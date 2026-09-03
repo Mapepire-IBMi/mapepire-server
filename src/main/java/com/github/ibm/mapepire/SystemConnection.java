@@ -167,6 +167,7 @@ public class SystemConnection {
             }
             DriverManager.registerDriver(new AS400JDBCDriver());
             final String connectionString = getConnectionString();
+            getTracer().logInfo("Using connection string "+connectionString);
             m_conn = DriverManager.getConnection(connectionString + ";" + _jdbcProps);
             m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
