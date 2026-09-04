@@ -37,10 +37,10 @@ public class DataStreamProcessor implements Runnable {
 
     private void dispatch(final ClientRequest _req, final boolean _isForcedSynchronous) {
         if (m_isTestMode || _isForcedSynchronous || _req.isForcedSynchronous()) {
-            Tracer.info("synchronously dispatcing a request of type: " + _req.getClass().getSimpleName());
+            m_conn.getTracer().logInfo("synchronously dispatcing a request of type: " + _req.getClass().getSimpleName());
             _req.run();
         } else {
-            Tracer.info("asynchronously dispatcing a request of type: " + _req.getClass().getSimpleName());
+            m_conn.getTracer().logInfo("asynchronously dispatcing a request of type: " + _req.getClass().getSimpleName());
             new Thread(_req).start();
         }
     }
@@ -53,7 +53,7 @@ public class DataStreamProcessor implements Runnable {
                 if (StringUtils.isEmpty(requestString)) {
                     continue;
                 }
-                Tracer.datastreamIn(requestString);
+                m_conn.getTracer().logDatastreamIn(requestString);
                 if (requestString.startsWith("//")) {
                     continue;
                 }
@@ -61,7 +61,7 @@ public class DataStreamProcessor implements Runnable {
                 run(requestString);
             }
         } catch (Exception e) {
-            Tracer.err(e);
+            m_conn.getTracer().logErr(e);
             System.exit(6);
         }
     }
@@ -180,7 +180,7 @@ public class DataStreamProcessor implements Runnable {
     public void sendResponse(final String _response) throws UnsupportedEncodingException, IOException {
         synchronized (s_replyWriterLock) {
             m_out.write((_response + "\n").getBytes("UTF-8"));
-            Tracer.datastreamOut(_response);
+            m_conn.getTracer().logDatastreamOut(_response);
             m_out.flush();
         }
     }
@@ -189,8 +189,7 @@ public class DataStreamProcessor implements Runnable {
         try {
             m_conn.getJdbcConnection().close();
         } catch (SQLException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            m_conn.getTracer().logErr(e);
         }
     }
 

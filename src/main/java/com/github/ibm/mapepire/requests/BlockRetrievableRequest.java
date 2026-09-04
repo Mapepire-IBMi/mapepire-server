@@ -89,7 +89,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                             blob.free();
                             jsonValue = Base64.getEncoder().encodeToString(bytes);
                         } catch (Exception e) {
-                            Tracer.err(e);
+                            getConnection().getTracer().logErr(e);
                             jsonValue = null;
                         }
                     } else {
@@ -233,7 +233,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                             blob.free();
                             cellDataForResponse = Base64.getEncoder().encodeToString(bytes);
                         } catch (Exception e) {
-                            Tracer.err(e);
+                            _conn.getTracer().logErr(e);
                             cellDataForResponse = null;
                         }
                     } else {
@@ -287,7 +287,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             }
             return entry;
         } catch (IOException e) {
-            Tracer.err(e);
+            conn.getTracer().logErr(e);
             try { blob.free(); } catch (Exception ignored) {}
             return null;
         }
@@ -311,7 +311,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             ref.put("size", (long) bytes.length);
             return ref;
         } catch (IOException e) {
-            Tracer.err(e);
+            conn.getTracer().logErr(e);
             return null;
         }
     }

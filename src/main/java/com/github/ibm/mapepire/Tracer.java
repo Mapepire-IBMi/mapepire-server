@@ -4,31 +4,29 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
-import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.concurrent.atomic.AtomicLong;
 import com.ibm.as400.access.Trace;
+import com.ibm.ibmi_util.SystemNativeUtils;
 
+/**
+ * Diagnostic trace sink. A single global instance handles server-wide messages, and one instance per
+ * client connection (obtained from {@link #getNew()}) keeps each client's diagnostics separate from
+ * every other client's.
+ */
 public class Tracer {
     public enum Dest {
-        FILE,
-        IN_MEM
+        FILE, IN_MEM, DEV_NULL_OR_STDERR
     }
 
     public enum TraceLevel {
@@ -40,24 +38,27 @@ public class Tracer {
     }
 
     public enum EventType {
-        INFO,
-        WARN,
-        DATASTREAM_IN,
-        DATASTREAM_OUT,
-        ERR;
+        INFO, WARN, DATASTREAM_IN, DATASTREAM_OUT, ERR;
 
-        public boolean isLoggedAt(TraceLevel _l) {
-            switch (_l) {
+        /**
+         * Determine whether an event of this type is recorded at the given trace level.
+         *
+         * @param _traceLevel
+         *            the trace level in effect
+         * @return true if the event should be recorded
+         */
+        public boolean isLoggedAt(final TraceLevel _traceLevel) {
+            switch (_traceLevel) {
                 case OFF:
                     return false;
                 case ON:
-                    return this != DATASTREAM_IN && this != DATASTREAM_OUT;
+                    return DATASTREAM_IN != this && DATASTREAM_OUT != this;
                 case ERRORS:
-                    return this == ERR;
+                    return ERR == this;
                 case DATASTREAM:
                     return true;
                 case INPUT_AND_ERRORS:
-                    return this == DATASTREAM_IN || this == ERR;
+                    return DATASTREAM_IN == this || ERR == this;
                 default:
                     return false;
             }
@@ -79,13 +80,16 @@ public class Tracer {
         }
     }
 
+    /**
+     * A single traced event: its type, the moment it was traced, and the traced payload.
+     */
     public static class Entry {
         private final Object m_data;
         private final Date m_date;
         private final EventType m_type;
         private String m_html = null;
 
-        public Entry(EventType _type, Object _data) {
+        public Entry(final EventType _type, final Object _data) {
             m_date = new Date();
             m_type = _type;
             m_data = _data;
@@ -95,12 +99,23 @@ public class Tracer {
             if (null != m_html) {
                 return m_html;
             }
-            String rawTraceData = getRawTraceString();
+            final String rawTraceData = getRawTraceString();
             String ret = "\n<hr>\n";
             ret += String.format("<b>[%s]: </b><i>%s</i>\n", m_type.name(), getDateFormatter().format(m_date));
-            ret += String.format("<font color=\"%s\">\n<blockquote>\n<pre>\n%s\n</pre>\n</blockquote>\n</font>",
-                    m_type.getHtmlColor(), rawTraceData);
+            ret += String.format("<font color=\"%s\">\n<blockquote>\n<pre>\n%s\n</pre>\n</blockquote>\n</font>", m_type.getHtmlColor(), rawTraceData);
             return m_html = ret;
+        }
+
+        public EventType getEventType() {
+            return m_type;
+        }
+
+        public String getFormattedDate() {
+            return getDateFormatter().format(m_date);
+        }
+
+        public String getDataAsString() {
+            return getRawTraceString();
         }
 
         private String getRawTraceString() {
@@ -112,41 +127,149 @@ public class Tracer {
         }
     }
 
-    private static Tracer s_instance = new Tracer();
-    private static String s_pseudoPid = ("" + Math.random()).replace(".", "").replace("0", "");
+    /**
+     * A bounded, insertion-ordered buffer that discards its oldest element once it is full.
+     *
+     * @param <T>
+     *            the type of element held in the cache
+     */
+    public static class InMemCache<T> {
+        private final AtomicInteger m_ctr = new AtomicInteger(0);
+        private final int m_capacity;
+        private final LinkedHashMap<Integer, T> m_data;
+
+        public InMemCache(final int _capacity) {
+            m_capacity = _capacity;
+            m_data = new LinkedHashMap<Integer, T>() {
+                @Override
+                protected boolean removeEldestEntry(final java.util.Map.Entry<Integer, T> _eldest) {
+                    return m_capacity < size();
+                }
+            };
+        }
+
+        public void add(final T _data) {
+            m_data.put(m_ctr.incrementAndGet(), _data);
+        }
+
+        public Collection<T> getEntries() {
+            return m_data.values();
+        }
+    }
+
+    private static final String GLOBAL_CONNECTION_ID = "global";
+
+    // Stands in for a process id, which Java 8 cannot obtain portably. Every trace file written by a
+    // single server run shares this value, so one run's files can be picked out from the log directory.
+    private static final String PSEUDO_PID = ("" + Math.random()).replace(".", "").replace("0", "");
+
+    // The global tracer is explicitly protected (that is, there's no static "getter" for it)
+    // as we don't want to expose full control of the global tracer.
+    private static final Tracer s_globalTracer = new Tracer(true);
+
+    private static final AtomicLong s_connectionIdGenerator = new AtomicLong(0);
 
     private static DateFormat s_dateFormatter = null;
 
-    public static String exceptionToStackTrace(Throwable m_data) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream stringStream = new PrintStream(baos, false);
-        ((Throwable) m_data).printStackTrace(stringStream);
+    public static String exceptionToStackTrace(final Throwable _throwable) {
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final PrintStream stringStream = new PrintStream(baos, false);
+        _throwable.printStackTrace(stringStream);
         stringStream.close();
         return new String(baos.toByteArray());
     }
 
-    public static Tracer get() {
-        return s_instance;
+    /**
+     * Create a new Tracer instance for per-connection tracing in daemon mode.
+     * This ensures trace isolation between different client connections.
+     *
+     * @return a new Tracer instance configured for this connection
+     */
+    public static Tracer getNew() {
+        return new Tracer(false);
     }
 
-    public static void info(Object _data) {
-        get().Trace(EventType.INFO, _data);
+    /**
+     * Log an info message to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call info() on it.
+     *
+     * @param _data
+     *            the data to log
+     */
+    public static void globalInfo(final Object _data) {
+        s_globalTracer.logInfo(_data);
     }
 
-    public static void warn(Object _data) {
-        get().Trace(EventType.WARN, _data);
+    /**
+     * Log a warning message to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call warn() on it.
+     *
+     * @param _data
+     *            the data to log
+     */
+    public static void globalWarn(final Object _data) {
+        s_globalTracer.logWarn(_data);
     }
 
-    public static void err(Object _data) {
-        get().Trace(EventType.ERR, _data);
+    /**
+     * Log an error message to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call err() on it.
+     *
+     * @param _data
+     *            the data to log
+     */
+    public static void globalErr(final Object _data) {
+        s_globalTracer.logErr(_data);
     }
 
-    public static void datastreamIn(Object _data) {
-        get().Trace(EventType.DATASTREAM_IN, _data);
+    /**
+     * Log incoming datastream to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call datastreamIn() on it.
+     *
+     * @param _data
+     *            the data to log
+     */
+    public static void globalDatastreamIn(final Object _data) {
+        s_globalTracer.logDatastreamIn(_data);
     }
 
-    public static void datastreamOut(Object _data) {
-        get().Trace(EventType.DATASTREAM_OUT, _data);
+    /**
+     * Log outgoing datastream to the global tracer (static method for backward compatibility).
+     * For per-connection logging, create a Tracer instance via getNew() and call datastreamOut() on it.
+     *
+     * @param _data
+     *            the data to log
+     */
+    public static void globalDatastreamOut(final Object _data) {
+        s_globalTracer.logDatastreamOut(_data);
+    }
+
+    public static Tracer getGlobalTracer() {
+        return s_globalTracer;
+    }
+
+    public static String getJtOpenComponentStatusString() {
+        //@formatter:off
+        final String components = String.format("CONVERSION:%B,DATASTREAM:%B,DIAGNOSTIC:%B,ERROR:%B,INFO:%B,PCML:%B,PROXY:%B,THREAD:%B",
+                Trace.isTraceConversionOn(),
+                Trace.isTraceDatastreamOn(),
+                Trace.isTraceDiagnosticOn(),
+                Trace.isTraceErrorOn(),
+                Trace.isTraceInformationOn(),
+                Trace.isTracePCMLOn(),
+                Trace.isTraceProxyOn(),
+                Trace.isTraceThreadOn()
+            );
+        //@formatter:on
+        return String.format("Java Toolbox Components status: %s", components);
+    }
+
+    public static String getJtOpenStatusString() {
+        return String.format("Java Toolbox tracing: %B,\nJava Toolbox JDBC tracing: %B", Trace.isTraceOn(), Trace.isTraceJDBCOn());
+    }
+
+    public static String getJtOpenFileString() {
+        return "Java toolbox trace file: " + Trace.getFileName();
     }
 
     private static DateFormat getDateFormatter() {
@@ -156,141 +279,105 @@ public class Tracer {
         return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss.SSS");
     }
 
-    private static class InMemCache<T> {
-        private final AtomicInteger m_ctr = new AtomicInteger(0);
-        private final int m_capacity;
-        private final LinkedHashMap<Integer, T> m_data;
+    private final InMemCache<Entry> m_inMem = new InMemCache<Entry>(100);
 
-        public InMemCache(int _capacity) {
-            m_capacity = _capacity;
-            m_data = new LinkedHashMap<Integer, T>() {
-                @Override
-                protected boolean removeEldestEntry(java.util.Map.Entry<Integer, T> eldest) {
-                    return m_capacity < size();
-                }
-            };
-        }
+    private final String m_connectionId;
 
-        public void add(T _data) {
-            m_data.put(m_ctr.incrementAndGet(), _data);
-        }
-
-        public Collection<T> getEntries() {
-            return m_data.values();
-        }
-    }
-
-    private InMemCache<Entry> m_inMem = new InMemCache<Entry>(100);
-
-    private InMemCache<String> m_jtOpenInMem = new InMemCache<String>(16 * 1024);
+    private final boolean m_isGlobal;
 
     private Dest m_dest = Dest.IN_MEM;
 
     private OutputStreamWriter m_fileWriter = null;
-    private PrintWriter m_jtOpenFileWriter = null;
 
     private File m_destFile = null;
-    private File m_jtOpenDestFile = null;
 
-    private TraceLevel m_traceLevel = TraceLevel.INPUT_AND_ERRORS;
-    private TraceLevel m_jtOpenTraceLevel = TraceLevel.OFF;
-    private Dest m_jtopenDest = Dest.IN_MEM;
+    private TraceLevel m_traceLevel;
 
-    private Tracer() {
-        PrintWriter jt400PrintWriter = new PrintWriter(new Writer() {
-            @Override
-            public void write(char[] _cbuf, int _off, int _len) throws IOException {
-                String data = new String(_cbuf, _off, _len);
-                if (Dest.IN_MEM == m_jtopenDest) {
-                    m_jtOpenInMem.add(data);
-                    return;
-                }
-                if (null == m_jtOpenFileWriter) {
-                    try {
-                        m_jtOpenFileWriter = new PrintWriter(getJtOpenFile(), "UTF-8");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        m_jtopenDest = Dest.IN_MEM;
-                        m_jtOpenInMem.add(data);
-                    }
-                }
-                m_jtOpenFileWriter.write(data);
-                if (data.contains("\n")) {
-                    m_jtOpenFileWriter.flush();
-                }
-            }
-
-            @Override
-            public void flush() throws IOException {
-                if (null != m_jtOpenFileWriter) {
-                    m_jtOpenFileWriter.flush();
-                }
-            }
-
-            @Override
-            public void close() throws IOException {
-                if (null != m_jtOpenFileWriter) {
-                    m_jtOpenFileWriter.close();
-                    m_jtOpenFileWriter = null;
-                }
-            }
-        });
-        try {
-            Trace.setPrintWriter(jt400PrintWriter);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private Tracer(final boolean _isGlobal) {
+        m_connectionId = _isGlobal ? GLOBAL_CONNECTION_ID : ("" + s_connectionIdGenerator.incrementAndGet());
+        m_isGlobal = _isGlobal;
+        m_traceLevel = _isGlobal ? TraceLevel.ON : TraceLevel.INPUT_AND_ERRORS;
+        m_dest = _isGlobal ? Dest.DEV_NULL_OR_STDERR : Dest.IN_MEM;
     }
 
-    public Tracer setTraceLevel(TraceLevel _l) {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
-        m_traceLevel = _l;
+    /**
+     * Instance method: Log an info message to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data
+     *            the data to log
+     */
+    public void logInfo(final Object _data) {
+        trace(EventType.INFO, _data);
+    }
+
+    /**
+     * Instance method: Log a warning message to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data
+     *            the data to log
+     */
+    public void logWarn(final Object _data) {
+        trace(EventType.WARN, _data);
+    }
+
+    /**
+     * Instance method: Log an error message to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data
+     *            the data to log
+     */
+    public void logErr(final Object _data) {
+        trace(EventType.ERR, _data);
+    }
+
+    /**
+     * Instance method: Log incoming datastream to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data
+     *            the data to log
+     */
+    public void logDatastreamIn(final Object _data) {
+        trace(EventType.DATASTREAM_IN, _data);
+    }
+
+    /**
+     * Instance method: Log outgoing datastream to this Tracer instance.
+     * Use this on per-connection tracers created via getNew().
+     *
+     * @param _data
+     *            the data to log
+     */
+    public void logDatastreamOut(final Object _data) {
+        trace(EventType.DATASTREAM_OUT, _data);
+    }
+
+    /**
+     * Get the current connection ID for this Tracer instance.
+     *
+     * @return the connection ID, or null if this is the global tracer
+     */
+    public String getConnectionId() {
+        return m_connectionId;
+    }
+
+    public Tracer setTraceLevel(final TraceLevel _traceLevel) {
+        m_traceLevel = _traceLevel;
         return this;
     }
 
-    public Tracer setJtOpenTraceLevel(TraceLevel _l) {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
-        switch (_l) {
-            case OFF:
-                Trace.setTraceOn(false);
-                Trace.setTraceAllOn(false);
-                Trace.setTraceDatastreamOn(false);
-                break;
-            case ON:
-                Trace.setTraceOn(true);
-                Trace.setTraceAllOn(true);
-                Trace.setTraceDatastreamOn(false);
-                break;
-            case DATASTREAM:
-                Trace.setTraceOn(true);
-                Trace.setTraceAllOn(true);
-                Trace.setTraceDatastreamOn(true);
-                break;
-            case ERRORS:
-                Trace.setTraceOn(true);
-                Trace.setTraceAllOn(false);
-                Trace.setTraceErrorOn(true);
-                break;
-        }
-        return this;
-    }
-
-    public Tracer setDest(Dest _dest) {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
-        if (m_dest == _dest) {
+    public Tracer setDest(final Dest _dest) {
+        if (_dest == m_dest) {
             return this;
         }
         if (Dest.FILE == m_dest && null != m_fileWriter) {
             try {
                 m_fileWriter.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (final IOException _e) {
+                _e.printStackTrace();
             }
             m_fileWriter = null;
         }
@@ -298,43 +385,20 @@ public class Tracer {
         return this;
     }
 
-    public Tracer setJtOpenDest(Dest _dest) throws FileNotFoundException, UnsupportedEncodingException, IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return this;
-        }
-        if (m_jtopenDest == _dest) {
-            return this;
-        }
-        if (Dest.FILE == m_dest && null != m_jtOpenFileWriter) {
-            m_jtOpenFileWriter.flush();
-            m_jtOpenFileWriter.close();
-            m_jtOpenFileWriter = null;
-        }
-        m_jtopenDest = _dest;
-        return this;
-    }
-
-    public String getDestString() throws IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return "unknown";
-        }
+    /**
+     * Describe where this tracer is currently writing.
+     *
+     * @return the absolute path of the trace file when tracing to disk, otherwise a symbolic name for
+     *         the destination
+     * @throws IOException
+     *             if the trace file has not yet been created and cannot be created now
+     * @throws InterruptedException
+     *             if interrupted while securing the trace directory
+     */
+    public String getDestString() throws IOException, InterruptedException {
         switch (m_dest) {
             case FILE:
                 return getFile().getAbsolutePath();
-            case IN_MEM:
-                return "IN_MEM";
-            default:
-                return "unknown";
-        }
-    }
-
-    public String getJtOpenDestString() throws IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return "unknown";
-        }
-        switch (m_dest) {
-            case FILE:
-                return getJtOpenFile().getAbsolutePath();
             case IN_MEM:
                 return "IN_MEM";
             default:
@@ -346,26 +410,27 @@ public class Tracer {
         return m_traceLevel;
     }
 
-    public TraceLevel getJtOpenTraceLevel() {
-        return m_jtOpenTraceLevel;
-    }
-
-    public StringBuffer getRawData() throws IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return new StringBuffer("<prohibited>");
-        }
-        StringBuffer buf = new StringBuffer();
+    /**
+     * Collect everything this tracer has recorded, from memory or from the trace file as appropriate.
+     *
+     * @return a complete HTML document containing the trace entries
+     * @throws IOException
+     *             if the trace file cannot be created or read
+     * @throws InterruptedException
+     *             if interrupted while securing the trace directory
+     */
+    public StringBuffer getRawData() throws IOException, InterruptedException {
+        final StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_dest) {
             buf.append("<html><body bgcolor=\"white\">\n\n");
             synchronized (m_inMem) {
-                for (Entry l : m_inMem.getEntries()) {
-                    buf.append(l.asHtml());
+                for (final Entry entry : m_inMem.getEntries()) {
+                    buf.append(entry.asHtml());
                     buf.append("\n");
                 }
             }
         } else {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(getFile()), "UTF-8"))) {
+            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(getFile()), "UTF-8"))) {
                 String lineString = null;
                 while (null != (lineString = reader.readLine())) {
                     buf.append(lineString);
@@ -377,100 +442,82 @@ public class Tracer {
         return buf;
     }
 
-    public StringBuffer getJtOpenRawData() throws UnsupportedEncodingException, FileNotFoundException, IOException {
-        if(!MapepireServer.isSingleMode()) {
-            return new StringBuffer("<prohibited>");
-        }
-        StringBuffer buf = new StringBuffer();
-        if (Dest.IN_MEM == m_jtopenDest) {
-            synchronized (m_jtOpenInMem) {
-                for (String l : m_jtOpenInMem.getEntries()) {
-                    buf.append(l);
-                }
-            }
-        } else {
-            Trace.getPrintWriter().flush();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(getJtOpenFile()), "UTF-8"))) {
-                String lineString = null;
-                while (null != (lineString = reader.readLine())) {
-                    buf.append(lineString);
-                    buf.append("\r\n");
-                }
-            }
-        }
-        return buf;
-    }
-
-    private Tracer Trace(EventType _t, Object _data) {
+    private Tracer trace(final EventType _type, final Object _data) {
         // TODO: audit fallback cases with use of printStackTrace() throughout
         if ((_data instanceof Throwable) && !System.getProperty("os.name", "").contains("400")) {
             ((Throwable) _data).printStackTrace();
         }
-        if (!_t.isLoggedAt(m_traceLevel)) {
+        if (!_type.isLoggedAt(m_traceLevel)) {
             return this;
         }
+        if (null == _data) {
+            return this;
+        }
+
+        final Entry entry = new Entry(_type, _data);
+        if (m_isGlobal) {
+            final String simpleData = String.format("%s: %s", _type.name(), entry.getRawTraceString());
+            if (SystemNativeUtils.isNativeLoaded()) {
+                SystemNativeUtils.writeToJobLog(simpleData);
+                return this;
+            } else if (Dest.DEV_NULL_OR_STDERR == m_dest) {
+                System.err.println(simpleData);
+                return this;
+            }
+        }
+
+        if (Dest.DEV_NULL_OR_STDERR == m_dest) {
+            return this;
+        }
+
         if (Dest.IN_MEM == m_dest) {
-            m_inMem.add(new Entry(_t, _data));
+            m_inMem.add(entry);
             return this;
         }
         if (null == m_fileWriter) {
             try {
                 m_fileWriter = new OutputStreamWriter(new FileOutputStream(getFile(), true), "UTF-8");
                 m_fileWriter.write("<html><body bgcolor=\"white\">\n\n");
-                m_fileWriter.write(
-                        new Entry(EventType.INFO,
-                                String.format("Tracing enabled to file '%s'", m_destFile.getAbsolutePath()))
-                                .asHtml());
-            } catch (Exception e) {
-                e.printStackTrace();
+                m_fileWriter.write(new Entry(EventType.INFO, String.format("Tracing enabled to file '%s'", m_destFile.getAbsolutePath())).asHtml());
+            } catch (final Exception _e) {
+                _e.printStackTrace();
                 m_dest = Dest.IN_MEM;
-                m_inMem.add(new Entry(_t, _data));
+                m_inMem.add(new Entry(_type, _data));
                 return this;
             }
         }
         try {
-            m_fileWriter.write(new Entry(_t, _data).asHtml());
+            m_fileWriter.write(new Entry(_type, _data).asHtml());
             m_fileWriter.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (final IOException _e) {
+            _e.printStackTrace();
         }
         return this;
     }
 
-    private File getFile() throws IOException {
+    private synchronized File getFile() throws IOException, InterruptedException {
         if (null != m_destFile) {
             return m_destFile;
         }
-        try {
-            URL location = Tracer.class.getProtectionDomain().getCodeSource().getLocation();
-            File f = new File(location.toURI());
-            File dir = f.isDirectory() ? f : f.getParentFile();
-            String dateStr = getDateFormatter().format(new Date());
-            String fileName = String.format("vsc-%s-%s.html", dateStr, s_pseudoPid);
-            File ret = m_destFile = new File(dir, fileName);
-            ret.createNewFile();
-            return m_destFile = ret;
-        } catch (Exception e) {
-            return m_destFile = File.createTempFile("VSCode", ".html");
-        }
-    }
+        final String dateStr = getDateFormatter().format(new Date());
+        final String filePrefix = String.format("vscode-%s-%s-", dateStr, PSEUDO_PID);
 
-    private File getJtOpenFile() throws IOException {
-        if (null != m_jtOpenDestFile) {
-            return m_jtOpenDestFile;
+        final File logDir = new File("/QOpenSys/QIBM/UserData/AI/db_server/logs");
+        final File ret;
+        if (logDir.isDirectory() && logDir.canWrite()) {
+            ret = File.createTempFile(filePrefix, ".html", logDir);
+        } else if ("QUSER".equalsIgnoreCase(System.getProperty("user.name"))) {
+            logDir.mkdirs();
+            final String[] chmodCmd = new String[] { "/QOpenSys/usr/bin/chmod", "600", logDir.getAbsolutePath() };
+            final Process chmodProcess = Runtime.getRuntime().exec(chmodCmd, null, new File("/tmp"));
+            if (0 == chmodProcess.waitFor()) {
+                ret = File.createTempFile(filePrefix, ".html", logDir);
+            } else {
+                ret = File.createTempFile(filePrefix, ".html");
+            }
+        } else {
+            ret = File.createTempFile(filePrefix, ".html");
         }
-        try {
-            URL location = Tracer.class.getProtectionDomain().getCodeSource().getLocation();
-            File f = new File(location.toURI());
-            File dir = f.isDirectory() ? f : f.getParentFile();
-            String dateStr = getDateFormatter().format(new Date());
-            String fileName = String.format("vsc-jtopen-%s-%s.txt", dateStr, s_pseudoPid);
-            File ret = new File(dir, fileName);
-            ret.createNewFile();
-            return m_jtOpenDestFile = ret;
-        } catch (Exception e) {
-            return m_jtOpenDestFile = File.createTempFile("VSCode-jtopen", ".txt");
-        }
+        return m_destFile = ret;
     }
 }

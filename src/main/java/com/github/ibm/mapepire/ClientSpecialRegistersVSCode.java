@@ -7,6 +7,7 @@ import com.github.theprez.jcmdutils.StringUtils;
 public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
     final String m_clientIP;
     final String m_accountingString;
+    private String m_toString;
 
     public ClientSpecialRegistersVSCode() {
         String sshConnectionEnv = System.getenv("SSH_CONNECTION");
@@ -24,9 +25,15 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
         try {
             location = ClientSpecialRegistersVSCode.class.getProtectionDomain().getCodeSource().getLocation().toString();
         } catch (Exception e) {
-            Tracer.err(e);
+            Tracer.globalErr(e);
         }
         m_accountingString = "location: " + location;
+        m_toString = String.format("User=%s,IP=%s,acct=%s", "" + System.getProperty("user.name"), m_clientIP, m_accountingString);
+    }
+
+    @Override
+    public String toString() {
+        return m_toString;
     }
 
     @Override

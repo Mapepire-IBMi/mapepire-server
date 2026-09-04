@@ -31,6 +31,12 @@ public abstract class ClientRequest implements Runnable {
     public SystemConnection getConnection() {
         return m_conn;
     }
+    public Tracer getTracer() {
+        return m_conn.getTracer();
+    }
+    public String getConnectionId() {
+        return getTracer().getConnectionId();
+    }
 
     protected void addReplyData(final String _key, final Object _val) {
         replyData.put(_key, _val);
@@ -87,7 +93,7 @@ public abstract class ClientRequest implements Runnable {
             go();
             addReplyData("success", true);
         } catch (final Exception _e) {
-            Tracer.err(_e);
+            getConnection().getTracer().logErr(_e);
             addReplyData("error", "" + getErrorStringFromException(_e));
             addReplyData("success", false);
             if(_e instanceof SQLException) {
@@ -101,7 +107,7 @@ public abstract class ClientRequest implements Runnable {
                 sendreply();
                 processAfterReplySent();
             } catch (final Exception e) {
-                Tracer.err(e);
+                getConnection().getTracer().logErr(e);
                 System.exit(4);
             }
         }

@@ -19,7 +19,7 @@ public class Reconnect extends ClientRequest {
         final JsonElement connectionType = getRequestField("technique");
         final JsonElement applicationName = getRequestField("application");
         
-        ConnectionMethod technique = ConnectionMethod.CLI;
+        ConnectionMethod technique = ConnectionMethod.getDefault();
         if (null != connectionType) {
             try {
                 technique = ConnectionMethod.valueOf(connectionType.getAsString().toUpperCase());

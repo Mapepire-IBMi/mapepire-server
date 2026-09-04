@@ -2,6 +2,7 @@ package com.github.ibm.mapepire;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -14,21 +15,33 @@ import com.ibm.as400.access.AS400JDBCDriver;
 public class SystemConnection {
     public enum ConnectionMethod {
         TCP, CLI;
+
+        public static ConnectionMethod getDefault() {
+            return MapepireServer.isSingleMode() ? CLI : TCP;
+        }
     }
 
     private Connection m_conn;
     private ConnectionMethod m_connectionMethod = ConnectionMethod.CLI;
     private String m_jdbcProps = "";
-    private String host;
-    private String userProfile;
-    private char[] password;
+    //TODO: refactor this part to use proper coding conventions
+    //TODO: document proper coding conventions for the project
+    //TODO: document the expectations around the host, username, and password fields
+    private final String host;
+    private final String userProfile;
+    private final char[] password;
     private final ClientSpecialRegisters m_clientRegs;
     private String m_applicationName;
     private final String clientAddress;
+    private final Tracer m_tracer;
     // Raw Base64 "user:pass" from the WebSocket Authorization header.
     // Stored so BlobStore can validate HTTP /blob/{token} requests.
     private String m_rawCredentials = null;
 
+    /**
+     * Constructor that is only to be used when not in single mode
+     * @throws IOException
+     */
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
             throw new IOException("Improper usage");
@@ -36,10 +49,15 @@ public class SystemConnection {
         ClientSpecialRegistersVSCode clientRegs = new ClientSpecialRegistersVSCode();
         this.m_clientRegs = clientRegs;
         this.clientAddress = clientRegs.getClientAddress();
-        this.userProfile = System.getProperty("user.name");
+        this.userProfile = System.getProperty("mapepire.debug.user", System.getProperty("user.name"));
+        this.m_tracer = Tracer.getNew();
+        this.host = System.getProperty("mapepire.debug.host", null);
+        String debugpw = System.getProperty("mapepire.debug.pw");
+        this.password = null == debugpw ? null : debugpw.toCharArray();
+
     }
 
-    public SystemConnection(String clientHost, String clientAddress, String host, String user, char[] pass) throws IOException {
+    public SystemConnection(String clientHost, String clientAddress, String host, String user, char[] pass, Tracer tracer) throws IOException {
         super();
         if (MapepireServer.isSingleMode()) {
             throw new IOException("Improper usage");
@@ -58,6 +76,7 @@ public class SystemConnection {
         this.password = pass;
         this.clientAddress = clientAddress;
         this.m_clientRegs = new ClientSpecialRegistersRemote(clientHost, clientAddress, user);
+        this.m_tracer = tracer;
     }
 
     /** Returns the raw Base64 Authorization credentials, or {@code null} in single mode. */
@@ -92,7 +111,7 @@ public class SystemConnection {
             }
             return c.getClass().getMethod("getServerJobName").invoke(c).toString();
         } catch (Exception e) {
-            Tracer.err(e);
+            this.m_tracer.logErr(e);
             return "??????/??????/??????";
         }
     }
@@ -109,7 +128,7 @@ public class SystemConnection {
             try {
                 m_conn.close();
             } catch (SQLException e) {
-                Tracer.err(e);
+                getTracer().logErr(e);
             }
             m_conn = null;
         }
@@ -124,48 +143,102 @@ public class SystemConnection {
         if (StringUtils.isNonEmpty(_applicationName)) {
             m_applicationName = _applicationName;
         }
-        
+
         // Store connection settings
         m_connectionMethod = _connectionMethod;
         m_jdbcProps = _jdbcProps;
-        
+
         try {
             // check if this connection is allowed by our security rules file
-            AuthFile.getDefault().verify(this.userProfile, this.clientAddress);
+            AuthFile.getDefault().verify(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
 
-            // Create AS400 object
-            AS400 as400System;
-            String systemName = (this.host != null) ? this.host : "localhost";
-            
-            if (this.userProfile != null && this.password != null) {
-                as400System = new AS400(systemName, this.userProfile, this.password);
-            } else {
-                as400System = new AS400(systemName);
-            }
+            if (isUsingKerberos()) {
+                // Create AS400 object
+                AS400 as400System;
+                String systemName = (this.host != null) ? this.host : "localhost";
 
-            // Parse JDBC properties into Properties object
-            Properties jdbcProps = new Properties();
-            if (StringUtils.isNonEmpty(_jdbcProps)) {
-                String[] propPairs = _jdbcProps.split(";");
-                for (String pair : propPairs) {
-                    if (StringUtils.isNonEmpty(pair)) {
-                        String[] keyValue = pair.split("=", 2);
-                        if (keyValue.length == 2) {
-                            jdbcProps.setProperty(keyValue[0].trim(), keyValue[1].trim());
+                if (this.userProfile != null && this.password != null) {
+                    as400System = new AS400(systemName, this.userProfile, this.password);
+                } else {
+                    as400System = new AS400(systemName);
+                }
+
+                // Parse JDBC properties into Properties object
+                Properties jdbcProps = new Properties();
+                if (StringUtils.isNonEmpty(_jdbcProps)) {
+                    String[] propPairs = _jdbcProps.split(";");
+                    for (String pair : propPairs) {
+                        if (StringUtils.isNonEmpty(pair)) {
+                            String[] keyValue = pair.split("=", 2);
+                            if (keyValue.length == 2) {
+                                jdbcProps.setProperty(keyValue[0].trim(), keyValue[1].trim());
+                            }
                         }
                     }
                 }
-            }
 
-            // Create AS400JDBCConnection from AS400 object
-            AS400JDBCDriver driver = new AS400JDBCDriver();
-            
-            // Connect with null database name (database name should only be used for IASP connections)
-            m_conn = driver.connect(as400System, jdbcProps, null);
+                // Create AS400JDBCConnection from AS400 object
+                AS400JDBCDriver driver = new AS400JDBCDriver();
+
+                // Connect with null database name (database name should only be used for IASP connections)
+                m_conn = driver.connect(as400System, jdbcProps, null);
+                m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
+                return m_conn;
+            }
+            DriverManager.registerDriver(new AS400JDBCDriver());
+            final String connectionString = getConnectionString();
+            getTracer().logInfo("Using connection string "+connectionString);
+            m_conn = DriverManager.getConnection(connectionString + ";" + _jdbcProps);
             m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
+
         } catch (Exception e) {
             throw new SQLException(e);
         }
+    }
+
+    public String getHost() {
+        return null == this.host ? "localhost" : this.host;
+    }
+
+    private String getAuthString() throws IOException {
+        if (!MapepireServer.isSingleMode()) {
+            if (StringUtils.isEmpty(userProfile) || userProfile.contains("*")) {
+                throw new IOException("Invalid Username");
+            }
+            if (StringUtils.isEmpty(password)) {
+                throw new IOException("Invalid Password");
+            }
+        }
+        if (MapepireServer.isSingleMode() && (userProfile == null || password == null)) {
+            return getHost();
+        } else {
+            return String.format("%s;user=%s;password=%s", getHost(), userProfile, new String(password));
+        }
+    }
+
+    private String getConnectionString() throws IOException {
+        if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == this.m_connectionMethod)) {
+            return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only") ? "jdbc:default:connection" : "jdbc:db2:*LOCAL";
+        }
+        return "jdbc:as400:" + this.getAuthString();
+    }
+
+    private boolean isUsingKerberos() {
+        if (null == this.userProfile) {
+            return false;
+        }
+        return this.userProfile.contains("@");
+    }
+
+    public Tracer getTracer() {
+        return m_tracer;
+    }
+
+    public String getConnectionId() {
+        return getTracer().getConnectionId();
+    }
+    public ClientSpecialRegisters getCSRs() {
+        return m_clientRegs;
     }
 }

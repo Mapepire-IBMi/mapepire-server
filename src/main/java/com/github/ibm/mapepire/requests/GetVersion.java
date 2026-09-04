@@ -8,8 +8,8 @@ import com.google.gson.JsonObject;
 
 public class GetVersion extends ClientRequest {
 
-    public GetVersion(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj) {
-        super(_io, m_conn, _reqObj);
+    public GetVersion(final DataStreamProcessor _io, final SystemConnection _conn, final JsonObject _reqObj) {
+        super(_io, _conn, _reqObj);
     }
 
     @Override

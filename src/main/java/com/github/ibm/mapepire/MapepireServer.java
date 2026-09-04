@@ -1,6 +1,12 @@
 package com.github.ibm.mapepire;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.io.PrintStream;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -21,7 +27,6 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.server.NativeWebSocketServletContainerInitializer;
 import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
 
-import com.github.ibm.mapepire.Tracer.Dest;
 import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;
@@ -33,6 +38,8 @@ import com.github.ibm.mapepire.http.VersionServlet;
 import com.github.ibm.mapepire.ws.DbSocketCreator;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.StringUtils;
+import com.ibm.ibmi_util.SystemNativeUtils;
+import com.ibm.ibmi_util.SystemNativeUtils.JobLogEnabling;
 
 public class MapepireServer {
     private static Server server;
@@ -56,6 +63,35 @@ public class MapepireServer {
         }
 
         try {
+            SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
+            Tracer.getGlobalTracer().logInfo( "Mapepire starting...");
+            Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenStatusString());
+            Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenComponentStatusString());
+            Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenFileString());
+            if(SystemNativeUtils.isNativeLoaded()) {
+                final PipedInputStream pipeIn = new PipedInputStream();
+                final PipedOutputStream pipeOut = new PipedOutputStream(pipeIn);
+                final PrintStream origErr = System.err;
+                System.setErr(new PrintStream(pipeOut));
+                new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                        BufferedReader isr = new BufferedReader(new InputStreamReader(pipeIn));
+                        String line=null;
+                            while(null != (line = isr.readLine())) {
+                                origErr.println(line);
+                                Tracer.getGlobalTracer().logInfo(line);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.setErr(origErr);
+                        }
+                    }
+                    
+                }, "StdErrLoggerMain").start();
+            }
 
             if (args.remove("--single")) {
                 s_isSingleMode = true;
@@ -73,6 +109,13 @@ public class MapepireServer {
                 io.run();
             } else {
                 s_isSingleMode = false;
+                
+                if(Boolean.valueOf("mapepire.skipuserswap")){
+                    Tracer.getGlobalTracer().logWarn("Not swapping user profile. Deploying in this manner goes against security best practices.");
+                }else{
+                    String userProfile = SystemNativeUtils.swapUser();
+                    Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
+                }
 
                 // Needed to enforce TLS capabilities when not in single mode
                 checkJavaVersion(minimumRequiredJavaVersion);
@@ -80,19 +123,18 @@ public class MapepireServer {
                 // Make sure we can process our security rules file, if it exists
                 AuthFile.getDefault().getRules();
 
-                Tracer.get().setDest(Dest.FILE);
                 if(args.remove("--traceErrors")) {
-                    Tracer.get().setTraceLevel(TraceLevel.ERRORS);
+                    Tracer.getGlobalTracer().setTraceLevel(TraceLevel.ERRORS);
                 }
                 if(args.remove("--traceOn")) {
-                    Tracer.get().setTraceLevel(TraceLevel.ON);
+                    Tracer.getGlobalTracer().setTraceLevel(TraceLevel.ON);
                 }
                 if(args.remove("--traceDs")) {
-                    Tracer.get().setTraceLevel(TraceLevel.DATASTREAM);
+                    Tracer.getGlobalTracer().setTraceLevel(TraceLevel.DATASTREAM);
                 }
                 AppLogger logger = AppLogger.getSingleton(args.remove("-v"));
                 logger.printf("Starting daemon...");
-                Tracer.info("Starting daemon...");
+                Tracer.globalInfo("Starting daemon...");
                 DbSocketCreator.enableDaemon();
                 
                 server = new Server();
@@ -102,7 +144,7 @@ public class MapepireServer {
                 if (StringUtils.isNonEmpty(isUnsecure) && isUnsecure.equals("true")) {
                     String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
                     logger.println_err("\n\n" + uhOhWarning + "\n\n");
-                    Tracer.warn(uhOhWarning);
+                    Tracer.globalWarn(uhOhWarning);
                     connector = new ServerConnector(server);
                 } else {
                     SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
@@ -111,7 +153,7 @@ public class MapepireServer {
                     sslContextFactory.setKeyStorePassword(serverCertInfo.getStorePass());
                     sslContextFactory.setCertAlias(serverCertInfo.getAlias());
                     sslContextFactory.setKeyManagerPassword(serverCertInfo.getKeyPass());
-                    Tracer.info("Using key store " + serverCertInfo.getKeyStoreFile().getAbsolutePath());
+                    Tracer.globalInfo("Using key store " + serverCertInfo.getKeyStoreFile().getAbsolutePath());
                     connector = new ServerConnector(server, sslContextFactory);
                 }
 
@@ -199,13 +241,13 @@ public class MapepireServer {
                     logger.println_warn("Server ending gracefully");
                 } catch (Throwable t) {
                     logger.exception(t);
+                    Tracer.getGlobalTracer().logErr(t);
                 }
             }
         } catch (final Exception e) {
-            Tracer.err(e);
+            Tracer.globalErr(e);
         }
-        Tracer.warn("data stream processing completed (end of request stream?)");
-        System.err.println("bye");
+        Tracer.globalWarn("data stream processing completed (end of request stream?)");
         System.exit(12);
     }
 

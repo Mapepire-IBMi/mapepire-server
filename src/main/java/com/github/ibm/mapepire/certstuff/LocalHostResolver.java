@@ -1,6 +1,7 @@
 package com.github.ibm.mapepire.certstuff;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -12,8 +13,8 @@ class LocalHostResolver {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName().toLowerCase();
         } catch (IOException e) {
-            Tracer.warn(e);
-            Process p = Runtime.getRuntime().exec("/QOpenSys/usr/bin/hostname");
+            Tracer.globalWarn(e);
+            Process p = Runtime.getRuntime().exec("/QOpenSys/usr/bin/hostname", null, new File("/tmp"));
             try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 return br.readLine().toLowerCase().trim();
             }

@@ -6,12 +6,19 @@ public class ClientSpecialRegistersRemote implements ClientSpecialRegisters {
 
     final String m_clientIP;
     final String m_accountingString;
-    private String m_user;
+    private final String m_user;
+    private final String m_toString;
 
     public ClientSpecialRegistersRemote(final String _clientHost, final String _clientIP, final String _user) {
         m_clientIP = _clientIP;
         m_user = _user;
         m_accountingString = "hostname: " + _clientHost;
+        m_toString = String.format("User=%s,IP=%s,host=%s", _user, _clientIP, _clientHost);
+    }
+
+    @Override
+    public String toString() {
+        return m_toString;
     }
 
     @Override
