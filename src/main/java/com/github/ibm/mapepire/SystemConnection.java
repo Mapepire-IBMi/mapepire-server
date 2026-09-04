@@ -34,6 +34,9 @@ public class SystemConnection {
     private String m_applicationName;
     private final String clientAddress;
     private final Tracer m_tracer;
+    // Raw Base64 "user:pass" from the WebSocket Authorization header.
+    // Stored so BlobStore can validate HTTP /blob/{token} requests.
+    private String m_rawCredentials = null;
 
     /**
      * Constructor that is only to be used when not in single mode
@@ -74,6 +77,16 @@ public class SystemConnection {
         this.clientAddress = clientAddress;
         this.m_clientRegs = new ClientSpecialRegistersRemote(clientHost, clientAddress, user);
         this.m_tracer = tracer;
+    }
+
+    /** Returns the raw Base64 Authorization credentials, or {@code null} in single mode. */
+    public String getRawCredentials() {
+        return m_rawCredentials;
+    }
+
+    /** Called by {@link com.github.ibm.mapepire.ws.DbWebsocketClient} at connection time. */
+    public void setRawCredentials(String rawCredentials) {
+        this.m_rawCredentials = rawCredentials;
     }
 
     public static boolean isRunningOnIBMi() {

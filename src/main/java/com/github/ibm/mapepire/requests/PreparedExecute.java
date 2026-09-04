@@ -6,9 +6,11 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.LinkedList;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
+import com.github.ibm.mapepire.http.BlobStore;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -78,11 +80,41 @@ public class PreparedExecute extends BlockRetrievableRequest {
                 } else if (stmt instanceof CallableStatement
                         && ParameterMetaData.parameterModeInOut == stmt.getParameterMetaData().getParameterMode(i)) {
                     ((CallableStatement) stmt).registerOutParameter(i, stmt.getParameterMetaData().getParameterType(i));
-                    stmt.setString(i, element.getAsString());
+                    setParameterValue(stmt, i, element.getAsString());
                 } else {
-                    stmt.setString(i, element.getAsString());
+                    setParameterValue(stmt, i, element.getAsString());
                 }
             }
+        }
+    }
+
+    private static void setParameterValue(PreparedStatement stmt, int i, String value) throws SQLException {
+        int paramType = stmt.getParameterMetaData().getParameterType(i);
+        switch (paramType) {
+            case Types.BLOB:
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY: {
+                byte[] bytes = Base64.getDecoder().decode(value);
+                if (bytes.length > BlobStore.MEMORY_THRESHOLD_BYTES) {
+                    // Stream large blobs directly to avoid double-buffering in heap
+                    stmt.setBinaryStream(i, new java.io.ByteArrayInputStream(bytes), bytes.length);
+                } else {
+                    stmt.setBytes(i, bytes);
+                }
+                break;
+            }
+            // Character LOBs — pass through as a plain string. Explicit cases here
+            // make intent clear and protect the default branch from future changes.
+            case Types.CLOB:
+            case Types.NCLOB:
+            case Types.LONGVARCHAR:
+            case Types.LONGNVARCHAR:
+                stmt.setString(i, value);
+                break;
+            default:
+                stmt.setString(i, value);
+                break;
         }
     }
 

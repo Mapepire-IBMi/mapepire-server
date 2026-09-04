@@ -31,6 +31,7 @@ import com.github.ibm.mapepire.Tracer.TraceLevel;
 import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.certstuff.ServerCertGetter;
 import com.github.ibm.mapepire.certstuff.ServerCertInfo;
+import com.github.ibm.mapepire.http.BlobServlet;
 import com.github.ibm.mapepire.http.InstallLocationServlet;
 import com.github.ibm.mapepire.http.Routes;
 import com.github.ibm.mapepire.http.VersionServlet;
@@ -164,6 +165,7 @@ public class MapepireServer {
                 context.setContextPath("/");
                 context.addServlet(new ServletHolder(VersionServlet.class), Routes.VERSION);
                 context.addServlet(new ServletHolder(InstallLocationServlet.class), Routes.SOURCE);
+                context.addServlet(new ServletHolder(BlobServlet.class), Routes.BLOB);
 
                 Constraint constraint = new Constraint();
                 constraint.setName("Disable TRACE");
@@ -217,8 +219,9 @@ public class MapepireServer {
                 NativeWebSocketServletContainerInitializer.configure(context,
                         (servletContext, nativeWebSocketConfiguration) -> {
                             nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
-                            // Configure max message size
-                            int maxWsMessageSize = 50 * 1024 * 1024; // 50MB
+                            // Max WS message size — default Integer.MAX_VALUE (unlimited).
+                            // Can be capped via MAX_WS_MESSAGE_SIZE env var if desired.
+                            int maxWsMessageSize = Integer.MAX_VALUE;
                             String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
                             if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
                                 maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
