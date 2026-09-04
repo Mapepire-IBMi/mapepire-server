@@ -159,6 +159,10 @@ public class Tracer {
 
     private static final String GLOBAL_CONNECTION_ID = "global";
 
+    // Stands in for a process id, which Java 8 cannot obtain portably. Every trace file written by a
+    // single server run shares this value, so one run's files can be picked out from the log directory.
+    private static final String PSEUDO_PID = ("" + Math.random()).replace(".", "").replace("0", "");
+
     // The global tracer is explicitly protected (that is, there's no static "getter" for it)
     // as we don't want to expose full control of the global tracer.
     private static final Tracer s_globalTracer = new Tracer(true);
@@ -261,14 +265,7 @@ public class Tracer {
     }
 
     public static String getJtOpenStatusString() {
-        //@formatter:off
-        final String ret = String.format("Java Toolbox tracing: %B,\n"+
-        "Java Toolbox JDBC tracing: %B",
-                Trace.isTraceOn(),
-                Trace.isTraceJDBCOn()
-                );
-        //@formatter:on
-        return ret;
+        return String.format("Java Toolbox tracing: %B,\nJava Toolbox JDBC tracing: %B", Trace.isTraceOn(), Trace.isTraceJDBCOn());
     }
 
     public static String getJtOpenFileString() {
@@ -281,8 +278,6 @@ public class Tracer {
         }
         return s_dateFormatter = new SimpleDateFormat("yyyy-MM-dd'.'kk.mm.ss.SSS");
     }
-
-    private final String m_pseudoPid = ("" + Math.random()).replace(".", "").replace("0", "");
 
     private final InMemCache<Entry> m_inMem = new InMemCache<Entry>(100);
 
@@ -390,6 +385,16 @@ public class Tracer {
         return this;
     }
 
+    /**
+     * Describe where this tracer is currently writing.
+     *
+     * @return the absolute path of the trace file when tracing to disk, otherwise a symbolic name for
+     *         the destination
+     * @throws IOException
+     *             if the trace file has not yet been created and cannot be created now
+     * @throws InterruptedException
+     *             if interrupted while securing the trace directory
+     */
     public String getDestString() throws IOException, InterruptedException {
         switch (m_dest) {
             case FILE:
@@ -405,6 +410,15 @@ public class Tracer {
         return m_traceLevel;
     }
 
+    /**
+     * Collect everything this tracer has recorded, from memory or from the trace file as appropriate.
+     *
+     * @return a complete HTML document containing the trace entries
+     * @throws IOException
+     *             if the trace file cannot be created or read
+     * @throws InterruptedException
+     *             if interrupted while securing the trace directory
+     */
     public StringBuffer getRawData() throws IOException, InterruptedException {
         final StringBuffer buf = new StringBuffer();
         if (Dest.IN_MEM == m_dest) {
@@ -416,7 +430,7 @@ public class Tracer {
                 }
             }
         } else {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(getFile()), "UTF-8"))) {
+            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(getFile()), "UTF-8"))) {
                 String lineString = null;
                 while (null != (lineString = reader.readLine())) {
                     buf.append(lineString);
@@ -486,7 +500,7 @@ public class Tracer {
             return m_destFile;
         }
         final String dateStr = getDateFormatter().format(new Date());
-        final String filePrefix = String.format("vscode-%s-%s-", dateStr, m_pseudoPid);
+        final String filePrefix = String.format("vscode-%s-%s-", dateStr, PSEUDO_PID);
 
         final File logDir = new File("/QOpenSys/QIBM/UserData/AI/db_server/logs");
         final File ret;
