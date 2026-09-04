@@ -55,23 +55,23 @@ public class ServerCertPEM implements ServerCertInfo {
         };
         String[] env = new String[] { "QIBM_USE_DESCRIPTOR_STDIO=Y" }; // no idea why this is needed, but without it,
                                                                        // openssl fails with a -1 return code
-        Process p = Runtime.getRuntime().exec(cmd, env);
+        Process p = Runtime.getRuntime().exec(cmd, env, new File("/tmp"));
         try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
             String line = null;
             while (null != (line = br.readLine())) {
-                Tracer.warn("stderr from openssl call: " + line);
+                Tracer.globalWarn("stderr from openssl call: " + line);
             }
         }
         p.waitFor();
         if (p.exitValue() != 0 || !p12.isFile()) {
-            Tracer.warn("openssl failed with rc: " + p.exitValue());
+            Tracer.globalWarn("openssl failed with rc: " + p.exitValue());
             throw new IOException("intermediate export failed");
         }
 
         try (FileInputStream fis = new FileInputStream(p12)) {
             KeyStore ret = KeyStore.getInstance("PKCS12");
             ret.load(fis, m_storePass.toCharArray());
-            Tracer.info("loaded temporary PKCS12 (generated from PEM)");
+            Tracer.globalInfo("loaded temporary PKCS12 (generated from PEM)");
             return m_keystore = ret;
         }
     }

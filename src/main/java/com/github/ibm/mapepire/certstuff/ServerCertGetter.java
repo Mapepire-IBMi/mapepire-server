@@ -44,7 +44,7 @@ public class ServerCertGetter {
     private final File m_userCertFile;
 
     public ServerCertGetter() {
-        final File userHomeDir = new File(System.getProperty("user.home"));
+        final File userHomeDir = new File(System.getProperty("user.home")); //TODO: handle user swaps
         final File dotDir = new File(userHomeDir, ".mapepire");
         dotDir.mkdirs();
         m_letsEncrypt = ServerCertLetsEncrypt.get(findLetsEncryptCertDir());
@@ -73,7 +73,7 @@ public class ServerCertGetter {
 
         try {
             String myHostName = LocalHostResolver.getFQDN();
-            Tracer.info("------we think our hostname is "+myHostName);
+            Tracer.globalInfo("------we think our hostname is "+myHostName);
             for (File candidate : candidates) {
                 if (candidate.getName().equalsIgnoreCase(myHostName)) {
                     return candidate;
@@ -86,19 +86,19 @@ public class ServerCertGetter {
     }
 
     public ServerCertInfo get() throws IOException, InterruptedException {
-        if (m_userCertFile.isFile()) {
-            Tracer.info("Reusing user-defined server certificate in " + m_userCertFile.getAbsolutePath());
+        if (m_userCertFile.isFile() && m_userCertFile.canRead()) {
+            Tracer.globalInfo("Reusing user-defined server certificate in " + m_userCertFile.getAbsolutePath());
             return new ServerCertJKS(m_userCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(),
                     StoreDefaults.getAlias());
         } else if (null != m_letsEncrypt) {
-            Tracer.info("Using LetsEncrypt certificate file " + m_letsEncrypt.getKeyStoreFile().getAbsolutePath());
+            Tracer.globalInfo("Using LetsEncrypt certificate file " + m_letsEncrypt.getKeyStoreFile().getAbsolutePath());
             return m_letsEncrypt;
-        } else if (m_defaultCertFile.isFile()) {
-            Tracer.info("Reusing previously-generated default certificate in " + m_defaultCertFile.getAbsolutePath());
+        } else if (m_defaultCertFile.isFile() && m_defaultCertFile.canRead()) {
+            Tracer.globalInfo("Reusing previously-generated default certificate in " + m_defaultCertFile.getAbsolutePath());
             return new ServerCertJKS(m_defaultCertFile, StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(),
                     StoreDefaults.getAlias());
         } else {
-            Tracer.warn("Generating self-signed certificate");
+            Tracer.globalWarn("Generating self-signed certificate");
             final SelfSignedCertGenerator gen = new SelfSignedCertGenerator();
             return gen.generate(StoreDefaults.getStorePass(), StoreDefaults.getKeyPass(), m_defaultCertFile,
                     StoreDefaults.getAlias());

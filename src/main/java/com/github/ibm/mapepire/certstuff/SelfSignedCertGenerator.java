@@ -43,19 +43,19 @@ public class SelfSignedCertGenerator {
                 "3654"
         };
 
-        final Process p = Runtime.getRuntime().exec(cmdArray);
+        final Process p = Runtime.getRuntime().exec(cmdArray, null, new File("/tmp"));
 
-        final Thread stdoutLogger = new StreamLogger(p.getInputStream(), false);
-        final Thread stderrLogger = new StreamLogger(p.getErrorStream(), true);
+        final StreamLogger stdoutLogger = new StreamLogger(p.getInputStream(), false);
+        final StreamLogger stderrLogger = new StreamLogger(p.getErrorStream(), true);
         stderrLogger.start();
         stdoutLogger.start();
 
         p.getOutputStream().close();
         final int exitCode = p.waitFor();
         if (0 == exitCode) {
-            Tracer.info("Created keystore at " + _keyStore.getAbsolutePath());
+            Tracer.globalInfo("Created keystore at " + _keyStore.getAbsolutePath());
         } else {
-            Tracer.err("Failed to create keystore");
+            Tracer.globalInfo("Failed to create keystore");
         }
 
         stderrLogger.join();
@@ -71,13 +71,14 @@ public class SelfSignedCertGenerator {
                         String line = null;
                         while (null != (line = reader.readLine())) {
                             if (_isError) {
-                                Tracer.warn(line);
+                                Tracer.globalWarn(line);
+
                             } else {
-                                Tracer.info(line);
+                                Tracer.globalInfo(line);
                             }
                         }
                     } catch (final Exception e) {
-                        Tracer.err(e);
+                        Tracer.globalErr(e);
                     }
             }, "Stream logger, errorstream=" + _isError);
         }

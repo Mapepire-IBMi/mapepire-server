@@ -2,30 +2,39 @@ package com.github.ibm.mapepire.ws;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
+import com.github.ibm.mapepire.Tracer;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketException;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 
 public class DbWebsocketClient extends WebSocketAdapter {
+  
   private final CountDownLatch closureLatch = new CountDownLatch(1);
   private final DataStreamProcessor io;
+  private final Tracer tracer;
 
   DbWebsocketClient(String clientHost, String clientAddress, String host, String user, char[] pass, String rawCredentials) throws IOException {
     super();
-    SystemConnection conn = new SystemConnection(clientHost, clientAddress, host, user, pass);
-    conn.setRawCredentials(rawCredentials);
+
+    // Create per-connection tracer instance
+    this.tracer = Tracer.getNew();
+    
+    SystemConnection conn = new SystemConnection(clientHost, clientAddress, host, user, pass, tracer);
     io = getDataStream(this, conn);
+    
+    // Log connection establishment
+    tracer.logInfo("WebSocket connection established: " + tracer.getConnectionId() +
+                   " (Client: " + clientHost + ", User: " + user + ")");
   }
 
   @Override
   public void onWebSocketConnect(Session sess) {
     super.onWebSocketConnect(sess);
     sess.setIdleTimeout(Integer.MAX_VALUE);
-    System.out.println("Socket Connected: " + sess);
+    tracer.logInfo("Socket Connected: " + sess + " [Connection ID: " + tracer.getConnectionId() + "]");
   }
 
   @Override
@@ -38,6 +47,11 @@ public class DbWebsocketClient extends WebSocketAdapter {
   public void onWebSocketClose(int statusCode, String reason) {
     io.end();
     super.onWebSocketClose(statusCode, reason);
+    
+    // Log connection closure
+    tracer.logInfo("WebSocket connection closed: " + tracer.getConnectionId() +
+                   " (Status: " + statusCode + ", Reason: " + reason + ")");
+    
     closureLatch.countDown();
   }
 
@@ -45,7 +59,9 @@ public class DbWebsocketClient extends WebSocketAdapter {
   public void onWebSocketError(Throwable cause) {
     io.end();
     super.onWebSocketError(cause);
-    // cause.printStackTrace(System.err);
+    // Log error to per-connection trace
+    tracer.logErr("WebSocket error on connection " + tracer.getConnectionId() + ": " + cause.getMessage());
+    tracer.logErr(cause);
   }
 
   public void awaitClosure() throws InterruptedException {
@@ -75,7 +91,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
             try {
               endpoint.getRemote().sendString(message);
             } catch (WebSocketException e){
-              System.err.println("Could not send message due to error: " + e.getMessage());
+              endpoint.tracer.logErr("Could not send message on connection " + endpoint.tracer.getConnectionId() + ": " + e.getMessage());
             }
           }
         }

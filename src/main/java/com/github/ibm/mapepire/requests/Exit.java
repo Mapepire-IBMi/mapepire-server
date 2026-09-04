@@ -23,7 +23,7 @@ public class Exit extends ClientRequest {
         if (DbSocketCreator.isDaemon()) {
             this.getConnection().close();
         } else {
-            Tracer.info("exiting as requested");
+            getConnection().getTracer().logInfo("exiting as requested");
             System.exit(0);
         }
     }
