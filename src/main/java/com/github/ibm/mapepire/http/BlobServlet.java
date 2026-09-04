@@ -70,7 +70,8 @@ public class BlobServlet extends HttpServlet {
             in = entry.openStream();
         } catch (IOException e) {
             entry.cleanup();
-            Tracer.err(e);
+            //TODO: look into proper way to trace this instead of global
+            Tracer.globalErr(e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "Blob data unavailable");
             return;
@@ -97,7 +98,9 @@ public class BlobServlet extends HttpServlet {
             out.flush();
             // Sanitise token before logging to prevent log injection.
             String safeToken = token.replaceAll("[^a-fA-F0-9\\-]", "?");
-            Tracer.info("BlobServlet: streamed token " + safeToken + " (" + actualSize + " bytes)");
+            
+            //TODO: look into proper way to trace this instead of global
+            Tracer.globalInfo("BlobServlet: streamed token " + safeToken + " (" + actualSize + " bytes)");
         } finally {
             try { in.close(); } catch (IOException ignored) {}
             entry.cleanup();

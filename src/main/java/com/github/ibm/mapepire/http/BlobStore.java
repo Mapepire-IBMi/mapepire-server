@@ -56,7 +56,8 @@ public class BlobStore {
             try {
                 s_ttlSeconds = Long.parseLong(envTtl.trim());
             } catch (NumberFormatException e) {
-                Tracer.warn("Invalid BLOB_TOKEN_TTL value '" + envTtl + "', using default " + s_ttlSeconds + "s");
+                //TODO: look into proper way to trace this instead of global
+                Tracer.globalWarn("Invalid BLOB_TOKEN_TTL value '" + envTtl + "', using default " + s_ttlSeconds + "s");
             }
         }
         m_sweeper.scheduleAtFixedRate(this::sweepExpired, 30, 30, TimeUnit.SECONDS);
@@ -102,7 +103,8 @@ public class BlobStore {
             entry = BlobEntry.ofFile(data, expiresAt, credentials);
         }
         m_entries.put(token, entry);
-        Tracer.info("BlobStore: stored token " + token + " size=" + data.length + " expires=" + expiresAt);
+        //TODO: look into proper way to trace this instead of global
+        Tracer.globalInfo("BlobStore: stored token " + token + " size=" + data.length + " expires=" + expiresAt);
         return token;
     }
 
@@ -190,7 +192,8 @@ public class BlobStore {
         while (it.hasNext()) {
             Map.Entry<String, BlobEntry> e = it.next();
             if (now.isAfter(e.getValue().expiresAt)) {
-                Tracer.info("BlobStore: expiring token " + e.getKey());
+                //TODO: look into proper way to trace this instead of global
+                Tracer.globalInfo("BlobStore: expiring token " + e.getKey());
                 e.getValue().cleanup();
                 it.remove();
             }
