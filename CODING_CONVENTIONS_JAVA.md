@@ -96,15 +96,16 @@ This applies to continuation lines and alignment as well — if you are lining s
 
 ### 2.2 Line length
 
-**Individual lines should be no longer than 180 characters where it is reasonable to do so.**
+**Individual lines should be no longer than 320 characters where it is reasonable to do so.**
 
-180 is generous on purpose: it is a limit, not a target. Most lines should be far shorter. The rule
-exists to catch the pathological cases — a deeply chained builder expression, or a `String.format()`
-with a dozen inline arguments — that become unreadable in side-by-side diffs.
+320 matches the `lineSplit` setting in the project's formatter profile (§8), so a file formatted with
+that profile already satisfies this rule. It is generous on purpose: it is a limit, not a target. Most
+lines should be far shorter. The rule exists to catch the pathological cases — a deeply chained builder
+expression, or a `String.format()` with a dozen inline arguments — that become unreadable in
+side-by-side diffs.
 
-Do not assume the formatter enforces this for you. The Eclipse profile the project uses has a much wider
-line-split setting, so a fully formatted file can still contain lines well over 180 characters. This is a
-limit you check yourself; see the verification commands in section 9.
+If you are editing without the profile configured, this is a limit you check yourself; see the
+verification commands in section 9.
 
 When a line must be broken, break it at a point that makes the structure obvious (before a `.` in a
 method chain, after a `,` in an argument list) and indent the continuation.
@@ -552,16 +553,27 @@ cleaning up nearby code.
 
 ## 8. Formatting Tooling
 
-The project's VS Code settings point the Java formatter at an Eclipse formatter profile:
+**Use the formatter profile checked into the repository at [eclipse_formatter.xml](eclipse_formatter.xml)
+whenever your editor can be pointed at it.** It is the authoritative profile for this project: it encodes
+4-space indentation, spaces instead of tabs, K&R brace placement, the 320-character line split described
+in §2.2, and the `@formatter:off` / `@formatter:on` markers.
+
+In VS Code with the Red Hat Java extension, point the formatter at the in-repo profile by setting a
+workspace-relative path in [.vscode/settings.json](.vscode/settings.json):
 
 ```json
-"java.format.settings.url": "c:\\eclipse_formatter\\sc.xml"
+"java.format.settings.url": "eclipse_formatter.xml"
 ```
 
-Note that this is an **absolute path on one developer's machine** and will not resolve for everyone. If
-it does not resolve for you, do not let the default formatter reflow files wholesale — configure your
-editor to format only your selection, and match the surrounding code by hand. An accidental whole-file
-reformat in a pull request is very hard to review.
+In Eclipse, import it under Preferences, then Java, then Code Style, then Formatter, then Import; the
+profile is named `service_commander`.
+
+If for some reason you cannot use this profile, do not let a default formatter reflow files wholesale —
+configure your editor to format only your selection, and match the surrounding code by hand. An
+accidental whole-file reformat in a pull request is very hard to review.
+
+Note that the compiler-compliance settings embedded in the profile say Java 9. They are irrelevant to
+formatting and do not override §1.3 — this project is still Java 8.
 
 ---
 
@@ -574,7 +586,7 @@ Before completing any Java edit in this repository, verify all of the following:
 - [ ] File uses **LF** line endings only — no `\r` anywhere. If the file arrived with CRLF, the whole
       file was converted (§1.1) and the conversion is called out in the summary.
 - [ ] Indentation is **4 spaces**; there are no tab characters.
-- [ ] No line exceeds **180 characters** without good reason.
+- [ ] No line exceeds **320 characters** without good reason.
 - [ ] No generated file was hand-edited; template changes were made to the template (§1.4).
 
 **Naming**
@@ -617,7 +629,7 @@ and report what they actually returned rather than asserting compliance:
 # Must produce no output. There are no exempt files.
 grep -rlP '\r'     src --include='*.java'   # CRLF line endings
 grep -rlP '\t'     src --include='*.java'   # tab characters
-grep -rnP '.{181}' src --include='*.java'   # lines over 180 characters
+grep -rnP '.{321}' src --include='*.java'   # lines over 320 characters
 
 # Must succeed.
 mvn -q compile
@@ -628,7 +640,7 @@ The equivalent in PowerShell, since much of this project's development happens o
 ```powershell
 Get-ChildItem -Recurse -File -Filter *.java src | Where-Object {
     $t = [System.IO.File]::ReadAllText($_.FullName)
-    ($t -match "`r") -or ($t -match "`t") -or (($t -split "`n" | Where-Object { $_.Length -gt 180 }).Count -gt 0)
+    ($t -match "`r") -or ($t -match "`t") -or (($t -split "`n" | Where-Object { $_.Length -gt 320 }).Count -gt 0)
 } | Select-Object -ExpandProperty FullName
 ```
 

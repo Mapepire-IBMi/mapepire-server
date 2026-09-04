@@ -15,7 +15,8 @@ The rules most often gotten wrong, in brief — but do not rely on this summary 
 
 - **LF line endings, always.** No `\r` anywhere. If a file arrives with CRLF, convert the whole file;
   this is the one sanctioned exception to "no drive-by reformatting."
-- **4 spaces, never tabs.** Lines under 180 characters.
+- **4 spaces, never tabs.** Lines under 320 characters. Format with the in-repo
+  `eclipse_formatter.xml` profile where your editor supports it.
 - **Naming carries scope:** `m_` instance fields, `s_` mutable statics, `UPPER_SNAKE_CASE` constants,
   `_` method parameters, unprefixed locals.
 - **`final` on everything that is not reassigned**; braces on every single-statement block.
