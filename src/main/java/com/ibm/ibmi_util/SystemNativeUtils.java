@@ -20,7 +20,7 @@ public class SystemNativeUtils {
 
     private static final boolean s_isNativeLoaded;
 
-    private static final String DEFAULT_NATIVE_PATH = "/qsys.lib/jesseg.lib/mapnative.srvpgm";
+    private static final String DEFAULT_NATIVE_PATH = "/qsys.lib/qaie.lib/qaijvantv.srvpgm";
 
     static {
         if (System.getProperty("os.name", "").contains("400")) {
