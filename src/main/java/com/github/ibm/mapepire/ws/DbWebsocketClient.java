@@ -23,6 +23,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
     this.tracer = Tracer.getNew();
     
     SystemConnection conn = new SystemConnection(clientHost, clientAddress, host, user, pass, tracer);
+    conn.setRawCredentials(rawCredentials);
     io = getDataStream(this, conn);
     
     // Log connection establishment
