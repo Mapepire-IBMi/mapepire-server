@@ -30,7 +30,7 @@ public class SystemNativeUtils {
                 System.err.println("INFO: Job logging facilities loaded");
                 isNativeLoaded = true;
             } catch (final Throwable _t) {
-                _t.printStackTrace();
+                //_t.printStackTrace();
                 isNativeLoaded = false;
             }
             s_isNativeLoaded = isNativeLoaded;
