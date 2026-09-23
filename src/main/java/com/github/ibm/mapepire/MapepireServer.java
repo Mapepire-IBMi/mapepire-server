@@ -46,7 +46,7 @@ public class MapepireServer {
     // Required minimum Java version
     private static String minimumRequiredJavaVersion = "1.8.0_341";
     private volatile static boolean s_isSingleMode = false;
-    private volatile static boolean s_isReadOnly = Boolean.valueOf("mapepire.readonly");
+    private volatile static boolean s_isReadOnly = Boolean.getBoolean("mapepire.readonly");
 
     public static boolean isSingleMode() { 
         return s_isSingleMode;

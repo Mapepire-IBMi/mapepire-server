@@ -103,7 +103,7 @@ public class SystemConnection {
             return m_conn;
         }
         if (Boolean.getBoolean("codeserver.jdbc.autoconnect")) {
-            return reconnect(m_lastUsedConnectionMethod, m_jdbcProps, m_applicationName);
+            return reconnect(m_lastUsedConnectionMethod, m_lastUsedJdbcProps, m_applicationName);
         }
         throw new SQLException("Not connected");
     }
