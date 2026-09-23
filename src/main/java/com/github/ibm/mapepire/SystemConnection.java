@@ -189,14 +189,14 @@ public class SystemConnection {
                 AS400JDBCDriver driver = new AS400JDBCDriver();
 
                 // Connect with null database name (database name should only be used for IASP connections)
-                m_conn = verifyReadOnly(driver.connect(as400System, jdbcProps, null));
+                m_conn = verifyReadOnly(isReadOnly, driver.connect(as400System, jdbcProps, null));
                 m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
                 return m_conn;
             }
             DriverManager.registerDriver(new AS400JDBCDriver());
             final String connectionString = getConnectionString();
             getTracer().logInfo("Using connection string " + connectionString);
-            m_conn = verifyReadOnly(DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
+            m_conn = verifyReadOnly(isReadOnly, DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
             m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
 
@@ -205,8 +205,8 @@ public class SystemConnection {
         }
     }
 
-    private Connection verifyReadOnly(Connection _conn) throws SQLException {
-        if (!MapepireServer.isReadOnly()) {
+    private Connection verifyReadOnly(final boolean _isSupposedToBeReadOnly, Connection _conn) throws SQLException {
+        if (!_isSupposedToBeReadOnly) {
             return _conn;
         }
         Tracer.getGlobalTracer().logInfo("Connection type is " + _conn.getClass().getName());
