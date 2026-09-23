@@ -36,7 +36,7 @@ public class AuthFile {
     }
 
     private final File m_file;
-    private final Pattern s_authRulePattern = Pattern.compile("^\\s*(deny|allow)\\s+([*\\w]+)\\s*@\\s*([0-9*:.]+)\\s*$", Pattern.CASE_INSENSITIVE);
+    private final Pattern s_authRulePattern = Pattern.compile("^\\s*(deny|allow|allowread)\\s+([*\\w]+)\\s*@\\s*([0-9*:.]+)\\s*$", Pattern.CASE_INSENSITIVE);
 
     private List<AuthRule> m_rules;
 
@@ -97,8 +97,7 @@ public class AuthFile {
         return new AuthRule(_lineNumber, ruleType, user, ip);
     }
 
-    public void verify(final String _user, final String _ip) throws IOException {
-
+    public AuthRule getAccessRuleAndThrowIfDeny(final String _user, final String _ip) throws IOException {
         AuthRule lastMatchingRule = null;
         for (final AuthRule rule : getRules()) {
             final AuthCheckResult checkResult = rule.check(_user, _ip);
@@ -108,11 +107,15 @@ public class AuthFile {
         }
         if (null == lastMatchingRule) {
             Tracer.globalInfo(String.format("Connection for %s@%s has no matching governance rule", _user, _ip));
-            return;
+            return new AuthRule(-1, RuleType.ALLOW, _user, _ip);
         }
+
         if (null != lastMatchingRule && RuleType.DENY == lastMatchingRule.getRuleType()) {
             throw new IOException("Connection refused by security rule at line " + lastMatchingRule.getLineNumber());
         }
-        Tracer.globalInfo(String.format("Connection for %s@%s allowed by security rule at line %d", _user, _ip, lastMatchingRule.getLineNumber()));
+
+        Tracer.globalInfo(String.format("Connection for %s@%s allowed by security rule at line %d (%s)", _user, _ip, lastMatchingRule.getLineNumber(), lastMatchingRule.getRuleType().name()));
+
+        return lastMatchingRule;
     }
 }
