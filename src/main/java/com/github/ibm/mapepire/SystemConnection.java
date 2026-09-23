@@ -159,7 +159,7 @@ public class SystemConnection {
 
             final boolean isReadOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWREAD == accessRule.getRuleType());
             final String jdbcPropsStr;
-            if (false && isReadOnly) {
+            if (isReadOnly) {
                 if (StringUtils.isEmpty(_jdbcProps)) {
                     jdbcPropsStr = "access=read only";
                 } else {
