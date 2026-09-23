@@ -4,13 +4,17 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 import com.github.ibm.mapepire.authfile.AuthFile;
+import com.github.ibm.mapepire.authfile.AuthRule;
+import com.github.ibm.mapepire.authfile.AuthRule.RuleType;
 import com.github.theprez.jcmdutils.StringUtils;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCDriver;
+import com.ibm.as400.access.JDProperties;
 
 public class SystemConnection {
     public enum ConnectionMethod {
@@ -22,11 +26,11 @@ public class SystemConnection {
     }
 
     private Connection m_conn;
-    private ConnectionMethod m_connectionMethod = ConnectionMethod.CLI;
-    private String m_jdbcProps = "";
-    //TODO: refactor this part to use proper coding conventions
-    //TODO: document proper coding conventions for the project
-    //TODO: document the expectations around the host, username, and password fields
+    private ConnectionMethod m_lastUsedConnectionMethod = ConnectionMethod.CLI;
+    private String m_lastUsedJdbcProps = "";
+    // TODO: refactor this part to use proper coding conventions
+    // TODO: document proper coding conventions for the project
+    // TODO: document the expectations around the host, username, and password fields
     private final String host;
     private final String userProfile;
     private final char[] password;
@@ -40,6 +44,7 @@ public class SystemConnection {
 
     /**
      * Constructor that is only to be used when not in single mode
+     * 
      * @throws IOException
      */
     public SystemConnection() throws IOException {
@@ -98,7 +103,7 @@ public class SystemConnection {
             return m_conn;
         }
         if (Boolean.getBoolean("codeserver.jdbc.autoconnect")) {
-            return reconnect(m_connectionMethod, m_jdbcProps, m_applicationName);
+            return reconnect(m_lastUsedConnectionMethod, m_lastUsedJdbcProps, m_applicationName);
         }
         throw new SQLException("Not connected");
     }
@@ -145,12 +150,24 @@ public class SystemConnection {
         }
 
         // Store connection settings
-        m_connectionMethod = _connectionMethod;
-        m_jdbcProps = _jdbcProps;
+        m_lastUsedConnectionMethod = _connectionMethod;
+        m_lastUsedJdbcProps = _jdbcProps;
 
         try {
             // check if this connection is allowed by our security rules file
-            AuthFile.getDefault().verify(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
+            AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
+
+            final boolean isReadOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWREAD == accessRule.getRuleType());
+            final String jdbcPropsStr;
+            if (isReadOnly) {
+                if (StringUtils.isEmpty(_jdbcProps)) {
+                    jdbcPropsStr = "access=read only";
+                } else {
+                    jdbcPropsStr = _jdbcProps + ";access=read only";
+                }
+            } else {
+                jdbcPropsStr = _jdbcProps;
+            }
 
             if (isUsingKerberos()) {
                 // Create AS400 object
@@ -165,8 +182,8 @@ public class SystemConnection {
 
                 // Parse JDBC properties into Properties object
                 Properties jdbcProps = new Properties();
-                if (StringUtils.isNonEmpty(_jdbcProps)) {
-                    String[] propPairs = _jdbcProps.split(";");
+                if (StringUtils.isNonEmpty(jdbcPropsStr)) {
+                    String[] propPairs = jdbcPropsStr.split(";");
                     for (String pair : propPairs) {
                         if (StringUtils.isNonEmpty(pair)) {
                             String[] keyValue = pair.split("=", 2);
@@ -181,20 +198,40 @@ public class SystemConnection {
                 AS400JDBCDriver driver = new AS400JDBCDriver();
 
                 // Connect with null database name (database name should only be used for IASP connections)
-                m_conn = driver.connect(as400System, jdbcProps, null);
+                m_conn = verifyReadOnly(isReadOnly, driver.connect(as400System, jdbcProps, null));
                 m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
                 return m_conn;
             }
             DriverManager.registerDriver(new AS400JDBCDriver());
             final String connectionString = getConnectionString();
-            getTracer().logInfo("Using connection string "+connectionString);
-            m_conn = DriverManager.getConnection(connectionString + ";" + _jdbcProps);
+            getTracer().logInfo("Using connection string " + connectionString);
+            m_conn = verifyReadOnly(isReadOnly, DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
             m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
 
         } catch (Exception e) {
             throw new SQLException(e);
         }
+    }
+
+    private Connection verifyReadOnly(final boolean _isSupposedToBeReadOnly, Connection _conn) throws SQLException {
+        if (!_isSupposedToBeReadOnly) {
+            return _conn;
+        }
+        // Tracer.getGlobalTracer().logInfo("Connection type is " + _conn.getClass().getName());
+        if (!_conn.isReadOnly()) {
+            throw new SQLException("Only read-only access is allowed");
+        }
+        try (final Statement s = _conn.createStatement()) {
+            try {
+                s.execute("CALL systools.lprintf('ERROR: Disregard of read only mode detected')");
+                throw new SQLException("Only read-only access is allowed");
+            } catch (SQLException e) {
+                // expected condition. If we're read-only, this should fail
+            }
+        }
+        _conn.setReadOnly(true);
+        return _conn;
     }
 
     public String getHost() {
@@ -218,7 +255,7 @@ public class SystemConnection {
     }
 
     private String getConnectionString() throws IOException {
-        if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == this.m_connectionMethod)) {
+        if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == this.m_lastUsedConnectionMethod)) {
             return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only") ? "jdbc:default:connection" : "jdbc:db2:*LOCAL";
         }
         return "jdbc:as400:" + this.getAuthString();
@@ -238,6 +275,7 @@ public class SystemConnection {
     public String getConnectionId() {
         return getTracer().getConnectionId();
     }
+
     public ClientSpecialRegisters getCSRs() {
         return m_clientRegs;
     }
