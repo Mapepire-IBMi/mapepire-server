@@ -168,6 +168,9 @@ public class DataStreamProcessor implements Runnable {
             case "gettracedata":
                 dispatch(new GetTraceData(this, m_conn, reqObj));
                 break;
+            case "getcldoc":
+                dispatch(new GetClDoc(this, m_conn, reqObj));
+                break;
             case "exit":
                 dispatch(new Exit(this, m_conn, reqObj));
                 break;
