@@ -218,7 +218,7 @@ public class SystemConnection {
         if (!_isSupposedToBeReadOnly) {
             return _conn;
         }
-        Tracer.getGlobalTracer().logInfo("Connection type is " + _conn.getClass().getName());
+        // Tracer.getGlobalTracer().logInfo("Connection type is " + _conn.getClass().getName());
         if (!_conn.isReadOnly()) {
             throw new SQLException("Only read-only access is allowed");
         }
