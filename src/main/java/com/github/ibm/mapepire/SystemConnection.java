@@ -158,7 +158,16 @@ public class SystemConnection {
             AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
 
             final boolean isReadOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWREAD == accessRule.getRuleType());
-            final String jdbcPropsStr = isReadOnly ? _jdbcProps + ";access=read only" : _jdbcProps;
+            final String jdbcPropsStr;
+            if (false && isReadOnly) {
+                if (StringUtils.isEmpty(_jdbcProps)) {
+                    jdbcPropsStr = "access=read only";
+                } else {
+                    jdbcPropsStr = _jdbcProps + ";access=read only";
+                }
+            } else {
+                jdbcPropsStr = _jdbcProps;
+            }
 
             if (isUsingKerberos()) {
                 // Create AS400 object
