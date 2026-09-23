@@ -46,6 +46,7 @@ public class MapepireServer {
     // Required minimum Java version
     private static String minimumRequiredJavaVersion = "1.8.0_341";
     private volatile static boolean s_isSingleMode = false;
+    private volatile static boolean s_isReadOnly = Boolean.valueOf("mapepire.readonly");
 
     public static boolean isSingleMode() { 
         return s_isSingleMode;
@@ -60,6 +61,9 @@ public class MapepireServer {
             System.out.println("Version: " + Version.s_version);
             System.out.println("Build time: " + Version.s_compileDateTime);
             System.exit(0);
+        }
+        if(args.remove("--ro") || args.remove("-ro") || args.remove("--read-only") || args.remove("--readonly")) {
+            s_isReadOnly = true;
         }
 
         try {
@@ -305,5 +309,9 @@ public class MapepireServer {
             }
         }
         return false;
+    }
+
+    public static boolean isReadOnly() {
+        return s_isReadOnly;
     }
 }
