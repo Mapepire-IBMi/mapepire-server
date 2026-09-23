@@ -89,8 +89,8 @@ public class MapepireServer {
                                 Tracer.getGlobalTracer().logInfo(line);
                             }
                         } catch (IOException e) {
-                            e.printStackTrace();
                             System.setErr(origErr);
+                            e.printStackTrace();
                         }
                     }
                     
@@ -245,7 +245,7 @@ public class MapepireServer {
                     logger.println_warn("Server ending gracefully");
                 } catch (Throwable t) {
                     logger.exception(t);
-                    Tracer.getGlobalTracer().logErr(t);
+                    Tracer.globalErr(t);
                 }
             }
         } catch (final Exception e) {
