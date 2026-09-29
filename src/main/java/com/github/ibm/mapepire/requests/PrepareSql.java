@@ -35,7 +35,19 @@ public class PrepareSql extends BlockRetrievableRequest {
         }else {
             m_stmt = jdbcConn.prepareStatement(sql);
         }
-        
+        try {
+            prepareAndMaybeExecute();
+        } catch (final Exception _e) {
+            try {
+                closeResources();
+            } catch (final SQLException _closeErr) {
+                _e.addSuppressed(_closeErr);
+            }
+            throw _e;
+        }
+    }
+
+    private void prepareAndMaybeExecute() throws Exception {
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
 
         final ResultSetMetaData rsMetaData = m_stmt.getMetaData();
@@ -125,10 +137,25 @@ public class PrepareSql extends BlockRetrievableRequest {
      * only run on this PrepareSql instance, silently skipping the deferred close.
      */
     @Override
-    protected void processAfterReplySent() {
+    protected synchronized void processAfterReplySent() {
         super.processAfterReplySent();
         if (m_executeTask != null) {
             m_executeTask.processAfterReplySent();
+        }
+    }
+
+    /**
+     * The prepared statement is kept open after its result set is exhausted so it
+     * can be re-executed, so it is only released here (on sqlclose or on failure).
+     */
+    @Override
+    protected synchronized void closeResources() throws SQLException {
+        if (null != m_executeTask) {
+            m_executeTask.closeResources();
+        }
+        super.closeResources();
+        if (null != m_stmt && !m_stmt.isClosed()) {
+            m_stmt.close();
         }
     }
 

@@ -331,12 +331,28 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     }
 
     /**
+     * Releases the JDBC resources held by this request. Safe to call more than once.
+     * Subclasses that own a {@link Statement} must override this to close it, since
+     * closing a ResultSet does not free the statement handle and the driver limits
+     * the number of open statements per connection.
+     */
+    protected synchronized void closeResources() throws SQLException {
+        if (null != m_deferredFetchResult) {
+            m_deferredFetchResult.closeDeferredResultSet();
+            m_deferredFetchResult = null;
+        }
+        if (null != m_rs && !m_rs.isClosed()) {
+            m_rs.close();
+        }
+    }
+
+    /**
      * Called by {@link com.github.ibm.mapepire.ClientRequest#run()} after the WebSocket
      * reply has been sent. Closes any ResultSet that was deferred to allow async blob
      * spool threads to finish writing, and waits for any output-parameter async spools.
      */
     @Override
-    protected void processAfterReplySent() {
+    protected synchronized void processAfterReplySent() {
         if (m_deferredFetchResult != null) {
             m_deferredFetchResult.closeDeferredResultSet();
             m_deferredFetchResult = null;
