@@ -157,7 +157,7 @@ public class SystemConnection {
             // check if this connection is allowed by our security rules file
             AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
 
-            final boolean isReadOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWREAD == accessRule.getRuleType());
+            final boolean isReadOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWREADONLY == accessRule.getRuleType());
             final String jdbcPropsStr;
             if (isReadOnly) {
                 if (StringUtils.isEmpty(_jdbcProps)) {
