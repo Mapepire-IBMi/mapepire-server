@@ -4,7 +4,7 @@ import java.util.regex.Pattern;
 
 public class AuthRule {
     public enum RuleType {
-        ALLOW, DENY, ALLOWREAD
+        ALLOW, DENY, ALLOWREADONLY
     }
 
     public class AuthCheckResult {
