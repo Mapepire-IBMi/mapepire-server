@@ -30,12 +30,37 @@ public class PrepareSql extends BlockRetrievableRequest {
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
         final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        final PreparedStatement stmt;
         if(sql.trim().toLowerCase().startsWith("call")){
-            m_stmt = jdbcConn.prepareCall(sql);
+            stmt = jdbcConn.prepareCall(sql);
         }else {
-            m_stmt = jdbcConn.prepareStatement(sql);
+            stmt = jdbcConn.prepareStatement(sql);
         }
-        
+        synchronized (this) {
+            if (m_isReleased) {
+                stmt.close();
+                throw new SQLException("Request was closed before the statement was prepared");
+            }
+            m_stmt = stmt;
+        }
+        try {
+            describeStatement();
+        } catch (final Exception _e) {
+            try {
+                closeResources();
+            } catch (final SQLException _closeErr) {
+                _e.addSuppressed(_closeErr);
+            }
+            throw _e;
+        }
+        if (null != m_executeTask) {
+            m_executeTask.go();
+            m_rs = m_executeTask.m_rs;
+            mergeReplyData(m_executeTask);
+        }
+    }
+
+    private void describeStatement() throws Exception {
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
 
         final ResultSetMetaData rsMetaData = m_stmt.getMetaData();
@@ -78,11 +103,6 @@ public class PrepareSql extends BlockRetrievableRequest {
         }
 
         addReplyData("metadata", metaData);
-        if (null != m_executeTask) {
-            m_executeTask.go();
-            this.m_rs = m_executeTask.m_rs;
-            mergeReplyData(m_executeTask);
-        }
     }
 
     private static String getDb2ParameterName(PreparedStatement _stmt, int _i) throws SQLException {
@@ -125,10 +145,28 @@ public class PrepareSql extends BlockRetrievableRequest {
      * only run on this PrepareSql instance, silently skipping the deferred close.
      */
     @Override
-    protected void processAfterReplySent() {
+    protected synchronized void processAfterReplySent() {
         super.processAfterReplySent();
         if (m_executeTask != null) {
             m_executeTask.processAfterReplySent();
+        }
+    }
+
+    /**
+     * The prepared statement is kept open after its result set is exhausted so it
+     * can be re-executed, so it is only released here (on sqlclose or on failure).
+     */
+    @Override
+    protected synchronized void closeResources() throws SQLException {
+        try {
+            if (null != m_executeTask) {
+                m_executeTask.closeResources();
+            }
+            super.closeResources();
+        } finally {
+            if (null != m_stmt && !m_stmt.isClosed()) {
+                m_stmt.close();
+            }
         }
     }
 

@@ -105,6 +105,7 @@ public class DataStreamProcessor implements Runnable {
             case "sqlmore": {
                 if (null == cont_id) {
                     dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
+                    break;
                 }
                 BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
                 if (null == prev) {
@@ -120,6 +121,7 @@ public class DataStreamProcessor implements Runnable {
             case "sqlclose": {
                 if (null == cont_id) {
                     dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
+                    break;
                 }
                 BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
                 if (null == prev) {
