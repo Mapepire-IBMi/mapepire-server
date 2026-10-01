@@ -21,7 +21,14 @@ public class RunSql extends BlockRetrievableRequest {
         final String sql = getRequestField("sql").getAsString();
         final int numRows = super.getRequestFieldInt("rows", 1000);
         final Connection jdbcConn = getSystemConnection().getJdbcConnection();
-        m_stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
+        final Statement stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
+        synchronized (this) {
+            if (m_isReleased) {
+                stmt.close();
+                throw new SQLException("Request was closed before the statement ran");
+            }
+            m_stmt = stmt;
+        }
         try {
             final boolean hasRs = m_stmt.execute(sql);
             addReplyData("has_results", hasRs);
@@ -47,9 +54,12 @@ public class RunSql extends BlockRetrievableRequest {
 
     @Override
     protected synchronized void closeResources() throws SQLException {
-        super.closeResources();
-        if (null != m_stmt && !m_stmt.isClosed()) {
-            m_stmt.close();
+        try {
+            super.closeResources();
+        } finally {
+            if (null != m_stmt && !m_stmt.isClosed()) {
+                m_stmt.close();
+            }
         }
     }
 }

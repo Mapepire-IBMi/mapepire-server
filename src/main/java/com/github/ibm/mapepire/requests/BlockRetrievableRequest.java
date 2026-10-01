@@ -23,6 +23,8 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
     protected boolean m_isDone = false;
     protected ResultSet m_rs = null;
     protected final boolean m_isTerseData;
+    /** Set by {@link #closeResources()}; guarded by this. */
+    protected boolean m_isReleased = false;
 
     /** Holds a deferred ResultSet close (with pending spool entries) until after the WS reply is sent. */
     private DataBlockFetchResult m_deferredFetchResult = null;
@@ -38,7 +40,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
         m_isTerseData = getRequestFieldBoolean("terse", false);
     }
 
-    List<Object> getNextDataBlock(final int _numRows) throws SQLException {
+    synchronized List<Object> getNextDataBlock(final int _numRows) throws SQLException {
         if (m_isDone) {
             return new LinkedList<Object>();
         }
@@ -337,6 +339,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
      * the number of open statements per connection.
      */
     protected synchronized void closeResources() throws SQLException {
+        m_isReleased = true;
         if (null != m_deferredFetchResult) {
             m_deferredFetchResult.closeDeferredResultSet();
             m_deferredFetchResult = null;
