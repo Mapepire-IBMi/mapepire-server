@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.WeakHashMap;
 
 import com.github.ibm.mapepire.authfile.AuthFile;
 import com.github.ibm.mapepire.authfile.AuthRule;
@@ -44,6 +45,8 @@ public class SystemConnection {
     // Stored so BlobStore can validate HTTP /blob/{token} requests.
     private String m_rawCredentials = null;
     private boolean m_isBasicQueryOnly = true;
+
+    private final WeakHashMap<String, Boolean> m_knownWhetherBasicQuerySQL = new WeakHashMap<String,Boolean>();
 
     /**
      * Constructor that is only to be used when not in single mode
@@ -298,6 +301,14 @@ public class SystemConnection {
         if (!m_isBasicQueryOnly) {
             return;
         }
+        Boolean b = m_knownWhetherBasicQuerySQL.get(_sql);
+        if(null != b) {
+            if(b.booleanValue()) {
+                return;
+            } else {
+                throw new SQLException("Only basic queries are allowed");
+            }
+        }
         final Connection conn = getJdbcConnection();
         try (final PreparedStatement s = conn.prepareStatement("SELECT NAME_TYPE,SCHEMA,NAME,USAGE_TYPE, SQL_STATEMENT_TYPE FROM TABLE(QSYS2.PARSE_STATEMENT(?))")) {
             s.setString(1, _sql);
@@ -321,6 +332,7 @@ public class SystemConnection {
                     } else {
                         isOk = isStatementQuery && isUsageQuery && isData;
                     }
+                    m_knownWhetherBasicQuerySQL.put(_sql, Boolean.valueOf(isOk));
                     if (!isOk) {
                         throw new SQLException("Only basic queries are allowed");
                     }
