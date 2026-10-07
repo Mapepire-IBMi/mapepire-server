@@ -68,7 +68,7 @@ public class MapepireServer {
 
         try {
             SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
-            Tracer.getGlobalTracer().logInfo( "Mapepire starting...");
+            Tracer.getGlobalTracer().logInfo( "Mapepire (Version: "+Version.s_version+"/"+Version.s_compileDateTime+") starting...");
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenComponentStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenFileString());
