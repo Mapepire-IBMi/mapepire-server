@@ -3,6 +3,8 @@ package com.github.ibm.mapepire;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
@@ -41,6 +43,7 @@ public class SystemConnection {
     // Raw Base64 "user:pass" from the WebSocket Authorization header.
     // Stored so BlobStore can validate HTTP /blob/{token} requests.
     private String m_rawCredentials = null;
+    private boolean m_isBasicQueryOnly = true;
 
     /**
      * Constructor that is only to be used when not in single mode
@@ -157,9 +160,9 @@ public class SystemConnection {
             // check if this connection is allowed by our security rules file
             AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
 
-            final boolean isReadOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWREADONLY == accessRule.getRuleType());
+            m_isBasicQueryOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWBASICONLY == accessRule.getRuleType());
             final String jdbcPropsStr;
-            if (isReadOnly) {
+            if (m_isBasicQueryOnly) {
                 if (StringUtils.isEmpty(_jdbcProps)) {
                     jdbcPropsStr = "access=read only";
                 } else {
@@ -198,14 +201,14 @@ public class SystemConnection {
                 AS400JDBCDriver driver = new AS400JDBCDriver();
 
                 // Connect with null database name (database name should only be used for IASP connections)
-                m_conn = verifyReadOnly(isReadOnly, driver.connect(as400System, jdbcProps, null));
+                m_conn = verifyReadOnlyAtDriver(driver.connect(as400System, jdbcProps, null));
                 m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
                 return m_conn;
             }
             DriverManager.registerDriver(new AS400JDBCDriver());
             final String connectionString = getConnectionString();
             getTracer().logInfo("Using connection string " + connectionString);
-            m_conn = verifyReadOnly(isReadOnly, DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
+            m_conn = verifyReadOnlyAtDriver(DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
             m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
 
@@ -214,8 +217,8 @@ public class SystemConnection {
         }
     }
 
-    private Connection verifyReadOnly(final boolean _isSupposedToBeReadOnly, Connection _conn) throws SQLException {
-        if (!_isSupposedToBeReadOnly) {
+    private Connection verifyReadOnlyAtDriver(final Connection _conn) throws SQLException {
+        if (!m_isBasicQueryOnly) {
             return _conn;
         }
         // Tracer.getGlobalTracer().logInfo("Connection type is " + _conn.getClass().getName());
@@ -278,5 +281,60 @@ public class SystemConnection {
 
     public ClientSpecialRegisters getCSRs() {
         return m_clientRegs;
+    }
+
+    /**
+     * Verify that the given SQL is a basic query, if this connection is restricted to basic queries. A
+     * basic query is a query statement that only reads schemas, tables, columns, variables, and
+     * allow-listed functions. Does nothing if the connection is not restricted.
+     *
+     * @param _sql
+     *            the SQL statement the client wants to run
+     * @throws SQLException
+     *             if the connection is restricted and the statement is not a basic query, or the
+     *             statement cannot be parsed
+     */
+    public void verifyBasicQueryOnly(final String _sql) throws SQLException {
+        if (!m_isBasicQueryOnly) {
+            return;
+        }
+        final Connection conn = getJdbcConnection();
+        try (final PreparedStatement s = conn.prepareStatement("SELECT NAME_TYPE,SCHEMA,NAME,USAGE_TYPE, SQL_STATEMENT_TYPE FROM TABLE(QSYS2.PARSE_STATEMENT(?))")) {
+            s.setString(1, _sql);
+            try (final ResultSet rs = s.executeQuery()) {
+                while (rs.next()) {
+                    final String nameType = rs.getString(1);
+                    final String schema = rs.getString(2);
+                    final String name = rs.getString(3);
+                    final String usageType = rs.getString(4);
+                    final String sqlStatementType = rs.getString(5);
+
+                    final boolean isStatementQuery = "QUERY".equals(sqlStatementType);
+                    final boolean isUsageQuery = "QUERY".equals(usageType);
+                    final boolean isData = "SCHEMA".equals(nameType) || "TABLE".equals(nameType) || "COLUMN".equals(nameType) || "VARIABLE".equals(nameType);
+                    final boolean isFunction = "FUNCTION".equals(nameType);
+                    final boolean isAllowedFunction = isFunction && isFunctionAllowListed(name, schema);
+
+                    final boolean isOk;
+                    if (isFunction) {
+                        isOk = isStatementQuery && isAllowedFunction;
+                    } else {
+                        isOk = isStatementQuery && isUsageQuery && isData;
+                    }
+                    if (!isOk) {
+                        throw new SQLException("Only basic queries are allowed");
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO: populate the function allow list; until then, no function may be used in a basic query
+    private static boolean isFunctionAllowListed(final String _name, final String _schema) {
+        return false;
+    }
+
+    public boolean isBasicQueryOnly() {
+        return m_isBasicQueryOnly;
     }
 }

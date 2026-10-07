@@ -28,7 +28,11 @@ public class DoVe extends BlockRetrievableRequest {
     @Override
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
-        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        final SystemConnection systemConnection = getSystemConnection();
+        if(systemConnection.isBasicQueryOnly()) {
+            throw new SQLException("Only basic queries are allowed");
+        }
+        final Connection jdbcConn = systemConnection.getJdbcConnection();
         boolean isRunning = getRequestFieldBoolean("run", false);
         final int numRows = super.getRequestFieldInt("rows", 1000);
         byte[] idBytes = null;

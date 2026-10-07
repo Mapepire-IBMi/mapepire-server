@@ -4,6 +4,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
@@ -25,7 +26,12 @@ public class RunCL extends BlockRetrievableRequest {
     @Override
     public void go() throws Exception {
         final String cmd = getRequestField("cmd").getAsString();
-        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        SystemConnection systemConnection = getSystemConnection();
+        if(systemConnection.isBasicQueryOnly()) {
+            throw new SQLException("Only basic queries are allowed");
+        }
+        final Connection jdbcConn = systemConnection.getJdbcConnection();
+    
         Statement jobLogPosStmt = jdbcConn.createStatement();
         ResultSet posRs = jobLogPosStmt.executeQuery("SELECT COUNT(*)  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A WHERE A.FROM_MODULE NOT IN ('QSQCALLSP') OR A.FROM_MODULE IS NULL ");
         posRs.next();

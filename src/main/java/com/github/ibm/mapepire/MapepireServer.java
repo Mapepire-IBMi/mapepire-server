@@ -62,7 +62,7 @@ public class MapepireServer {
             System.out.println("Build time: " + Version.s_compileDateTime);
             System.exit(0);
         }
-        if(args.remove("--ro") || args.remove("-ro") || args.remove("--read-only") || args.remove("--readonly")) {
+        if (args.remove("--bqo") || args.remove("-bqo") || args.remove("--basic-queries-only") ) {
             s_isReadOnly = true;
         }
 
