@@ -36,7 +36,7 @@ public class AuthFile {
     }
 
     private final File m_file;
-    private final Pattern s_authRulePattern = Pattern.compile("^\\s*(deny|allow|allowreadonly)\\s+([*\\w]+)\\s*@\\s*([0-9*:.]+)\\s*$", Pattern.CASE_INSENSITIVE);
+    private final Pattern s_authRulePattern = Pattern.compile("^\\s*(deny|allow|allowbasiconly)\\s+([*\\w]+)\\s*@\\s*([0-9*:.]+)\\s*$", Pattern.CASE_INSENSITIVE);
 
     private List<AuthRule> m_rules;
 
