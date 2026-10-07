@@ -46,7 +46,7 @@ public class MapepireServer {
     // Required minimum Java version
     private static String minimumRequiredJavaVersion = "1.8.0_341";
     private volatile static boolean s_isSingleMode = false;
-    private volatile static boolean s_isReadOnly = Boolean.getBoolean("mapepire.readonly");
+    private volatile static boolean s_isReadOnly = Boolean.getBoolean("mapepire.basiconly");
 
     public static boolean isSingleMode() { 
         return s_isSingleMode;
@@ -62,7 +62,7 @@ public class MapepireServer {
             System.out.println("Build time: " + Version.s_compileDateTime);
             System.exit(0);
         }
-        if (args.remove("--bqo") || args.remove("-bqo") || args.remove("--basic-queries-only") ) {
+        if (args.remove("--bqo") || args.remove("-bqo") || args.remove("--basic-queries-only") || args.remove("--basic-only") ) {
             s_isReadOnly = true;
         }
 
