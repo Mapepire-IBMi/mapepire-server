@@ -36,7 +36,10 @@ public class AuthRule {
 
     private final int m_lineNumber;
 
-    public AuthRule(final int _lineNumber, final RuleType _type, final String _user, final String _ip) {
+    private boolean m_isFromTable;
+
+    public AuthRule(final boolean _isFromTable, final int _lineNumber, final RuleType _type, final String _user, final String _ip) {
+        m_isFromTable = _isFromTable;
         m_ruleType = _type;
         m_user = _user;
         m_ip = _ip;
@@ -75,8 +78,8 @@ public class AuthRule {
         return "^" + re + "$";
     }
 
-    public int getLineNumber() {
-        return m_lineNumber;
+    public String getLocationString() {
+        return m_isFromTable ? ("Governance table entry " + m_lineNumber) : ("IP rules file line number " + m_lineNumber);
     }
 
 }
