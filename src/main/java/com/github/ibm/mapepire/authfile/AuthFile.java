@@ -54,36 +54,36 @@ public class AuthFile {
         if (null != m_rules) {
             return m_rules;
         }
-        if (!m_file.isFile()) {
-            Tracer.globalInfo("IP security rules file not found. Disabling IP security. File location: " + m_file.getAbsolutePath());
-            return m_rules = Collections.emptyList();
-        }
-        if (!m_file.canRead()) {
-            Tracer.globalErr("IP security rules file not readable. Disabling IP security. File location: " + m_file.getAbsolutePath());
-            throw new FileNotFoundException(m_file.getAbsolutePath());
-        }
-        if (m_file.canWrite()) {
-            Tracer.globalWarn("WARNING: IP security rules file is writable: " + m_file.getAbsolutePath());
-            ProcessResult chmodResult = ProcessLauncher.exec("/QOpenSys/usr/bin/chmod o-w " + m_file.getAbsolutePath());
-            Tracer.globalInfo("Exit code from chmod command: " + chmodResult.getExitStatus());
-        }
         final List<AuthRule> ret = new LinkedList<AuthRule>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(m_file), "UTF-8"))) {
-            String line = null;
-            int lineNumber = 0;
-            while (null != (line = br.readLine())) {
-                lineNumber++;
-                final AuthRule rule = parseAuthRuleFromLine(false, lineNumber, line);
-                if (null != rule) {
-                    ret.add(rule);
+        if (m_file.isFile()) {
+            if (!m_file.canRead()) {
+                Tracer.globalErr("IP security rules file not readable. Disabling IP security. File location: " + m_file.getAbsolutePath());
+                throw new FileNotFoundException(m_file.getAbsolutePath());
+            }
+            if (m_file.canWrite()) {
+                Tracer.globalWarn("WARNING: IP security rules file is writable: " + m_file.getAbsolutePath());
+                ProcessResult chmodResult = ProcessLauncher.exec("/QOpenSys/usr/bin/chmod o-w " + m_file.getAbsolutePath());
+                Tracer.globalInfo("Exit code from chmod command: " + chmodResult.getExitStatus());
+            }
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(m_file), "UTF-8"))) {
+                String line = null;
+                int lineNumber = 0;
+                while (null != (line = br.readLine())) {
+                    lineNumber++;
+                    final AuthRule rule = parseAuthRuleFromLine(false, lineNumber, line);
+                    if (null != rule) {
+                        ret.add(rule);
+                    }
                 }
             }
+        } else {
+            Tracer.globalInfo("IP security rules file not found: " + m_file.getAbsolutePath());
         }
         if (SystemConnection.isRunningOnIBMi() && new File("/qsys.lib/qaie.lib/iprules.file").exists()) {
             // This check is intentionally brutal. If this fails, Mapepire startup will fail, for security reasons
             Tracer.globalInfo("Attempting to load IP rules from governance table.");
             Process p = Runtime.getRuntime().exec(new String[] { "/usr/bin/qsh", "-c", "/usr/bin/db2 -s \"select RULE, FILTER from QAIE.IPRULES order by priority desc\"" });
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(m_file), "UTF-8"))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "UTF-8"))) {
                 String line = null;
                 int lineNumber = 0;
                 boolean isSkippingHeaderLines = true;
