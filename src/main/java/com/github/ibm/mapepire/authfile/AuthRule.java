@@ -2,6 +2,10 @@ package com.github.ibm.mapepire.authfile;
 
 import java.util.regex.Pattern;
 
+/**
+ * A single allow/deny rule matching a user profile and client IP address, either of which may contain
+ * '*' wildcards.
+ */
 public class AuthRule {
     public enum RuleType {
         ALLOW, DENY, ALLOWBASICONLY
@@ -15,7 +19,7 @@ public class AuthRule {
             m_isMatch = _isMatch;
         }
 
-        public RuleType geRuleType() {
+        public RuleType getRuleType() {
             return m_ruleType;
         }
 
@@ -28,7 +32,7 @@ public class AuthRule {
     private final RuleType m_ruleType;
 
     protected final String m_user;
-    protected String m_ip;
+    protected final String m_ip;
 
     private final Pattern m_userPattern;
 
@@ -36,7 +40,7 @@ public class AuthRule {
 
     private final int m_lineNumber;
 
-    private boolean m_isFromTable;
+    private final boolean m_isFromTable;
 
     public AuthRule(final boolean _isFromTable, final int _lineNumber, final RuleType _type, final String _user, final String _ip) {
         m_isFromTable = _isFromTable;
@@ -59,15 +63,15 @@ public class AuthRule {
         return m_ruleType;
     }
 
-    private static String getRegexFromSplattedLiteral(final String _s) {
+    private static String getRegexFromSplattedLiteral(final String _literal) {
         String re = "";
         final String splatRegex = "[0-9:.$#A-Z]*";
         final Pattern charsNotNeedingQuoting = Pattern.compile("[\\w:]", Pattern.CASE_INSENSITIVE);
-        for (final char l : _s.toCharArray()) {
+        for (final char l : _literal.toCharArray()) {
             final String s = String.valueOf(l);
-            if (l == '*') {
+            if ('*' == l) {
                 re += splatRegex;
-            } else if (l == '.') {
+            } else if ('.' == l) {
                 re += "\\.";
             } else if (charsNotNeedingQuoting.matcher(s).matches()) {
                 re += s;
