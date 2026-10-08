@@ -42,13 +42,13 @@ import com.ibm.ibmi_util.SystemNativeUtils;
 import com.ibm.ibmi_util.SystemNativeUtils.JobLogEnabling;
 
 public class MapepireServer {
-    private static Server server;
+    private static Server s_server;
     // Required minimum Java version
-    private static String minimumRequiredJavaVersion = "1.8.0_341";
-    private volatile static boolean s_isSingleMode = false;
-    private volatile static boolean s_isReadOnly = Boolean.getBoolean("mapepire.basiconly");
+    private static final String MINIMUM_REQUIRED_JAVA_VERSION = "1.8.0_341";
+    private static volatile boolean s_isSingleMode = false;
+    private static volatile boolean s_isReadOnly = Boolean.getBoolean("mapepire.basiconly");
 
-    public static boolean isSingleMode() { 
+    public static boolean isSingleMode() {
         return s_isSingleMode;
     }
 
@@ -62,17 +62,17 @@ public class MapepireServer {
             System.out.println("Build time: " + Version.s_compileDateTime);
             System.exit(0);
         }
-        if (args.remove("--bqo") || args.remove("-bqo") || args.remove("--basic-queries-only") || args.remove("--basic-only") ) {
+        if (args.remove("--bqo") || args.remove("-bqo") || args.remove("--basic-queries-only") || args.remove("--basic-only")) {
             s_isReadOnly = true;
         }
 
         try {
             SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
-            Tracer.getGlobalTracer().logInfo( "Mapepire (Version: "+Version.s_version+"/"+Version.s_compileDateTime+") starting...");
+            Tracer.getGlobalTracer().logInfo("Mapepire (Version: " + Version.s_version + "/" + Version.s_compileDateTime + ") starting...");
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenComponentStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenFileString());
-            if(SystemNativeUtils.isNativeLoaded()) {
+            if (SystemNativeUtils.isNativeLoaded()) {
                 final PipedInputStream pipeIn = new PipedInputStream();
                 final PipedOutputStream pipeOut = new PipedOutputStream(pipeIn);
                 final PrintStream origErr = System.err;
@@ -82,18 +82,18 @@ public class MapepireServer {
                     @Override
                     public void run() {
                         try {
-                        BufferedReader isr = new BufferedReader(new InputStreamReader(pipeIn));
-                        String line=null;
-                            while(null != (line = isr.readLine())) {
+                            BufferedReader isr = new BufferedReader(new InputStreamReader(pipeIn));
+                            String line = null;
+                            while (null != (line = isr.readLine())) {
                                 origErr.println(line);
                                 Tracer.getGlobalTracer().logInfo(line);
                             }
-                        } catch (IOException e) {
+                        } catch (IOException _e) {
                             System.setErr(origErr);
-                            e.printStackTrace();
+                            _e.printStackTrace();
                         }
                     }
-                    
+
                 }, "StdErrLoggerMain").start();
             }
 
@@ -113,35 +113,35 @@ public class MapepireServer {
                 io.run();
             } else {
                 s_isSingleMode = false;
-                
-                if(Boolean.getBoolean("mapepire.skipuserswap")){
+
+                if (Boolean.getBoolean("mapepire.skipuserswap")) {
                     Tracer.getGlobalTracer().logWarn("Not swapping user profile. Deploying in this manner goes against security best practices.");
-                }else{
+                } else {
                     String userProfile = SystemNativeUtils.swapUser();
-                    Tracer.getGlobalTracer().logInfo("Current user is "+userProfile);
+                    Tracer.getGlobalTracer().logInfo("Current user is " + userProfile);
                 }
 
                 // Needed to enforce TLS capabilities when not in single mode
-                checkJavaVersion(minimumRequiredJavaVersion);
-                
+                checkJavaVersion(MINIMUM_REQUIRED_JAVA_VERSION);
+
                 // Make sure we can process our security rules file, if it exists
                 AuthFile.getDefault().getRules();
 
-                if(args.remove("--traceErrors")) {
+                if (args.remove("--traceErrors")) {
                     Tracer.getGlobalTracer().setTraceLevel(TraceLevel.ERRORS);
                 }
-                if(args.remove("--traceOn")) {
+                if (args.remove("--traceOn")) {
                     Tracer.getGlobalTracer().setTraceLevel(TraceLevel.ON);
                 }
-                if(args.remove("--traceDs")) {
+                if (args.remove("--traceDs")) {
                     Tracer.getGlobalTracer().setTraceLevel(TraceLevel.DATASTREAM);
                 }
                 AppLogger logger = AppLogger.getSingleton(args.remove("-v"));
                 logger.printf("Starting daemon...");
                 Tracer.globalInfo("Starting daemon...");
                 DbSocketCreator.enableDaemon();
-                
-                server = new Server();
+
+                s_server = new Server();
 
                 final ServerConnector connector;
                 String isUnsecure = System.getenv("MP_UNSECURE");
@@ -149,7 +149,7 @@ public class MapepireServer {
                     String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
                     logger.println_err("\n\n" + uhOhWarning + "\n\n");
                     Tracer.globalWarn(uhOhWarning);
-                    connector = new ServerConnector(server);
+                    connector = new ServerConnector(s_server);
                 } else {
                     SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
                     ServerCertInfo serverCertInfo = new ServerCertGetter().get();
@@ -158,10 +158,10 @@ public class MapepireServer {
                     sslContextFactory.setCertAlias(serverCertInfo.getAlias());
                     sslContextFactory.setKeyManagerPassword(serverCertInfo.getKeyPass());
                     Tracer.globalInfo("Using key store " + serverCertInfo.getKeyStoreFile().getAbsolutePath());
-                    connector = new ServerConnector(server, sslContextFactory);
+                    connector = new ServerConnector(s_server, sslContextFactory);
                 }
 
-                server.addConnector(connector);
+                s_server.addConnector(connector);
 
                 // Setup the basic application "context" for this application at "/"
                 // This is also known as the handler tree (in jetty speak)
@@ -190,21 +190,21 @@ public class MapepireServer {
                 handler.addConstraintMapping(allowOthers);
 
                 handler.setHandler(context);
-                server.setHandler(handler);
+                s_server.setHandler(handler);
 
-                String remoteServer = System.getenv("DB_SERVER"); //TODO: replace `System.getenv` calls with IBMiDotEnv or something. 
+                String remoteServer = System.getenv("DB_SERVER"); // TODO: replace `System.getenv` calls with IBMiDotEnv or something.
                 if (StringUtils.isNonEmpty(remoteServer)) {
                     DbSocketCreator.setDatabaseHost(remoteServer);
                 }
                 if (SystemConnection.isRunningOnIBMi() && (StringUtils.isEmpty(remoteServer) || "localhost".equalsIgnoreCase(remoteServer) || "127.0.0.1".equalsIgnoreCase(remoteServer))) {
                     SSLContext ctx = SSLContext.getInstance("TLS");
                     //@formatter:off
-                    ctx.init(null, new TrustManager[] { 
-                            new X509TrustManager() { 
-                                @Override  public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
-                                @Override  public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+                    ctx.init(null, new TrustManager[] {
+                            new X509TrustManager() {
+                                @Override  public void checkClientTrusted(X509Certificate[] _chain, String _authType) throws CertificateException { }
+                                @Override  public void checkServerTrusted(X509Certificate[] _chain, String _authType) throws CertificateException { }
                                 @Override  public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
-                            } 
+                            }
                         }, null);
                     //@formatter:on
                     SSLContext.setDefault(ctx);
@@ -220,36 +220,35 @@ public class MapepireServer {
                 logger.println("Starting server for " + DbSocketCreator.getHost() + " on port " + DbSocketCreator.getPort());
 
                 // Configure specific websocket behavior
-                NativeWebSocketServletContainerInitializer.configure(context,
-                        (servletContext, nativeWebSocketConfiguration) -> {
-                            nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
-                            // Max WS message size — default Integer.MAX_VALUE (unlimited).
-                            // Can be capped via MAX_WS_MESSAGE_SIZE env var if desired.
-                            int maxWsMessageSize = Integer.MAX_VALUE;
-                            String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
-                            if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
-                                maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
-                            }
-                            nativeWebSocketConfiguration.getPolicy().setMaxTextMessageSize(maxWsMessageSize);
+                NativeWebSocketServletContainerInitializer.configure(context, (servletContext, nativeWebSocketConfiguration) -> {
+                    nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
+                    // Max WS message size — default Integer.MAX_VALUE (unlimited).
+                    // Can be capped via MAX_WS_MESSAGE_SIZE env var if desired.
+                    int maxWsMessageSize = Integer.MAX_VALUE;
+                    String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
+                    if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
+                        maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
+                    }
+                    nativeWebSocketConfiguration.getPolicy().setMaxTextMessageSize(maxWsMessageSize);
 
-                            // Add websockets
-                            nativeWebSocketConfiguration.addMapping("/db/*", new DbSocketCreator());
-                        });
+                    // Add websockets
+                    nativeWebSocketConfiguration.addMapping("/db/*", new DbSocketCreator());
+                });
 
                 // Add generic filter that will accept WebSocket upgrade.
                 WebSocketUpgradeFilter.configure(context);
 
                 try {
-                    server.start();
-                    server.join();
+                    s_server.start();
+                    s_server.join();
                     logger.println_warn("Server ending gracefully");
-                } catch (Throwable t) {
-                    logger.exception(t);
-                    Tracer.globalErr(t);
+                } catch (Throwable _t) {
+                    logger.exception(_t);
+                    Tracer.globalErr(_t);
                 }
             }
-        } catch (final Exception e) {
-            Tracer.globalErr(e);
+        } catch (final Exception _e) {
+            Tracer.globalErr(_e);
         }
         Tracer.globalWarn("data stream processing completed (end of request stream?)");
         System.exit(12);
@@ -257,19 +256,20 @@ public class MapepireServer {
 
     /**
      * Check that the Java version is at least a certain level
-     * @param requiredVersion The minimum required Java version
+     *
+     * @param _requiredVersion
+     *            The minimum required Java version
      * @implNote This method terminates the application with {@code System.exit(1)} if the
-     * current Java version does not meet the required version.
+     *           current Java version does not meet the required version.
      */
-    private static void checkJavaVersion(String requiredVersion){
+    private static void checkJavaVersion(String _requiredVersion) {
 
         // Get the current Java version
         String javaVersion = System.getProperty("java.version");
 
         // Compare versions
-        if (isVersionLessThan(javaVersion, requiredVersion)) {
-            System.err.println("Error: Java version must be >= " + requiredVersion
-                    + ". Current version: " + javaVersion);
+        if (isVersionLessThan(javaVersion, _requiredVersion)) {
+            System.err.println("Error: Java version must be >= " + _requiredVersion + ". Current version: " + javaVersion);
             System.exit(1); // Exit with an error code
         }
     }
@@ -277,13 +277,15 @@ public class MapepireServer {
     /**
      * Compares two Java versions and determines if the first is less than the second.
      *
-     * @param currentVersion the current Java version.
-     * @param requiredVersion the required Java version.
-     * @return true if currentVersion < requiredVersion, false otherwise.
+     * @param _currentVersion
+     *            the current Java version.
+     * @param _requiredVersion
+     *            the required Java version.
+     * @return true if _currentVersion < _requiredVersion, false otherwise.
      */
-    private static boolean isVersionLessThan(String currentVersion, String requiredVersion) {
-        String[] currentParts = currentVersion.split("\\.|_|-");
-        String[] requiredParts = requiredVersion.split("\\.|_|-");
+    private static boolean isVersionLessThan(String _currentVersion, String _requiredVersion) {
+        String[] currentParts = _currentVersion.split("\\.|_|-");
+        String[] requiredParts = _requiredVersion.split("\\.|_|-");
 
         int length = Math.max(currentParts.length, requiredParts.length);
         for (int i = 0; i < length; i++) {
@@ -298,7 +300,7 @@ public class MapepireServer {
                 } else if (currentNumericPart > requiredNumericPart) {
                     return false;
                 }
-            }  catch (NumberFormatException e) {
+            } catch (NumberFormatException _e) {
                 // If it's not a number, compare as strings
                 int comparison = currentPart.compareTo(requiredPart);
                 if (comparison < 0) {
