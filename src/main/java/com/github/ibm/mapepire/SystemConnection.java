@@ -357,7 +357,7 @@ public class SystemConnection {
             if (b.booleanValue()) {
                 return;
             } else {
-                throw new SQLException("Only basic queries are allowed");
+                throw new SQLException ("Only basic queries are allowed", "42505", -99999);
             }
         }
         final Connection conn = getJdbcConnection();
@@ -385,7 +385,7 @@ public class SystemConnection {
                     }
                     m_knownWhetherBasicQuerySQL.put(_sql, Boolean.valueOf(isOk));
                     if (!isOk) {
-                        throw new SQLException("Only basic queries are allowed");
+                        throw new SQLException ("Only basic queries are allowed", "42505", -99999);
                     }
                 }
             }
