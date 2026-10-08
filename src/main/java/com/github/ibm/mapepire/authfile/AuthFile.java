@@ -30,7 +30,7 @@ public class AuthFile {
         if (null != s_defaultInstance) {
             return s_defaultInstance;
         }
-        return new AuthFile(MapepireServer.isSingleMode() ? DEFAULT_SEC_FILE_SINGLEMODE : DEFAULT_SEC_FILE);
+        return s_defaultInstance = new AuthFile(MapepireServer.isSingleMode() ? DEFAULT_SEC_FILE_SINGLEMODE : DEFAULT_SEC_FILE);
     }
 
     public synchronized static void disableDefaultAuthFile() {
@@ -75,7 +75,7 @@ public class AuthFile {
                         ret.add(rule);
                     }
                 }
-            }
+            } 
         } else {
             Tracer.globalInfo("IP security rules file not found: " + m_file.getAbsolutePath());
         }
@@ -83,7 +83,7 @@ public class AuthFile {
             // This check is intentionally brutal. If this fails, Mapepire startup will fail, for security reasons
             Tracer.globalInfo("Attempting to load IP rules from governance table.");
             Process p = Runtime.getRuntime().exec(new String[] { "/usr/bin/qsh", "-c", "/usr/bin/db2 -s \"select RULE, FILTER from QAIE.IPRULES order by priority desc\"" });
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "UTF-8"))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "Cp037"))) {
                 String line = null;
                 int lineNumber = 0;
                 boolean isSkippingHeaderLines = true;
@@ -107,6 +107,14 @@ public class AuthFile {
                         ret.add(rule);
                     }
                 }
+                if(isSkippingHeaderLines) {
+                    // we got to the end without encountering a line starting with '--'.
+                    // That means we are processing output in a different CCSID than qsh is returning
+                    throw new IOException("Error processing contents of governance table");
+                }
+            }
+            if(0 != p.exitValue()) {
+                throw new IOException("Error processing governance table");
             }
         }
         return m_rules = ret;
