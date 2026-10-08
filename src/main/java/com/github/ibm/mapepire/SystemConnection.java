@@ -26,6 +26,24 @@ import com.ibm.as400.access.AS400JDBCDriver;
 import com.ibm.as400.access.JDProperties;
 
 public class SystemConnection {
+    // System property names
+    private static final String PROP_DEBUG_USER = "mapepire.debug.user";
+    private static final String PROP_DEBUG_HOST = "mapepire.debug.host";
+    private static final String PROP_DEBUG_PASSWORD = "mapepire.debug.pw";
+    private static final String PROP_JDBC_AUTOCONNECT = "codeserver.jdbc.autoconnect";
+    private static final String PROP_RESTRICTED_LOCAL_CONNECTION = "jdbc.db2.restricted.local.connection.only";
+    private static final String PROP_DISABLE_BUILTINS_IN_BASIC_QUERY = "mapepire.bqo.disablebuiltins";
+
+    // Error messages and codes (client-visible; do not change the values)
+    private static final String IMPROPER_USAGE_MESSAGE = "Improper usage";
+    private static final String INVALID_USERNAME_MESSAGE = "Invalid Username";
+    private static final String INVALID_PASSWORD_MESSAGE = "Invalid Password";
+    private static final String BASIC_QUERY_ONLY_MESSAGE = "Only basic queries are allowed";
+    private static final String SQLSTATE_NOT_AUTHORIZED = "42505";
+    private static final int BASIC_QUERY_ONLY_VENDOR_CODE = -99999;
+
+    private static final String READ_ONLY_JDBC_PROPERTY = "access=read only";
+
     // Built-in functions from "Chapter 4. Built-in functions" of the Db2 for i SQL Reference, IBM i 7.3
     //@formatter:off
     private static final Set<String> BUILTIN_FUNCTIONS_ALLOWED_IN_BASIC_QUERY = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
@@ -106,15 +124,15 @@ public class SystemConnection {
      */
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
-            throw new IOException("Improper usage");
+            throw new IOException(IMPROPER_USAGE_MESSAGE);
         }
         ClientSpecialRegistersVSCode clientRegs = new ClientSpecialRegistersVSCode();
         this.m_clientRegs = clientRegs;
         this.clientAddress = clientRegs.getClientAddress();
-        this.userProfile = System.getProperty("mapepire.debug.user", System.getProperty("user.name"));
+        this.userProfile = System.getProperty(PROP_DEBUG_USER, System.getProperty("user.name"));
         this.m_tracer = Tracer.getNew();
-        this.host = System.getProperty("mapepire.debug.host", null);
-        String debugpw = System.getProperty("mapepire.debug.pw");
+        this.host = System.getProperty(PROP_DEBUG_HOST, null);
+        String debugpw = System.getProperty(PROP_DEBUG_PASSWORD);
         this.password = null == debugpw ? null : debugpw.toCharArray();
 
     }
@@ -122,17 +140,17 @@ public class SystemConnection {
     public SystemConnection(String clientHost, String clientAddress, String host, String user, char[] pass, Tracer tracer) throws IOException {
         super();
         if (MapepireServer.isSingleMode()) {
-            throw new IOException("Improper usage");
+            throw new IOException(IMPROPER_USAGE_MESSAGE);
         }
         this.host = host;
         if (StringUtils.isEmpty(user) || user.contains("*")) {
-            throw new IOException("Invalid Username");
+            throw new IOException(INVALID_USERNAME_MESSAGE);
         }
         if (StringUtils.isEmpty(host) || host.contains("*")) {
             throw new IOException("Invalid Hostname");
         }
         if (pass == null || pass.length == 0) {
-            throw new IOException("Invalid Password");
+            throw new IOException(INVALID_PASSWORD_MESSAGE);
         }
         this.userProfile = user;
         this.password = pass;
@@ -159,7 +177,7 @@ public class SystemConnection {
         if (null != m_conn && !m_conn.isClosed()) {
             return m_conn;
         }
-        if (Boolean.getBoolean("codeserver.jdbc.autoconnect")) {
+        if (Boolean.getBoolean(PROP_JDBC_AUTOCONNECT)) {
             return reconnect(m_lastUsedConnectionMethod, m_lastUsedJdbcProps, m_applicationName);
         }
         throw new SQLException("Not connected");
@@ -218,9 +236,9 @@ public class SystemConnection {
             final String jdbcPropsStr;
             if (m_isBasicQueryOnly) {
                 if (StringUtils.isEmpty(_jdbcProps)) {
-                    jdbcPropsStr = "access=read only";
+                    jdbcPropsStr = READ_ONLY_JDBC_PROPERTY;
                 } else {
-                    jdbcPropsStr = _jdbcProps + ";access=read only";
+                    jdbcPropsStr = _jdbcProps + ";" + READ_ONLY_JDBC_PROPERTY;
                 }
             } else {
                 jdbcPropsStr = _jdbcProps;
@@ -277,12 +295,12 @@ public class SystemConnection {
         }
         // Tracer.getGlobalTracer().logInfo("Connection type is " + _conn.getClass().getName());
         if (!_conn.isReadOnly()) {
-            throw new SQLException("Only basic queries are allowed", "42505", -99999);
+            throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
         }
         try (final Statement s = _conn.createStatement()) {
             try {
                 s.execute("CALL systools.lprintf('ERROR: Disregard of read only mode detected')");
-                throw new SQLException("Only basic queries are allowed", "42505", -99999);
+                throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
             } catch (SQLException e) {
                 // expected condition. If we're read-only, this should fail
             }
@@ -298,10 +316,10 @@ public class SystemConnection {
     private String getAuthString() throws IOException {
         if (!MapepireServer.isSingleMode()) {
             if (StringUtils.isEmpty(userProfile) || userProfile.contains("*")) {
-                throw new IOException("Invalid Username");
+                throw new IOException(INVALID_USERNAME_MESSAGE);
             }
             if (StringUtils.isEmpty(password)) {
-                throw new IOException("Invalid Password");
+                throw new IOException(INVALID_PASSWORD_MESSAGE);
             }
         }
         if (MapepireServer.isSingleMode() && (userProfile == null || password == null)) {
@@ -313,7 +331,7 @@ public class SystemConnection {
 
     private String getConnectionString() throws IOException {
         if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == this.m_lastUsedConnectionMethod)) {
-            return Boolean.getBoolean("jdbc.db2.restricted.local.connection.only") ? "jdbc:default:connection" : "jdbc:db2:*LOCAL";
+            return Boolean.getBoolean(PROP_RESTRICTED_LOCAL_CONNECTION) ? "jdbc:default:connection" : "jdbc:db2:*LOCAL";
         }
         return "jdbc:as400:" + this.getAuthString();
     }
@@ -357,7 +375,7 @@ public class SystemConnection {
             if (b.booleanValue()) {
                 return;
             } else {
-                throw new SQLException ("Only basic queries are allowed", "42505", -99999);
+                throw new SQLException (BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
             }
         }
         final Connection conn = getJdbcConnection();
@@ -385,7 +403,7 @@ public class SystemConnection {
                     }
                     m_knownWhetherBasicQuerySQL.put(_sql, Boolean.valueOf(isOk));
                     if (!isOk) {
-                        throw new SQLException ("Only basic queries are allowed", "42505", -99999);
+                        throw new SQLException (BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
                     }
                 }
             }
@@ -407,7 +425,7 @@ public class SystemConnection {
         if (null != _schema || null == _name) {
             return false;
         }
-        return Boolean.getBoolean("mapepire.bqo.disablebuiltins") ? false : BUILTIN_FUNCTIONS_ALLOWED_IN_BASIC_QUERY.contains(_name.trim().toUpperCase(Locale.ROOT));
+        return Boolean.getBoolean(PROP_DISABLE_BUILTINS_IN_BASIC_QUERY) ? false : BUILTIN_FUNCTIONS_ALLOWED_IN_BASIC_QUERY.contains(_name.trim().toUpperCase(Locale.ROOT));
     }
 
     public boolean isBasicQueryOnly() {
