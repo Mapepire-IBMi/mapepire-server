@@ -217,9 +217,7 @@ The distinction is meaningful: `s_` is a warning label. It tells the reader that
 process-wide *and* can change, which in a multi-connection server is something to think carefully about.
 `UPPER_SNAKE_CASE` carries no such warning because a constant is safe to read from anywhere.
 
-A `static final` reference to a *mutable object* (say, a `static final Map`) is a grey area. Name it
-`UPPER_SNAKE_CASE` if it is genuinely used as a constant lookup table; name it `s_camelCase` if its
-contents change during normal operation.
+A `static final` reference to a *mutable object* (say, a `static final Map`) or a non-literal type (say, a `static final Pattern`) should not be considered a constant;name it `s_camelCase`
 
 Note that `s_` means **static**. Do not use it on an instance field, even one that holds a
 conceptually-constant value like a compiled `Pattern` — that is an `m_` field, or better, a genuine
