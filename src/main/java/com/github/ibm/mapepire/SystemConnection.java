@@ -8,7 +8,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import com.github.ibm.mapepire.authfile.AuthFile;
@@ -21,6 +26,53 @@ import com.ibm.as400.access.AS400JDBCDriver;
 import com.ibm.as400.access.JDProperties;
 
 public class SystemConnection {
+    // Built-in functions from "Chapter 4. Built-in functions" of the Db2 for i SQL Reference, IBM i 7.3
+    //@formatter:off
+    private static final Set<String> BUILTIN_FUNCTIONS_ALLOWED_IN_BASIC_QUERY = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+            // Aggregate functions
+            "ARRAY_AGG", "AVG", "CORR", "CORRELATION", "COUNT", "COUNT_BIG", "COVARIANCE", "COVAR", "COVAR_SAMP", "COVARIANCE_SAMP",
+            "GROUPING", "JSON_ARRAYAGG", "JSON_OBJECTAGG", "LISTAGG", "MAX", "MEDIAN", "MIN", "PERCENTILE_CONT", "PERCENTILE_DISC",
+            "REGR_AVGX", "REGR_AVGY", "REGR_COUNT", "REGR_ICPT", "REGR_INTERCEPT", "REGR_R2", "REGR_SLOPE", "REGR_SXX", "REGR_SXY", "REGR_SYY",
+            "STDDEV_POP", "STDDEV", "STDDEV_SAMP", "SUM", "VAR_POP", "VARIANCE", "VAR", "VAR_SAMP", "VARIANCE_SAMP", "XMLAGG", "XMLGROUP",
+            // Scalar functions
+            "ABS", "ABSVAL", "ACOS", "ADD_MONTHS", "ANTILOG", "ARRAY_MAX_CARDINALITY", "ARRAY_TRIM", "ASCII", "ASIN", "ATAN", "ATANH", "ATAN2",
+            "BASE64_DECODE", "BASE64_ENCODE", "BIGINT", "BINARY", "BITAND", "BITANDNOT", "BITOR", "BITXOR", "BITNOT", "BIT_LENGTH", "BLOB",
+            "BSON_TO_JSON", "CARDINALITY", "CEILING", "CEIL", "CHAR", "CHARACTER_LENGTH", "CHAR_LENGTH", "CHR", "CLOB", "COALESCE",
+            "COMPARE_DECFLOAT", "CONCAT", "CONTAINS", "COS", "COSH", "COT", "CURDATE", "CURTIME", "DATABASE", "DATAPARTITIONNAME",
+            "DATAPARTITIONNUM", "DATE", "DAY", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK", "DAYOFWEEK_ISO", "DAYOFYEAR", "DAYS", "DBCLOB",
+            "DBPARTITIONNAME", "DBPARTITIONNUM", "DECFLOAT", "DECFLOAT_FORMAT", "DECFLOAT_SORTKEY", "DECIMAL", "DEC", "DECRYPT_BIT",
+            "DECRYPT_BINARY", "DECRYPT_CHAR", "DECRYPT_DB", "DEGREES", "DIFFERENCE", "DIGITS", "DLCOMMENT", "DLLINKTYPE", "DLURLCOMPLETE",
+            "DLURLPATH", "DLURLPATHONLY", "DLURLSCHEME", "DLURLSERVER", "DLVALUE", "DOUBLE_PRECISION", "DOUBLE", "ENCRYPT_AES", "ENCRYPT_RC2",
+            "ENCRYPT", "ENCRYPT_TDES", "EXP", "EXTRACT", "FLOAT", "FLOOR", "GENERATE_UNIQUE", "GET_BLOB_FROM_FILE", "GET_CLOB_FROM_FILE",
+            "GET_DBCLOB_FROM_FILE", "GET_XML_FILE", "GETHINT", "GRAPHIC", "GREATEST", "HASH", "HASHED_VALUE", "HEX", "HEXTORAW", "HOUR",
+            // Excluded: HTTP functions can send data off the system or change remote state, which read-only access does not prevent
+            // "HTTP_DELETE", "HTTP_GET", "HTTP_PATCH", "HTTP_POST", "HTTP_PUT",
+            "IDENTITY_VAL_LOCAL", "IFNULL", "INSERT", "INTEGER", "INT",
+            "INTERPRET", "INSTR", "JSON_ARRAY", "JSON_OBJECT", "JSON_QUERY", "JSON_TO_BSON", "JSON_VALUE", "JULIAN_DAY", "LAND", "LAST_DAY",
+            "LCASE", "LEAST", "LEFT", "LENGTH", "LN", "LNOT", "LOCATE", "LOCATE_IN_STRING", "LOG10", "LOR", "LOWER", "LPAD", "LTRIM",
+            "MAX_CARDINALITY", "MICROSECOND", "MIDNIGHT_SECONDS", "MINUTE", "MOD", "MONTH", "MONTHNAME", "MONTHS_BETWEEN", "MQREAD",
+            "MQREADCLOB",
+            // Excluded: MQSEND writes a message and MQRECEIVE* removes messages from the queue, which read-only access does not prevent
+            // "MQRECEIVE", "MQRECEIVECLOB", "MQSEND",
+            "MULTIPLY_ALT", "NEXT_DAY", "NORMALIZE_DECFLOAT", "NOW", "NULLIF", "NVL",
+            "OCTET_LENGTH", "OVERLAY", "PI", "POSITION", "POSSTR", "POWER", "POW", "QUANTIZE", "QUARTER", "RADIANS", "RAISE_ERROR", "RANDOM",
+            "RAND", "REAL", "REGEXP_COUNT", "REGEXP_INSTR", "REGEXP_REPLACE", "REGEXP_SUBSTR", "REPEAT", "REPLACE", "RID", "RIGHT", "ROUND",
+            "ROUND_TIMESTAMP", "ROWID", "RPAD", "RRN", "RTRIM", "SCORE", "SECOND", "SIGN", "SIN", "SINH", "SMALLINT", "SOUNDEX", "SPACE", "SQRT",
+            "STRIP", "STRLEFT", "STRPOS", "STRRIGHT", "SUBSTR", "SUBSTRING", "TABLE_NAME", "TABLE_SCHEMA", "TAN", "TANH", "TIME", "TIMESTAMP",
+            "TIMESTAMP_FORMAT", "TIMESTAMP_ISO", "TIMESTAMPDIFF", "TO_CHAR", "TO_CLOB", "TO_DATE", "TO_NUMBER", "TO_TIMESTAMP", "TOTALORDER",
+            "TRANSLATE", "TRIM", "TRIM_ARRAY", "TRUNCATE", "TRUNC", "TRUNC_TIMESTAMP", "UCASE", "UPPER", "URL_DECODE", "URL_ENCODE", "VALUE",
+            "VARBINARY", "VARBINARY_FORMAT", "VARCHAR", "VARCHAR_BIT_FORMAT", "VARCHAR_FORMAT", "VARCHAR_FORMAT_BINARY", "VARGRAPHIC",
+            "VERIFY_GROUP_FOR_USER", "WEEK", "WEEK_ISO", "WRAP", "XMLATTRIBUTES", "XMLCOMMENT", "XMLCONCAT", "XMLDOCUMENT", "XMLELEMENT",
+            "XMLFOREST", "XMLNAMESPACES", "XMLPARSE", "XMLPI", "XMLROW", "XMLSERIALIZE", "XMLTEXT", "XMLVALIDATE", "XOR", "XSLTRANSFORM",
+            "YEAR", "ZONED",
+            // Table functions
+            "BASE_TABLE", "JSON_TABLE", "MQREADALL", "MQREADALLCLOB", "XMLTABLE"
+            // Excluded for the same reasons as the corresponding scalar functions above
+            // "HTTP_DELETE_VERBOSE", "HTTP_GET_VERBOSE", "HTTP_PATCH_VERBOSE", "HTTP_POST_VERBOSE", "HTTP_PUT_VERBOSE",
+            // "MQRECEIVEALL", "MQRECEIVEALLCLOB",
+        )));
+    //@formatter:on
+
     public enum ConnectionMethod {
         TCP, CLI;
 
@@ -32,8 +84,6 @@ public class SystemConnection {
     private Connection m_conn;
     private ConnectionMethod m_lastUsedConnectionMethod = ConnectionMethod.CLI;
     private String m_lastUsedJdbcProps = "";
-    // TODO: refactor this part to use proper coding conventions
-    // TODO: document proper coding conventions for the project
     // TODO: document the expectations around the host, username, and password fields
     private final String host;
     private final String userProfile;
@@ -47,7 +97,7 @@ public class SystemConnection {
     private String m_rawCredentials = null;
     private boolean m_isBasicQueryOnly = true;
 
-    private final WeakHashMap<String, Boolean> m_knownWhetherBasicQuerySQL = new WeakHashMap<String,Boolean>();
+    private final WeakHashMap<String, Boolean> m_knownWhetherBasicQuerySQL = new WeakHashMap<String, Boolean>();
 
     /**
      * Constructor that is only to be used when not in single mode
@@ -303,8 +353,8 @@ public class SystemConnection {
             return;
         }
         Boolean b = m_knownWhetherBasicQuerySQL.get(_sql);
-        if(null != b) {
-            if(b.booleanValue()) {
+        if (null != b) {
+            if (b.booleanValue()) {
                 return;
             } else {
                 throw new SQLException("Only basic queries are allowed");
@@ -342,9 +392,22 @@ public class SystemConnection {
         }
     }
 
-    // TODO: populate the function allow list; until then, no function may be used in a basic query
+    /**
+     * Returns whether the given function may be used in a basic query. Only unqualified built-in functions
+     * are allowed; a schema-qualified name always refers to a user-defined or catalog function, so it is
+     * never allowed.
+     *
+     * @param _name
+     *            the function name reported by QSYS2.PARSE_STATEMENT
+     * @param _schema
+     *            the function schema reported by QSYS2.PARSE_STATEMENT, or {@code null} if unqualified
+     * @return {@code true} if the function is an unqualified built-in function
+     */
     private static boolean isFunctionAllowListed(final String _name, final String _schema) {
-        return false;
+        if (null != _schema || null == _name) {
+            return false;
+        }
+        return Boolean.getBoolean("mapepire.bqo.disablebuiltins") ? false : BUILTIN_FUNCTIONS_ALLOWED_IN_BASIC_QUERY.contains(_name.trim().toUpperCase(Locale.ROOT));
     }
 
     public boolean isBasicQueryOnly() {
