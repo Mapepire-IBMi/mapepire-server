@@ -2,7 +2,6 @@ package com.github.ibm.mapepire.certstuff;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.LinkedList;
 import com.github.ibm.mapepire.Tracer;
 import com.github.theprez.jcmdutils.StringUtils;

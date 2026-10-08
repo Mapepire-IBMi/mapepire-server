@@ -13,7 +13,6 @@ import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.MapepireServer;
 import com.github.ibm.mapepire.SystemConnection;
-import com.github.ibm.mapepire.Tracer;
 import com.github.ibm.mapepire.http.BlobStore;
 import com.google.gson.JsonObject;
 import com.ibm.as400.access.AS400JDBCParameterMetaData;

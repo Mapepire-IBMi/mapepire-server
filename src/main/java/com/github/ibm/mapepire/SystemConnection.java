@@ -23,7 +23,6 @@ import com.github.theprez.jcmdutils.StringUtils;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCDriver;
-import com.ibm.as400.access.JDProperties;
 
 public class SystemConnection {
     // System property names
