@@ -3,7 +3,6 @@ package com.github.ibm.mapepire.requests;
 import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
-import com.github.ibm.mapepire.Tracer;
 import com.github.ibm.mapepire.ws.DbSocketCreator;
 import com.google.gson.JsonObject;
 

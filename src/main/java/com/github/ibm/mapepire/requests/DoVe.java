@@ -4,14 +4,12 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.sql.ParameterMetaData;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
-import com.github.ibm.mapepire.Tracer;
 import com.google.gson.JsonObject;
 
 public class DoVe extends BlockRetrievableRequest {
@@ -28,7 +26,11 @@ public class DoVe extends BlockRetrievableRequest {
     @Override
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
-        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        final SystemConnection systemConnection = getSystemConnection();
+        if(systemConnection.isBasicQueryOnly()) {
+            throw new SQLException("Only basic queries are allowed");
+        }
+        final Connection jdbcConn = systemConnection.getJdbcConnection();
         boolean isRunning = getRequestFieldBoolean("run", false);
         final int numRows = super.getRequestFieldInt("rows", 1000);
         byte[] idBytes = null;

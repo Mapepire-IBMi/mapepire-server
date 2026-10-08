@@ -21,13 +21,8 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
                 m_clientIP = "localhost";
             }
         }
-        String location = "<unknown location>";
-        try {
-            location = ClientSpecialRegistersVSCode.class.getProtectionDomain().getCodeSource().getLocation().toString();
-        } catch (Exception e) {
-            Tracer.globalErr(e);
-        }
-        m_accountingString = "location: " + location;
+        
+        m_accountingString = "location: " + MapepireServer.getInstallLocationHumanReadable();
         m_toString = String.format("User=%s,IP=%s,acct=%s", "" + System.getProperty("user.name"), m_clientIP, m_accountingString);
     }
 
