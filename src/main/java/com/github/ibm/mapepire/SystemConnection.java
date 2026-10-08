@@ -277,12 +277,12 @@ public class SystemConnection {
         }
         // Tracer.getGlobalTracer().logInfo("Connection type is " + _conn.getClass().getName());
         if (!_conn.isReadOnly()) {
-            throw new SQLException("Only read-only access is allowed");
+            throw new SQLException("Only basic queries are allowed", "42505", -99999);
         }
         try (final Statement s = _conn.createStatement()) {
             try {
                 s.execute("CALL systools.lprintf('ERROR: Disregard of read only mode detected')");
-                throw new SQLException("Only read-only access is allowed");
+                throw new SQLException("Only basic queries are allowed", "42505", -99999);
             } catch (SQLException e) {
                 // expected condition. If we're read-only, this should fail
             }
