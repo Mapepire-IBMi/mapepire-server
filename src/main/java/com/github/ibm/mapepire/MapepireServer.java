@@ -114,7 +114,7 @@ public class MapepireServer {
             } else {
                 s_isSingleMode = false;
                 
-                if(Boolean.valueOf("mapepire.skipuserswap")){
+                if(Boolean.getBoolean("mapepire.skipuserswap")){
                     Tracer.getGlobalTracer().logWarn("Not swapping user profile. Deploying in this manner goes against security best practices.");
                 }else{
                     String userProfile = SystemNativeUtils.swapUser();
