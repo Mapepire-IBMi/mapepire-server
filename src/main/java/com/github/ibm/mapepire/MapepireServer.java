@@ -199,6 +199,10 @@ public class MapepireServer {
                 if (SystemConnection.isRunningOnIBMi() && (StringUtils.isEmpty(remoteServer) || "localhost".equalsIgnoreCase(remoteServer) || "127.0.0.1".equalsIgnoreCase(remoteServer))) {
                     final SSLContext ctx = SSLContext.getInstance("TLS");
                     //@formatter:off
+                    // Intentional: this trust-all manager is a fallback path only, applied solely when connecting to the
+                    // database on this same IBM i (localhost). The connection is still TLS-encrypted; non-TLS
+                    // communications are not allowed. Only certificate chain validation is skipped for the loopback hop.
+                    // codeql[java/insecure-trustmanager]
                     ctx.init(null, new TrustManager[] {
                             new X509TrustManager() {
                                 @Override  public void checkClientTrusted(final X509Certificate[] _chain, final String _authType) throws CertificateException { }
