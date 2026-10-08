@@ -1,5 +1,6 @@
 package com.github.ibm.mapepire;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -101,7 +102,7 @@ public class SystemConnection {
     }
 
     public static boolean isRunningOnIBMi() {
-        return System.getProperty("os.name", "").contains("400");
+        return System.getProperty("os.name", "").contains("400") || new File("/usr/bin/qsh").exists();
     }
 
     public synchronized Connection getJdbcConnection() throws SQLException {
