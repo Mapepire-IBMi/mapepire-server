@@ -3,6 +3,8 @@ package com.github.ibm.mapepire.http;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.github.ibm.mapepire.MapepireServer;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -16,10 +18,7 @@ public class InstallLocationServlet extends BaseJsonServlet {
         
         // Get install location using the same approach as Tracer.java
         try {
-            URL location = InstallLocationServlet.class.getProtectionDomain().getCodeSource().getLocation();
-            File f = new File(location.toURI());
-            String installLocation = f.isDirectory() ? f.getAbsolutePath() : f.getParentFile().getAbsolutePath();
-            response.put("install_location", installLocation);
+            response.put("install_location", MapepireServer.getInstallLocationHumanReadable());
             response.put("jar_path", f.getAbsolutePath());
         } catch (Exception e) {
             response.put("error", "Unable to determine install location: " + e.getMessage());

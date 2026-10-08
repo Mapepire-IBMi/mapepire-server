@@ -69,6 +69,7 @@ public class MapepireServer {
         try {
             SystemNativeUtils.enableJobLogging(JobLogEnabling.FOUR_ZERO_SECLVL_JOBEND);
             Tracer.getGlobalTracer().logInfo("Mapepire (Version: " + Version.s_version + "/" + Version.s_compileDateTime + ") starting...");
+            Tracer.getGlobalTracer().logInfo("Install location: " + getInstallLocationHumanReadable());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenComponentStatusString());
             Tracer.getGlobalTracer().logInfo(Tracer.getJtOpenFileString());
@@ -256,6 +257,15 @@ public class MapepireServer {
         }
         Tracer.globalWarn("data stream processing completed (end of request stream?)");
         System.exit(12);
+    }
+
+    public static String getInstallLocationHumanReadable() {
+        try {
+            return MapepireServer.class.getProtectionDomain().getCodeSource().getLocation().toString();
+        } catch (Exception e) {
+            Tracer.globalErr(e);
+            return "<unknown>";
+        }
     }
 
     /**
