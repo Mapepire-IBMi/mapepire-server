@@ -448,6 +448,26 @@ the resource, and the code should make it obvious where that happens.
 > out explicitly in your summary and in the pull request, and flag it as requiring human review. Do not
 > report such a change as routine.
 
+### 4.8 Non-final static booleans need a `volatile` review
+
+**Every non-`final` `static boolean` field requires human review to decide whether it must be declared
+`volatile`.**
+
+A mutable static boolean is almost always a flag: single-mode, shutting-down, tracing-enabled, and so on.
+In a server that handles each connection on its own thread, a flag written by one thread and read by
+another is not guaranteed to be seen by the reader unless the field is `volatile` (or every access is
+synchronized). The failure is silent and intermittent: a thread keeps acting on a stale value, and nothing
+in the code or the compiler says so.
+
+Whether `volatile` is actually needed depends on who writes the field and when — a flag set once during
+startup, before any connection thread exists, may not need it; a flag toggled at runtime almost certainly
+does. That is a judgement about the program's threading, not something visible from the declaration.
+
+> **AI assistants:** when you add a non-final `static boolean`, or touch the declaration or the writes of
+> an existing one, call it out explicitly in your summary and in the pull request as needing human review
+> for `volatile`. Do not add or remove `volatile` on an existing field as an unprompted cleanup, and do
+> not report such a field as routine.
+
 ---
 
 ## 5. Member Ordering
@@ -610,6 +630,8 @@ Before completing any Java edit in this repository, verify all of the following:
       any logging, tracing, or exception-message call** (§4.6).
 - [ ] Any change to how a resource is acquired or closed is explicitly flagged for human review, and no
       existing resource handling was converted to try-with-resources as an unprompted cleanup (§4.7).
+- [ ] Any non-final `static boolean` that was added or touched is flagged for human review of whether it
+      needs to be `volatile` (§4.8).
 
 **Protocol and scope**
 
