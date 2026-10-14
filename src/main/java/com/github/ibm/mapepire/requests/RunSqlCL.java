@@ -1,15 +1,14 @@
 package com.github.ibm.mapepire.requests;
 
+import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
 
 import java.sql.*;
+import java.util.LinkedHashSet;
 
-public class RunSqlCL extends BlockRetrievableRequest {
-
-    private PreparedStatement m_stmt = null;
-
+public class RunSqlCL extends ClientRequest {
     public RunSqlCL(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj) {
         super(_io, m_conn, _reqObj);
     }
@@ -23,34 +22,35 @@ public class RunSqlCL extends BlockRetrievableRequest {
     public void go() throws Exception {
         final String cmd = getRequestField("cmd").getAsString();
         final Connection jdbcConn = getSystemConnection().getJdbcConnection();
-        Statement jobLogPosStmt = jdbcConn.createStatement();
-        ResultSet posRs = jobLogPosStmt.executeQuery("SELECT COUNT(*)  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A WHERE A.FROM_MODULE NOT IN ('QSQCALLSP') OR A.FROM_MODULE IS NULL ");
-        posRs.next();
-        int pos = posRs.getInt(1);
-        posRs.close();
-        jobLogPosStmt.close();
+        int pos = 0;
+        try(
+            final Statement jobLogPosStmt = jdbcConn.createStatement();
+            final ResultSet posRs = jobLogPosStmt.executeQuery("select max(ORDINAL_POSITION) from table(QSYS2.JOBLOG_INFO('*')) where FROM_MODULE is distinct from 'QSQCALLSP'")
+        ) {
+            if(posRs.next()) {
+                pos = posRs.getInt(1);
+            }
+        }
         Exception callException = null;
-        try (CallableStatement clStmt = jdbcConn.prepareCall("CALL QSYS2.QCMDEXC(?)")) {
+        try (CallableStatement clStmt = jdbcConn.prepareCall("call QSYS2.QCMDEXC(?)")) {
             clStmt.setString(1, cmd);
             try {
                 clStmt.execute();
+                addReplyData("successful", true);
             } catch (Exception e) {
-                callException = e;
+                addReplyData("successful", false);
             }
         }
 
-        Statement resultsStmt = jdbcConn.createStatement();
-        m_rs = resultsStmt.executeQuery(" SELECT MESSAGE_ID || ' [' || SUBSTR(MESSAGE_TYPE,0,5) || ']: ' || MESSAGE_TEXT as summary, SEVERITY, MESSAGE_SECOND_LEVEL_TEXT, MESSAGE_ID,MESSAGE_TYPE,MESSAGE_SUBTYPE,SEVERITY,MESSAGE_TIMESTAMP,FROM_LIBRARY,FROM_PROGRAM,FROM_MODULE,FROM_PROCEDURE,FROM_INSTRUCTION,TO_LIBRARY,TO_PROGRAM,TO_MODULE,TO_PROCEDURE,TO_INSTRUCTION,FROM_USER,MESSAGE_LIBRARY,MESSAGE_FILE,MESSAGE_TOKEN_LENGTH,MESSAGE_TOKENS,MESSAGE_TEXT,MESSAGE_SECOND_LEVEL_TEXT,MESSAGE_KEY  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A WHERE A.FROM_MODULE NOT IN ('QSQCALLSP') OR A.FROM_MODULE IS NULL limit 99999 offset " + pos);
-        addReplyData("metadata", getResultMetaDataForResponse());
-        addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
-        addReplyData("is_done", true);
-        if(null != callException) {
-            throw callException;
+        try(PreparedStatement joblogStmt = jdbcConn.prepareStatement("select MESSAGE_ID, MESSAGE_TYPE, MESSAGE_TEXT, MESSAGE_SECOND_LEVEL_TEXT, SEVERITY, MESSAGE_TIMESTAMP, MESSAGE_LIBRARY, MESSAGE_FILE, FROM_PROGRAM, FROM_INSTRUCTION, TO_PROGRAM, TO_INSTRUCTION from table(QSYS2.JOBLOG_INFO('*')) where FROM_MODULE is distinct from 'QSQCALLSP' and ORDINAL_POSITION > ?")) {
+            joblogStmt.setInt(1, pos);
+            try(ResultSet joblogRs = joblogStmt.executeQuery()){
+                final LinkedHashSet<RunCL.IBMiMessage> messages = new LinkedHashSet<>();
+                while(joblogRs.next()) {
+                    messages.add(new RunCL.IBMiMessage(joblogRs));
+                }
+                addReplyData("messages", messages);
+            }
         }
-
-    }
-
-    PreparedStatement getStatement() {
-        return m_stmt;
     }
 }
