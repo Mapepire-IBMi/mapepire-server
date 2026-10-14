@@ -14,10 +14,7 @@ import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
-import com.ibm.as400.access.AS400;
-import com.ibm.as400.access.AS400JDBCConnection;
-import com.ibm.as400.access.AS400Message;
-import com.ibm.as400.access.CommandCall;
+import com.ibm.as400.access.*;
 
 public class RunCL extends ClientRequest {
 
@@ -55,6 +52,14 @@ public class RunCL extends ClientRequest {
         private final String sendingInstruction;
         private final String receivingProgram;
         private final String receivingInstruction;
+
+        private static String formatHelpText(String helpText) {
+           return Optional.ofNullable(helpText)
+                    .map(MessageFile::substituteFormattingCharacters)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .orElse(null);
+        }
 
         public IBMiMessage(AS400Message message) {
             id = message.getID();
@@ -97,7 +102,7 @@ public class RunCL extends ClientRequest {
                 default:
                     type = "COMMAND";
             }
-            help = message.getHelp();
+            help = formatHelpText(message.getHelp());
             severity = message.getSeverity();
             time = message.getDate().getTime().getTime();
             messageLibrary = message.getLibraryName();
@@ -112,7 +117,7 @@ public class RunCL extends ClientRequest {
             id = joblogRs.getString("MESSAGE_ID");
             type = joblogRs.getString("MESSAGE_TYPE");
             text = joblogRs.getString("MESSAGE_TEXT");
-            help = joblogRs.getString("MESSAGE_SECOND_LEVEL_TEXT");
+            help = formatHelpText(joblogRs.getString("MESSAGE_SECOND_LEVEL_TEXT"));
             severity = joblogRs.getInt("SEVERITY");
             time = joblogRs.getTimestamp("MESSAGE_TIMESTAMP").getTime();
             messageLibrary = joblogRs.getString("MESSAGE_LIBRARY");
