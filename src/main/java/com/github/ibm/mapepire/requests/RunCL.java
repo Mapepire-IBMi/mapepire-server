@@ -42,25 +42,61 @@ public class RunCL extends ClientRequest {
         addReplyData("messages", Stream.of(commandCall.getMessageList()).map(IBMiMessage::new).collect(Collectors.toList()));
     }
 
-    protected static class IBMiMessage {
+    static class IBMiMessage {
         private final String id;
         private final String text;
         private final String help;
+        private final String type;
         private final int severity;
         private final long time;
         private final String messageLibrary;
         private final String messageFile;
         private final String sendingProgram;
         private final String sendingInstruction;
-        private final String sendingType;
         private final String receivingProgram;
         private final String receivingInstruction;
-        private final String receivingType;
-        private final String defaultReply;
 
         public IBMiMessage(AS400Message message) {
             id = message.getID();
             text = message.getText();
+            switch (message.getType()) {
+                case AS400Message.COMPLETION:
+                    type = "COMPLETION";
+                    break;
+                case AS400Message.DIAGNOSTIC:
+                    type = "DIAGNOSTIC";
+                    break;
+                case AS400Message.ESCAPE:
+                case AS400Message.ESCAPE_NOT_HANDLED:
+                    type = "ESCAPE";
+                    break;
+                case AS400Message.INFORMATIONAL:
+                    type = "INFORMATIONAL";
+                    break;
+                case AS400Message.INQUIRY:
+                    type = "INQUIRY";
+                    break;
+                case AS400Message.NOTIFY:
+                case AS400Message.NOTIFY_NOT_HANDLED:
+                    type = "NOTIFY";
+                    break;
+                case AS400Message.REPLY_FROM_SYSTEM_REPLY_LIST:
+                case AS400Message.REPLY_MESSAGE_DEFAULT_USED:
+                case AS400Message.REPLY_NOT_VALIDITY_CHECKED:
+                case AS400Message.REPLY_SYSTEM_DEFAULT_USED:
+                case AS400Message.REPLY_VALIDITY_CHECKED:
+                    type = "REPLY";
+                    break;
+                case AS400Message.REQUEST:
+                case AS400Message.REQUEST_WITH_PROMPTING:
+                    type = "REQUEST";
+                    break;
+                case AS400Message.SENDERS_COPY:
+                    type = "SENDER";
+                    break;
+                default:
+                    type = "COMMAND";
+            }
             help = message.getHelp();
             severity = message.getSeverity();
             time = message.getDate().getTime().getTime();
@@ -68,11 +104,23 @@ public class RunCL extends ClientRequest {
             messageFile = message.getFileName();
             sendingProgram = message.getSendingProgramName();
             sendingInstruction = message.getSendingProgramInstructionNumber();
-            sendingType = message.getSendingType();
             receivingProgram = message.getReceivingProgramName();
             receivingInstruction = message.getReceivingProgramInstructionNumber();
-            receivingType = message.getReceivingType();
-            defaultReply = message.getDefaultReply();
+        }
+
+        public IBMiMessage(ResultSet joblogRs) throws Exception {
+            id = joblogRs.getString("MESSAGE_ID");
+            type = joblogRs.getString("MESSAGE_TYPE");
+            text = joblogRs.getString("MESSAGE_TEXT");
+            help = joblogRs.getString("MESSAGE_SECOND_LEVEL_TEXT");
+            severity = joblogRs.getInt("SEVERITY");
+            time = joblogRs.getTimestamp("MESSAGE_TIMESTAMP").getTime();
+            messageLibrary = joblogRs.getString("MESSAGE_LIBRARY");
+            messageFile = joblogRs.getString("MESSAGE_FILE");
+            sendingProgram = joblogRs.getString("FROM_PROGRAM");
+            sendingInstruction = joblogRs.getString("FROM_INSTRUCTION");
+            receivingProgram = joblogRs.getString("TO_PROGRAM");
+            receivingInstruction = joblogRs.getString("TO_INSTRUCTION");
         }
 
         public String getId() {
@@ -111,10 +159,6 @@ public class RunCL extends ClientRequest {
             return sendingInstruction;
         }
 
-        public String getSendingType() {
-            return sendingType;
-        }
-
         public String getReceivingProgram() {
             return receivingProgram;
         }
@@ -123,12 +167,8 @@ public class RunCL extends ClientRequest {
             return receivingInstruction;
         }
 
-        public String getReceivingType() {
-            return receivingType;
-        }
-
-        public String getDefaultReply() {
-            return defaultReply;
+        public String getType() {
+            return type;
         }
     }
 }
