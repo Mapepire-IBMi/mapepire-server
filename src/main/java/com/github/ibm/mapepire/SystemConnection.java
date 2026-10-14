@@ -108,6 +108,17 @@ public class SystemConnection {
         throw new SQLException("Not connected");
     }
 
+    /**
+     * @return the {@link AS400} object for the current JDBC connection
+     */
+    public synchronized AS400 getSystem() throws SQLException{
+        Connection connection = getJdbcConnection();
+        if (connection instanceof AS400JDBCConnection) {
+            return ((AS400JDBCConnection) connection).getSystem();
+        }
+        return null;
+    }
+
     public String getJdbcJobName() throws SQLException {
         try {
             Connection c = getJdbcConnection();
@@ -131,8 +142,14 @@ public class SystemConnection {
     public synchronized void close() {
         if (null != m_conn) {
             try {
-                m_conn.close();
-            } catch (SQLException e) {
+                final AS400 system = getSystem();
+                if(system != null){
+                    system.disconnectAllServices();
+                }
+                else{
+                    m_conn.close();
+                }
+            } catch (Exception e) {
                 getTracer().logErr(e);
             }
             m_conn = null;
@@ -140,11 +157,7 @@ public class SystemConnection {
     }
 
     public synchronized Connection reconnect(final ConnectionMethod _connectionMethod, final String _jdbcProps, final String _applicationName) throws SQLException {
-        if (null != m_conn) {
-            final Connection cpy = m_conn;
-            m_conn = null;
-            cpy.close();
-        }
+        this.close();
         if (StringUtils.isNonEmpty(_applicationName)) {
             m_applicationName = _applicationName;
         }
