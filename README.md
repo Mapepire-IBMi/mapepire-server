@@ -44,7 +44,8 @@ The following request types are currently supported
 | Type          | Description   | Additional input fields  | Additional output fields  |
 | ------------- | ------------- | ------------- | -------------  |
 | `connect`     | Connect to the database (implicitly disconnects any existing connection) | `props`: a semicolon-delimited list of connection properties <br/> `application`: the application name (for use in Client Special Registers) <br/> `technique`: database connection technique (`cli` or `tcp`) | `job`: the server job | 
-| `cl`          | Run CL command  | `cmd`: the CL command | `data`: the resulting job log entries | 
+| `cl`          | Run CL command  | `cmd`: the CL command | `successful`: whether the command was successful <br/> `messages`: the resulting messages from the command execution | 
+| `sqlcl`       | Run CL command (in SQL job)  | `cmd`: the CL command | `successful`: whether the command was successful <br/> `messages`: the resulting messages from the command execution | 
 | `sql`         | Run SQL  | `sql`: the SQL statement <br/> `rows`: the maximum number of rows to return on the first request <br/> `terse`: return data in terse format | `metadata`: metadata about the result set <br/> `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `prepare_sql`         | Prepare SQL statement  | `sql`: the SQL statement <br/> `terse`: return data in terse format | 
 | `execute`         | Execute prepared SQL statement  | `cont_id`: the request ID of the previously-run `sql` or `prepare_sql` <br /> `parameters`: array parameter values corresponding to any parameter markers used. If `parameters` is an array of arrays, then the sql operations are executed as a batch. |   `data`: the data |
