@@ -1,11 +1,9 @@
 package com.github.ibm.mapepire.requests;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,8 +33,13 @@ public class RunCL extends ClientRequest {
         final String cmd = getRequestField("cmd").getAsString();
         final CommandCall commandCall = new CommandCall(system, cmd);
         commandCall.setMessageOption(AS400Message.MESSAGE_OPTION_ALL);
-        addReplyData("successful", commandCall.run());
-        addReplyData("messages", Stream.of(commandCall.getMessageList()).map(IBMiMessage::new).collect(Collectors.toList()));
+        final boolean success =  commandCall.run();
+        final List<IBMiMessage> messages = Stream.of(commandCall.getMessageList()).map(IBMiMessage::new).collect(Collectors.toList());
+        addReplyData("messages", messages);
+
+        if(!success) {
+            throw new CLExecutionException(messages);
+        }
     }
 
     static class IBMiMessage {
@@ -174,6 +177,17 @@ public class RunCL extends ClientRequest {
 
         public String getType() {
             return type;
+        }
+    }
+
+    static class CLExecutionException extends Exception {
+        public CLExecutionException(List<IBMiMessage> messages) {
+            super("CL command execution failed: " + messages.stream()
+                    .sorted((m1, m2) -> Long.compare(m2.getTime(), m1.getTime()))
+                    .filter(m -> "ESCAPE".equals(m.getType()) && !m.getId().equals("CPF0006"))
+                    .findFirst()
+                    .map(m -> String.format("[%s] %s", m.getId(), m.getText()))
+                    .orElse("Unknown error"));
         }
     }
 }
