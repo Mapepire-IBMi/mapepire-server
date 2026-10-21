@@ -19,8 +19,10 @@ public class RunSql extends BlockRetrievableRequest {
     @Override
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
+        final SystemConnection systemConnection = getSystemConnection();
+        systemConnection.verifyBasicQueryOnly(sql);
         final int numRows = super.getRequestFieldInt("rows", 1000);
-        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        final Connection jdbcConn = systemConnection.getJdbcConnection();
         final Statement stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
         synchronized (this) {
             if (m_isReleased) {

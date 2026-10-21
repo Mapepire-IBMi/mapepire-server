@@ -8,12 +8,14 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 
+import com.github.ibm.mapepire.MapepireServer;
+
 
 public class DbSocketCreator implements WebSocketCreator
 {
     private static boolean isDaemon = false;
     private static String host = "localhost";
-    private static int port = 8076;
+    private static int port = MapepireServer.isReadOnly()? 8077: 8076;
 
     public static void enableDaemon() {
         isDaemon = true;

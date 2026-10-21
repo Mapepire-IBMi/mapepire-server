@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
 
 import com.github.ibm.mapepire.Tracer;
 

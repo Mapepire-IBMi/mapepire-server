@@ -29,8 +29,9 @@ public class PrepareSql extends BlockRetrievableRequest {
     @Override
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
-        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
-        final PreparedStatement stmt;
+        SystemConnection systemConnection = getSystemConnection();
+        systemConnection.verifyBasicQueryOnly(sql);
+        final Connection jdbcConn = systemConnection.getJdbcConnection();
         if(sql.trim().toLowerCase().startsWith("call")){
             stmt = jdbcConn.prepareCall(sql);
         }else {

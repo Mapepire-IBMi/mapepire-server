@@ -1,30 +1,36 @@
 package com.github.ibm.mapepire.http;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.github.ibm.mapepire.MapepireServer;
+import com.github.ibm.mapepire.Tracer;
+
+/**
+ * Reports where the running server was loaded from, as both the code source URL and the absolute path of
+ * the jar file.
+ */
 public class InstallLocationServlet extends BaseJsonServlet {
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Map<String, String> response = new HashMap<>();
-        
-        // Get install location using the same approach as Tracer.java
+    protected void doGet(final HttpServletRequest _req, final HttpServletResponse _resp) throws IOException {
+        final Map<String, String> response = new HashMap<>();
+
         try {
-            URL location = InstallLocationServlet.class.getProtectionDomain().getCodeSource().getLocation();
-            File f = new File(location.toURI());
-            String installLocation = f.isDirectory() ? f.getAbsolutePath() : f.getParentFile().getAbsolutePath();
+            final String installLocation = MapepireServer.getInstallLocationHumanReadable();
             response.put("install_location", installLocation);
-            response.put("jar_path", f.getAbsolutePath());
-        } catch (Exception e) {
-            response.put("error", "Unable to determine install location: " + e.getMessage());
+            response.put("jar_path", new File(new URI(installLocation)).getAbsolutePath());
+        } catch (final Exception _e) {
+            // No per-connection tracer exists for HTTP requests, so log to the global tracer
+            Tracer.globalErr(_e);
+            response.put("error", "Unable to determine install location: " + _e.getMessage());
         }
-        
-        writeJsonResponse(resp, response);
+
+        writeJsonResponse(_resp, response);
     }
 }
