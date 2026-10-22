@@ -24,10 +24,15 @@ public class RunCL extends ClientRequest {
     public boolean isForcedSynchronous() {
         return true;
     }
-;
+
     @Override
     public void go() throws Exception {
-        final AS400 system = Optional.ofNullable(getSystemConnection().getSystem())
+        final SystemConnection systemConnection = getSystemConnection();
+        if(systemConnection.isBasicQueryOnly()) {
+            throw new SQLException("Only basic queries are allowed");
+        }
+
+        final AS400 system = Optional.ofNullable(systemConnection.getSystem())
                 .orElseThrow(() -> new IllegalStateException("Not connected to an IBM i system."));
 
         final String cmd = getRequestField("cmd").getAsString();
@@ -35,7 +40,7 @@ public class RunCL extends ClientRequest {
         commandCall.setMessageOption(AS400Message.MESSAGE_OPTION_ALL);
         final boolean success =  commandCall.run();
         final List<IBMiMessage> messages = Stream.of(commandCall.getMessageList()).map(IBMiMessage::new).collect(Collectors.toList());
-        addReplyData("messages", messages);
+        addReplyData("data", messages);
 
         if(!success) {
             throw new CLExecutionException(messages);

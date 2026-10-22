@@ -22,8 +22,13 @@ public class RunSqlCL extends ClientRequest {
 ;
     @Override
     public void go() throws Exception {
+        final SystemConnection systemConnection = getSystemConnection();
+        if(systemConnection.isBasicQueryOnly()) {
+            throw new SQLException("Only basic queries are allowed");
+        }
+
         final String cmd = getRequestField("cmd").getAsString();
-        final Connection jdbcConn = getSystemConnection().getJdbcConnection();
+        final Connection jdbcConn = systemConnection.getJdbcConnection();
         int pos = 0;
         try(
             final Statement jobLogPosStmt = jdbcConn.createStatement();
@@ -54,7 +59,7 @@ public class RunSqlCL extends ClientRequest {
                 }
             }
         }
-        addReplyData("messages", messages);
+        addReplyData("data", messages);
 
         if(callException != null) {
             if(callException instanceof SQLException && callException.getMessage().startsWith("[CPF0006]")) {

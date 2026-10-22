@@ -147,10 +147,10 @@ public class DataStreamProcessor implements Runnable {
                 }
                 dispatch(new PreparedExecute(this, reqObj, prevP));
                 break;
-            case "cl":
+            case "rccl":
                 dispatch(new RunCL(this, m_conn, reqObj));
                 break;
-            case "sqlcl":
+            case "cl":
                 dispatch(new RunSqlCL(this, m_conn, reqObj));
                 break;
             case "dove":
