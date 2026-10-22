@@ -60,6 +60,7 @@ public class RunSqlCL extends ClientRequest {
             }
         }
         addReplyData("data", messages);
+        addReplyData("is_done", true);
 
         if(callException != null) {
             if(callException instanceof SQLException && callException.getMessage().startsWith("[CPF0006]")) {
