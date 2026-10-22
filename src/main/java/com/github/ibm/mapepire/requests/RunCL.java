@@ -4,15 +4,22 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedList;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
+import com.ibm.as400.access.AS400;
+import com.ibm.as400.access.AS400JDBCConnection;
+import com.ibm.as400.access.AS400Message;
+import com.ibm.as400.access.CommandCall;
 
-public class RunCL extends BlockRetrievableRequest {
-
-    private PreparedStatement m_stmt = null;
+public class RunCL extends ClientRequest {
 
     public RunCL(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj) {
         super(_io, m_conn, _reqObj);
@@ -25,41 +32,103 @@ public class RunCL extends BlockRetrievableRequest {
 ;
     @Override
     public void go() throws Exception {
+        final AS400 system = Optional.ofNullable(getSystemConnection().getSystem())
+                .orElseThrow(() -> new IllegalStateException("Not connected to an IBM i system."));
+
         final String cmd = getRequestField("cmd").getAsString();
-        SystemConnection systemConnection = getSystemConnection();
-        if(systemConnection.isBasicQueryOnly()) {
-            throw new SQLException("Only basic queries are allowed");
-        }
-        final Connection jdbcConn = systemConnection.getJdbcConnection();
-    
-        Statement jobLogPosStmt = jdbcConn.createStatement();
-        ResultSet posRs = jobLogPosStmt.executeQuery("SELECT COUNT(*)  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A WHERE A.FROM_MODULE NOT IN ('QSQCALLSP') OR A.FROM_MODULE IS NULL ");
-        posRs.next();
-        int pos = posRs.getInt(1);
-        posRs.close();
-        jobLogPosStmt.close();
-        Exception callException = null;
-        try (CallableStatement clStmt = jdbcConn.prepareCall("CALL QSYS2.QCMDEXC(?)")) {
-            clStmt.setString(1, cmd);
-            try {
-                clStmt.execute();
-            } catch (Exception e) {
-                callException = e;
-            }
-        }
-
-        Statement resultsStmt = jdbcConn.createStatement();
-        m_rs = resultsStmt.executeQuery(" SELECT MESSAGE_ID || ' [' || SUBSTR(MESSAGE_TYPE,0,5) || ']: ' || MESSAGE_TEXT as summary, SEVERITY, MESSAGE_SECOND_LEVEL_TEXT, MESSAGE_ID,MESSAGE_TYPE,MESSAGE_SUBTYPE,SEVERITY,MESSAGE_TIMESTAMP,FROM_LIBRARY,FROM_PROGRAM,FROM_MODULE,FROM_PROCEDURE,FROM_INSTRUCTION,TO_LIBRARY,TO_PROGRAM,TO_MODULE,TO_PROCEDURE,TO_INSTRUCTION,FROM_USER,MESSAGE_LIBRARY,MESSAGE_FILE,MESSAGE_TOKEN_LENGTH,MESSAGE_TOKENS,MESSAGE_TEXT,MESSAGE_SECOND_LEVEL_TEXT,MESSAGE_KEY  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A WHERE A.FROM_MODULE NOT IN ('QSQCALLSP') OR A.FROM_MODULE IS NULL limit 99999 offset " + pos);
-        addReplyData("metadata", getResultMetaDataForResponse());
-        addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
-        addReplyData("is_done", true);
-        if(null != callException) {
-            throw callException;
-        }
-
+        final CommandCall commandCall = new CommandCall(system, cmd);
+        commandCall.setMessageOption(AS400Message.MESSAGE_OPTION_ALL);
+        addReplyData("successful", commandCall.run());
+        addReplyData("messages", Stream.of(commandCall.getMessageList()).map(IBMiMessage::new).collect(Collectors.toList()));
     }
 
-    PreparedStatement getStatement() {
-        return m_stmt;
+    protected static class IBMiMessage {
+        private final String id;
+        private final String text;
+        private final String help;
+        private final int severity;
+        private final long time;
+        private final String messageLibrary;
+        private final String messageFile;
+        private final String sendingProgram;
+        private final String sendingInstruction;
+        private final String sendingType;
+        private final String receivingProgram;
+        private final String receivingInstruction;
+        private final String receivingType;
+        private final String defaultReply;
+
+        public IBMiMessage(AS400Message message) {
+            id = message.getID();
+            text = message.getText();
+            help = message.getHelp();
+            severity = message.getSeverity();
+            time = message.getDate().getTime().getTime();
+            messageLibrary = message.getLibraryName();
+            messageFile = message.getFileName();
+            sendingProgram = message.getSendingProgramName();
+            sendingInstruction = message.getSendingProgramInstructionNumber();
+            sendingType = message.getSendingType();
+            receivingProgram = message.getReceivingProgramName();
+            receivingInstruction = message.getReceivingProgramInstructionNumber();
+            receivingType = message.getReceivingType();
+            defaultReply = message.getDefaultReply();
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public String getHelp() {
+            return help;
+        }
+
+        public int getSeverity() {
+            return severity;
+        }
+
+        public long getTime() {
+            return time;
+        }
+
+        public String getMessageLibrary() {
+            return messageLibrary;
+        }
+
+        public String getMessageFile() {
+            return messageFile;
+        }
+
+        public String getSendingProgram() {
+            return sendingProgram;
+        }
+
+        public String getSendingInstruction() {
+            return sendingInstruction;
+        }
+
+        public String getSendingType() {
+            return sendingType;
+        }
+
+        public String getReceivingProgram() {
+            return receivingProgram;
+        }
+
+        public String getReceivingInstruction() {
+            return receivingInstruction;
+        }
+
+        public String getReceivingType() {
+            return receivingType;
+        }
+
+        public String getDefaultReply() {
+            return defaultReply;
+        }
     }
 }
