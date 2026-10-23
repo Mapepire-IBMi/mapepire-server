@@ -3,27 +3,28 @@
 
 ### 1. Add your remote IBM i connection credentials
 
-Locate the `SystemConnection.ConnectionOptions.getConnectionString()` method and put your
-hostname, username, and password in the non-IBMi leg of code.
-**For the love of all things good, do not commit your changes**
+Assuming VSCode usage, locate your `.vscode/launch.json` file and add these Java properties to the "vmArgs":
+- `mapepire.debug.host`
+- `mapepire.debug.user`
+- `mapepire.debug.pw`
 
-### Change the scope of jt400 from `provided` to default in pom.xml
-
-In pom.xml, look for the `jt400` dependency declaration, which will look something like this:
-
-```xml
-<dependency>
-    <groupId>net.sf.jt400</groupId>
-    <artifactId>jt400</artifactId>
-    <version>11.2</version>
-    <!-- comment the <scope> tag for local development -->
-    <scope>provided</scope>
-</dependency>
+```json
+    {
+      "type": "java",
+      "name": "CLI mode",
+      "request": "launch",
+      "vmArgs": "-Dmapepire.debug.host=myhostname.mycompany.com -Dmapepire.debug.user=MYUSRPRF -Dmapepire.debug.pw=mypw",
+      "mainClass": "com.github.ibm.mapepire.MapepireServer",
+      "projectName": "codeforibmiserver",
+      "args": "--single --bqo",
+      "envFile": "${workspaceFolder}/.env"
+    }
 ```
 
-As the comment suggests, comment out the scope tag.
 
-### 3. Create file with test inputs
+**For the love of all things good, do not commit this file**
+
+### 2. Create file with test inputs
 
 The test input file is simple a set of JSON requests as you would expect to receive from a client, for instance:
 ```json
@@ -31,13 +32,11 @@ The test input file is simple a set of JSON requests as you would expect to rece
 {"id": "dovetail", "type":"dove", "sql": "select * from sample.employee", "run": true}
 ```
 
-### 4. Start the server to use the test input file
+### 3. Start the server to use the test input file
 
 Either by:
   a. Setting the `test.file` system property in your debug configuration
-  b. Changing the code in CodeForiServer.java to point at your test file (search for `System.getProperty("test.file"`). Remember to not commit this change. 
-
-
+  b. Copy/pasting commands for manual inspection
 
 
 
