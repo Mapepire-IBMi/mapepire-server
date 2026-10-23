@@ -11,7 +11,6 @@ import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
-import com.google.gson.annotations.SerializedName;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400Message;
 import com.ibm.as400.access.CommandCall;
@@ -62,31 +61,19 @@ public class RunCL extends ClientRequest {
     }
 
     static class IBMiMessage {
-        // The serialized names are part of the client-facing JSON reply and must not change
-        @SerializedName("id")
-        private final String m_id;
-        @SerializedName("text")
-        private final String m_text;
-        @SerializedName("help")
-        private final String m_help;
-        @SerializedName("type")
-        private final String m_type;
-        @SerializedName("severity")
-        private final int m_severity;
-        @SerializedName("time")
-        private final long m_time;
-        @SerializedName("messageLibrary")
-        private final String m_messageLibrary;
-        @SerializedName("messageFile")
-        private final String m_messageFile;
-        @SerializedName("sendingProgram")
-        private final String m_sendingProgram;
-        @SerializedName("sendingInstruction")
-        private final String m_sendingInstruction;
-        @SerializedName("receivingProgram")
-        private final String m_receivingProgram;
-        @SerializedName("receivingInstruction")
-        private final String m_receivingInstruction;
+        // Gson serializes these field names as the client-facing JSON keys, so they deliberately omit the m_ prefix
+        private final String id;
+        private final String text;
+        private final String help;
+        private final String type;
+        private final int severity;
+        private final long time;
+        private final String messageLibrary;
+        private final String messageFile;
+        private final String sendingProgram;
+        private final String sendingInstruction;
+        private final String receivingProgram;
+        private final String receivingInstruction;
 
         /**
          * Build a message from one returned by a toolbox {@link CommandCall}.
@@ -95,55 +82,55 @@ public class RunCL extends ClientRequest {
          *            the message returned by the command call
          */
         public IBMiMessage(final AS400Message _message) {
-            m_id = _message.getID();
-            m_text = _message.getText();
+            id = _message.getID();
+            text = _message.getText();
             switch (_message.getType()) {
                 case AS400Message.COMPLETION:
-                    m_type = "COMPLETION";
+                    type = "COMPLETION";
                     break;
                 case AS400Message.DIAGNOSTIC:
-                    m_type = "DIAGNOSTIC";
+                    type = "DIAGNOSTIC";
                     break;
                 case AS400Message.ESCAPE:
                 case AS400Message.ESCAPE_NOT_HANDLED:
-                    m_type = "ESCAPE";
+                    type = "ESCAPE";
                     break;
                 case AS400Message.INFORMATIONAL:
-                    m_type = "INFORMATIONAL";
+                    type = "INFORMATIONAL";
                     break;
                 case AS400Message.INQUIRY:
-                    m_type = "INQUIRY";
+                    type = "INQUIRY";
                     break;
                 case AS400Message.NOTIFY:
                 case AS400Message.NOTIFY_NOT_HANDLED:
-                    m_type = "NOTIFY";
+                    type = "NOTIFY";
                     break;
                 case AS400Message.REPLY_FROM_SYSTEM_REPLY_LIST:
                 case AS400Message.REPLY_MESSAGE_DEFAULT_USED:
                 case AS400Message.REPLY_NOT_VALIDITY_CHECKED:
                 case AS400Message.REPLY_SYSTEM_DEFAULT_USED:
                 case AS400Message.REPLY_VALIDITY_CHECKED:
-                    m_type = "REPLY";
+                    type = "REPLY";
                     break;
                 case AS400Message.REQUEST:
                 case AS400Message.REQUEST_WITH_PROMPTING:
-                    m_type = "REQUEST";
+                    type = "REQUEST";
                     break;
                 case AS400Message.SENDERS_COPY:
-                    m_type = "SENDER";
+                    type = "SENDER";
                     break;
                 default:
-                    m_type = "COMMAND";
+                    type = "COMMAND";
             }
-            m_help = formatHelpText(_message.getHelp());
-            m_severity = _message.getSeverity();
-            m_time = _message.getDate().getTime().getTime();
-            m_messageLibrary = _message.getLibraryName();
-            m_messageFile = _message.getFileName();
-            m_sendingProgram = _message.getSendingProgramName();
-            m_sendingInstruction = _message.getSendingProgramInstructionNumber();
-            m_receivingProgram = _message.getReceivingProgramName();
-            m_receivingInstruction = _message.getReceivingProgramInstructionNumber();
+            help = formatHelpText(_message.getHelp());
+            severity = _message.getSeverity();
+            time = _message.getDate().getTime().getTime();
+            messageLibrary = _message.getLibraryName();
+            messageFile = _message.getFileName();
+            sendingProgram = _message.getSendingProgramName();
+            sendingInstruction = _message.getSendingProgramInstructionNumber();
+            receivingProgram = _message.getReceivingProgramName();
+            receivingInstruction = _message.getReceivingProgramInstructionNumber();
         }
 
         /**
@@ -155,18 +142,18 @@ public class RunCL extends ClientRequest {
          *             if a column cannot be read from the result set
          */
         public IBMiMessage(final ResultSet _joblogRs) throws Exception {
-            m_id = _joblogRs.getString("MESSAGE_ID");
-            m_type = _joblogRs.getString("MESSAGE_TYPE");
-            m_text = _joblogRs.getString("MESSAGE_TEXT");
-            m_help = formatHelpText(_joblogRs.getString("MESSAGE_SECOND_LEVEL_TEXT"));
-            m_severity = _joblogRs.getInt("SEVERITY");
-            m_time = _joblogRs.getTimestamp("MESSAGE_TIMESTAMP").getTime();
-            m_messageLibrary = _joblogRs.getString("MESSAGE_LIBRARY");
-            m_messageFile = _joblogRs.getString("MESSAGE_FILE");
-            m_sendingProgram = _joblogRs.getString("FROM_PROGRAM");
-            m_sendingInstruction = _joblogRs.getString("FROM_INSTRUCTION");
-            m_receivingProgram = _joblogRs.getString("TO_PROGRAM");
-            m_receivingInstruction = _joblogRs.getString("TO_INSTRUCTION");
+            id = _joblogRs.getString("MESSAGE_ID");
+            type = _joblogRs.getString("MESSAGE_TYPE");
+            text = _joblogRs.getString("MESSAGE_TEXT");
+            help = formatHelpText(_joblogRs.getString("MESSAGE_SECOND_LEVEL_TEXT"));
+            severity = _joblogRs.getInt("SEVERITY");
+            time = _joblogRs.getTimestamp("MESSAGE_TIMESTAMP").getTime();
+            messageLibrary = _joblogRs.getString("MESSAGE_LIBRARY");
+            messageFile = _joblogRs.getString("MESSAGE_FILE");
+            sendingProgram = _joblogRs.getString("FROM_PROGRAM");
+            sendingInstruction = _joblogRs.getString("FROM_INSTRUCTION");
+            receivingProgram = _joblogRs.getString("TO_PROGRAM");
+            receivingInstruction = _joblogRs.getString("TO_INSTRUCTION");
         }
 
         /**
@@ -186,51 +173,51 @@ public class RunCL extends ClientRequest {
         }
 
         public String getHelp() {
-            return m_help;
+            return help;
         }
 
         public String getId() {
-            return m_id;
+            return id;
         }
 
         public String getMessageFile() {
-            return m_messageFile;
+            return messageFile;
         }
 
         public String getMessageLibrary() {
-            return m_messageLibrary;
+            return messageLibrary;
         }
 
         public String getReceivingInstruction() {
-            return m_receivingInstruction;
+            return receivingInstruction;
         }
 
         public String getReceivingProgram() {
-            return m_receivingProgram;
+            return receivingProgram;
         }
 
         public String getSendingInstruction() {
-            return m_sendingInstruction;
+            return sendingInstruction;
         }
 
         public String getSendingProgram() {
-            return m_sendingProgram;
+            return sendingProgram;
         }
 
         public int getSeverity() {
-            return m_severity;
+            return severity;
         }
 
         public String getText() {
-            return m_text;
+            return text;
         }
 
         public long getTime() {
-            return m_time;
+            return time;
         }
 
         public String getType() {
-            return m_type;
+            return type;
         }
     }
 
