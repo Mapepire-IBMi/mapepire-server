@@ -149,8 +149,11 @@ public class DataStreamProcessor implements Runnable {
                 }
                 dispatch(new PreparedExecute(this, reqObj, prevP));
                 break;
-            case "cl":
+            case "rccl":
                 dispatch(new RunCL(this, m_conn, reqObj));
+                break;
+            case "cl":
+                dispatch(new RunSqlCL(this, m_conn, reqObj));
                 break;
             case "dove":
                 dispatch(new DoVe(this, m_conn, reqObj));
@@ -191,11 +194,7 @@ public class DataStreamProcessor implements Runnable {
     }
 
     public void end() {
-        try {
-            m_conn.getJdbcConnection().close();
-        } catch (SQLException e) {
-            m_conn.getTracer().logErr(e);
-        }
+        m_conn.close();
     }
 
 }
