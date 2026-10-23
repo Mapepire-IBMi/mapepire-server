@@ -1,18 +1,20 @@
 package com.github.ibm.mapepire.requests;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import com.github.ibm.mapepire.ClientRequest;
 import com.github.ibm.mapepire.DataStreamProcessor;
 import com.github.ibm.mapepire.SystemConnection;
 import com.google.gson.JsonObject;
+import com.ibm.as400.access.*;
 
-public class RunCL extends BlockRetrievableRequest {
-
-    private PreparedStatement m_stmt = null;
+public class RunCL extends ClientRequest {
 
     public RunCL(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj) {
         super(_io, m_conn, _reqObj);
@@ -22,44 +24,175 @@ public class RunCL extends BlockRetrievableRequest {
     public boolean isForcedSynchronous() {
         return true;
     }
-;
+
     @Override
     public void go() throws Exception {
-        final String cmd = getRequestField("cmd").getAsString();
-        SystemConnection systemConnection = getSystemConnection();
+        final SystemConnection systemConnection = getSystemConnection();
         if(systemConnection.isBasicQueryOnly()) {
             throw new SQLException("Only basic queries are allowed");
         }
-        final Connection jdbcConn = systemConnection.getJdbcConnection();
-    
-        Statement jobLogPosStmt = jdbcConn.createStatement();
-        ResultSet posRs = jobLogPosStmt.executeQuery("SELECT COUNT(*)  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A WHERE A.FROM_MODULE NOT IN ('QSQCALLSP') OR A.FROM_MODULE IS NULL ");
-        posRs.next();
-        int pos = posRs.getInt(1);
-        posRs.close();
-        jobLogPosStmt.close();
-        Exception callException = null;
-        try (CallableStatement clStmt = jdbcConn.prepareCall("CALL QSYS2.QCMDEXC(?)")) {
-            clStmt.setString(1, cmd);
-            try {
-                clStmt.execute();
-            } catch (Exception e) {
-                callException = e;
-            }
-        }
 
-        Statement resultsStmt = jdbcConn.createStatement();
-        m_rs = resultsStmt.executeQuery(" SELECT MESSAGE_ID || ' [' || SUBSTR(MESSAGE_TYPE,0,5) || ']: ' || MESSAGE_TEXT as summary, SEVERITY, MESSAGE_SECOND_LEVEL_TEXT, MESSAGE_ID,MESSAGE_TYPE,MESSAGE_SUBTYPE,SEVERITY,MESSAGE_TIMESTAMP,FROM_LIBRARY,FROM_PROGRAM,FROM_MODULE,FROM_PROCEDURE,FROM_INSTRUCTION,TO_LIBRARY,TO_PROGRAM,TO_MODULE,TO_PROCEDURE,TO_INSTRUCTION,FROM_USER,MESSAGE_LIBRARY,MESSAGE_FILE,MESSAGE_TOKEN_LENGTH,MESSAGE_TOKENS,MESSAGE_TEXT,MESSAGE_SECOND_LEVEL_TEXT,MESSAGE_KEY  FROM TABLE(QSYS2.JOBLOG_INFO('*')) A WHERE A.FROM_MODULE NOT IN ('QSQCALLSP') OR A.FROM_MODULE IS NULL limit 99999 offset " + pos);
-        addReplyData("metadata", getResultMetaDataForResponse());
-        addReplyData("data", super.getNextDataBlock(Integer.MAX_VALUE));
-        addReplyData("is_done", true);
-        if(null != callException) {
-            throw callException;
-        }
+        final AS400 system = Optional.ofNullable(systemConnection.getSystem())
+                .orElseThrow(() -> new IllegalStateException("Not connected to an IBM i system."));
 
+        final String cmd = getRequestField("cmd").getAsString();
+        final CommandCall commandCall = new CommandCall(system, cmd);
+        commandCall.setMessageOption(AS400Message.MESSAGE_OPTION_ALL);
+        final boolean success =  commandCall.run();
+        final List<IBMiMessage> messages = Stream.of(commandCall.getMessageList()).map(IBMiMessage::new).collect(Collectors.toList());
+        addReplyData("data", messages);
+
+        if(!success) {
+            throw new CLExecutionException(messages);
+        }
     }
 
-    PreparedStatement getStatement() {
-        return m_stmt;
+    static class IBMiMessage {
+        private final String id;
+        private final String text;
+        private final String help;
+        private final String type;
+        private final int severity;
+        private final long time;
+        private final String messageLibrary;
+        private final String messageFile;
+        private final String sendingProgram;
+        private final String sendingInstruction;
+        private final String receivingProgram;
+        private final String receivingInstruction;
+
+        private static String formatHelpText(String helpText) {
+           return Optional.ofNullable(helpText)
+                    .map(MessageFile::substituteFormattingCharacters)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .orElse(null);
+        }
+
+        public IBMiMessage(AS400Message message) {
+            id = message.getID();
+            text = message.getText();
+            switch (message.getType()) {
+                case AS400Message.COMPLETION:
+                    type = "COMPLETION";
+                    break;
+                case AS400Message.DIAGNOSTIC:
+                    type = "DIAGNOSTIC";
+                    break;
+                case AS400Message.ESCAPE:
+                case AS400Message.ESCAPE_NOT_HANDLED:
+                    type = "ESCAPE";
+                    break;
+                case AS400Message.INFORMATIONAL:
+                    type = "INFORMATIONAL";
+                    break;
+                case AS400Message.INQUIRY:
+                    type = "INQUIRY";
+                    break;
+                case AS400Message.NOTIFY:
+                case AS400Message.NOTIFY_NOT_HANDLED:
+                    type = "NOTIFY";
+                    break;
+                case AS400Message.REPLY_FROM_SYSTEM_REPLY_LIST:
+                case AS400Message.REPLY_MESSAGE_DEFAULT_USED:
+                case AS400Message.REPLY_NOT_VALIDITY_CHECKED:
+                case AS400Message.REPLY_SYSTEM_DEFAULT_USED:
+                case AS400Message.REPLY_VALIDITY_CHECKED:
+                    type = "REPLY";
+                    break;
+                case AS400Message.REQUEST:
+                case AS400Message.REQUEST_WITH_PROMPTING:
+                    type = "REQUEST";
+                    break;
+                case AS400Message.SENDERS_COPY:
+                    type = "SENDER";
+                    break;
+                default:
+                    type = "COMMAND";
+            }
+            help = formatHelpText(message.getHelp());
+            severity = message.getSeverity();
+            time = message.getDate().getTime().getTime();
+            messageLibrary = message.getLibraryName();
+            messageFile = message.getFileName();
+            sendingProgram = message.getSendingProgramName();
+            sendingInstruction = message.getSendingProgramInstructionNumber();
+            receivingProgram = message.getReceivingProgramName();
+            receivingInstruction = message.getReceivingProgramInstructionNumber();
+        }
+
+        public IBMiMessage(ResultSet joblogRs) throws Exception {
+            id = joblogRs.getString("MESSAGE_ID");
+            type = joblogRs.getString("MESSAGE_TYPE");
+            text = joblogRs.getString("MESSAGE_TEXT");
+            help = formatHelpText(joblogRs.getString("MESSAGE_SECOND_LEVEL_TEXT"));
+            severity = joblogRs.getInt("SEVERITY");
+            time = joblogRs.getTimestamp("MESSAGE_TIMESTAMP").getTime();
+            messageLibrary = joblogRs.getString("MESSAGE_LIBRARY");
+            messageFile = joblogRs.getString("MESSAGE_FILE");
+            sendingProgram = joblogRs.getString("FROM_PROGRAM");
+            sendingInstruction = joblogRs.getString("FROM_INSTRUCTION");
+            receivingProgram = joblogRs.getString("TO_PROGRAM");
+            receivingInstruction = joblogRs.getString("TO_INSTRUCTION");
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public String getHelp() {
+            return help;
+        }
+
+        public int getSeverity() {
+            return severity;
+        }
+
+        public long getTime() {
+            return time;
+        }
+
+        public String getMessageLibrary() {
+            return messageLibrary;
+        }
+
+        public String getMessageFile() {
+            return messageFile;
+        }
+
+        public String getSendingProgram() {
+            return sendingProgram;
+        }
+
+        public String getSendingInstruction() {
+            return sendingInstruction;
+        }
+
+        public String getReceivingProgram() {
+            return receivingProgram;
+        }
+
+        public String getReceivingInstruction() {
+            return receivingInstruction;
+        }
+
+        public String getType() {
+            return type;
+        }
+    }
+
+    static class CLExecutionException extends Exception {
+        public CLExecutionException(List<IBMiMessage> messages) {
+            super("CL command execution failed: " + messages.stream()
+                    .sorted((m1, m2) -> Long.compare(m2.getTime(), m1.getTime()))
+                    .filter(m -> "ESCAPE".equals(m.getType()) && !m.getId().equals("CPF0006"))
+                    .findFirst()
+                    .map(m -> String.format("[%s] %s", m.getId(), m.getText()))
+                    .orElse("Unknown error"));
+        }
     }
 }

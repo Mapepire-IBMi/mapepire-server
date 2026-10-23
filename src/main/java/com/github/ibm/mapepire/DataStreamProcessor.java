@@ -105,6 +105,7 @@ public class DataStreamProcessor implements Runnable {
             case "sqlmore": {
                 if (null == cont_id) {
                     dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
+                    break;
                 }
                 BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
                 if (null == prev) {
@@ -120,6 +121,7 @@ public class DataStreamProcessor implements Runnable {
             case "sqlclose": {
                 if (null == cont_id) {
                     dispatch(new BadReq(this, m_conn, reqObj, "Correlation ID not specified"));
+                    break;
                 }
                 BlockRetrievableRequest prev = m_queriesMap.get(cont_id.getAsString());
                 if (null == prev) {
@@ -147,8 +149,11 @@ public class DataStreamProcessor implements Runnable {
                 }
                 dispatch(new PreparedExecute(this, reqObj, prevP));
                 break;
-            case "cl":
+            case "rccl":
                 dispatch(new RunCL(this, m_conn, reqObj));
+                break;
+            case "cl":
+                dispatch(new RunSqlCL(this, m_conn, reqObj));
                 break;
             case "dove":
                 dispatch(new DoVe(this, m_conn, reqObj));
@@ -189,11 +194,7 @@ public class DataStreamProcessor implements Runnable {
     }
 
     public void end() {
-        try {
-            m_conn.getJdbcConnection().close();
-        } catch (SQLException e) {
-            m_conn.getTracer().logErr(e);
-        }
+        m_conn.close();
     }
 
 }
