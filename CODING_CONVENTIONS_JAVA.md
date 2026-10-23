@@ -377,8 +377,11 @@ consistency is worth preserving, and it does make null checks scan quickly.
 
 ### 4.4 Imports
 
-- Use explicit, single-type imports. **Avoid wildcard imports** (`import java.sql.*;`). A few older
-  files still use them; do not add more.
+- Use explicit, single-type imports. **Import statements ending in `*` should be avoided** — this
+  covers both on-demand type imports (`import java.sql.*;`) and static on-demand imports
+  (`import static java.util.Objects.*;`). A wildcard hides which types a file actually depends on and
+  can silently pick up a conflicting name when a package gains a new class. A few older files still use
+  them; do not add more.
 - Do not import unused types.
 - Keep imports grouped roughly as: `java.*`, then `javax.*`, then third-party, then project packages.
   The formatter will handle ordering within groups.
@@ -502,7 +505,15 @@ That action orders members by category and then alphabetically within each categ
 ### 6.1 Javadoc
 
 Write Javadoc on public API: public classes, and public or protected methods whose purpose is not
-obvious from the signature. Use the standard tag layout, and note that `@param` names include the `_`
+obvious from the signature.
+
+**Any method whose body is longer than 4 lines must have appropriate Javadoc**, regardless of its
+visibility — private helpers included. A method of that size is doing enough that a reader benefits from
+a statement of its purpose, its parameters, what it returns, and what it throws, without having to read
+the body. "Appropriate" means the Javadoc describes intent and contract; it does not narrate the
+implementation line by line.
+
+Use the standard tag layout, and note that `@param` names include the `_`
 prefix, matching the actual parameter name:
 
 ```java
@@ -624,7 +635,8 @@ Before completing any Java edit in this repository, verify all of the following:
 - [ ] Every variable that is never reassigned is declared `final`.
 - [ ] Every `if` / `else` / `for` / `while` body is wrapped in `{}`, including single-statement bodies.
 - [ ] Only Java 8 language and library features are used.
-- [ ] No wildcard imports were added; no unused imports remain.
+- [ ] No import statement ending in `*` was added; no unused imports remain.
+- [ ] Every method with a body longer than 4 lines has appropriate Javadoc (§6.1).
 - [ ] No exception is silently swallowed; errors are logged through the per-connection tracer.
 - [ ] **No password, passphrase, token, credentialed JDBC URL, or connection-property map is passed to
       any logging, tracing, or exception-message call** (§4.6).
