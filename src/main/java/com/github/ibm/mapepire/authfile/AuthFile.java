@@ -88,11 +88,15 @@ public class AuthFile {
             // This check is intentionally brutal. If this fails, Mapepire startup will fail, for security reasons
             Tracer.globalInfo("Attempting to load IP rules from governance table.");
             final Process p =Runtime.getRuntime().exec(new String[] { "/usr/bin/qsh", "-c", "/usr/bin/db2 -s \"select RULE, FILTER from QAIE.IPRULES order by priority desc\"" });
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "Cp037"))) {
+            
+            boolean hasProcessedSomeOutput = false;
+            // qsh will convert the output from the database to the current job CCSID. Easiest way to guess at this is through the "os400.job.file.encoding" property
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), System.getProperty("os400.job.file.encoding", "Cp037")))) {
                 String line = null;
                 int lineNumber = 0;
                 boolean isSkippingHeaderLines = true;
                 while (null != (line = br.readLine())) {
+                    hasProcessedSomeOutput = true;
                     lineNumber++;
                     if (isSkippingHeaderLines) {
                         if (line.trim().startsWith("--")) {
@@ -131,7 +135,8 @@ public class AuthFile {
                 p.destroyForcibly();
                 throw new IOException("Timed out processing governance table");
             }
-            if (0 != p.exitValue()) {
+            // crazy check for whether we have processed output is because the command returns nonzero if there are zero rows!!
+            if (0 != p.exitValue() && !hasProcessedSomeOutput) {
                 throw new IOException("Error processing governance table");
             }
         }
