@@ -176,6 +176,9 @@ public class DataStreamProcessor implements Runnable {
             case "getcldoc":
                 dispatch(new GetClDoc(this, m_conn, reqObj));
                 break;
+            case "getcmdxml":
+                dispatch(new GetCmdXml(this, m_conn, reqObj));
+                break;
             case "exit":
                 dispatch(new Exit(this, m_conn, reqObj));
                 break;
