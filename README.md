@@ -58,6 +58,7 @@ The following request types are currently supported
 | `setconfig`    | Set configuration options | `tracelevel`: see valid trace levels, below <br/> `tracedest`: one of (`file`, `in_mem`) <br/> `jtopentracelevel`: see valid trace levels, below <br/> `jtopentracedest`: one of (`file`, `in_mem`) | `tracedest`, `tracelevel`,`jtopentracedest`, `jtopentracelevel`, | 
 | `gettracedata` | Get trace data |  | `tracedata`: the trace data (as a singular HTML string) <br/> `jtopentracedata`: the JtOpen trace data (plain text) |
 | `getcldoc`     | Get CL command documentation | `path`: the fully qualified IFS path of the command (e.g. "/QSYS.LIB/CRTUSRPRF.CMD") | `html`: the command help documentation in HTML format <br/> `uim`: the command help documentation in UIM format |
+| `getcmdxml`    | Get extended CL command definition XML (the raw command definition, not generated help documentation) | `path`: the fully qualified IFS path of the command (e.g. "/QSYS.LIB/CRTUSRPRF.CMD") | `xml`: the extended command definition XML, as returned by the QCDRCMDD API in CMDD0200 format |
 | `exit      `   | Exit  |  |  | 
 
 Valid trace levels:
@@ -87,6 +88,18 @@ Example SQL query:
 Example to fetch more data (4 more rows) from previous query
 ```json
 {"id": "2l", "type": "sqlmore", "cont_id":"1l", "rows":4}
+```
+
+Example to get the extended command definition XML for a CL command. This is the raw command definition
+(as returned by the QCDRCMDD API in CMDD0200 format), not generated HTML or UIM help documentation:
+```json
+{"id": "cmd1", "type": "getcmdxml", "path": "/QSYS.LIB/CRTUSRPRF.CMD"}
+```
+
+The response carries the complete extended command-definition XML document as a single JSON-encoded
+string in the `xml` field (content abbreviated here):
+```json
+{"id":"cmd1","success":true,"execution_time":42,"xml":"...complete extended command-definition XML..."}
 ```
 
 
