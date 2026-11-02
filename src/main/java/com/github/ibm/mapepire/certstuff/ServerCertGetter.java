@@ -56,7 +56,7 @@ public class ServerCertGetter {
      * Locate a usable Let's Encrypt certificate directory under /etc/letsencrypt/live.
      * Returns null when the directory is missing, inaccessible, empty, or has no readable
      * children. The canRead/canExecute guards avoid an NPE from listFiles() when the
-     * process cannot list the directory (e.g. running as QUSER).
+     * process cannot list the directory.
      *
      * @return a candidate certificate directory, or null if none are usable
      */
