@@ -52,14 +52,26 @@ public class ServerCertGetter {
         m_defaultCertFile = new File(dotDir, "default.jks");
     }
 
+    /**
+     * Locate a usable Let's Encrypt certificate directory under /etc/letsencrypt/live.
+     * Returns null when the directory is missing, inaccessible, empty, or has no readable
+     * children. The canRead/canExecute guards avoid an NPE from listFiles() when the
+     * process cannot list the directory (e.g. running as QUSER).
+     *
+     * @return a candidate certificate directory, or null if none are usable
+     */
     private File findLetsEncryptCertDir() {
-        File liveDir = new File("/etc/letsencrypt/live");
-        if (!liveDir.isDirectory()) {
+        final File liveDir = new File("/etc/letsencrypt/live");
+        if (!liveDir.isDirectory() || !liveDir.canRead() || !liveDir.canExecute()) {
             return null;
         }
-        LinkedList<File> candidates = new LinkedList<File>();
-        for (File ls : liveDir.listFiles()) {
-            if (ls.isDirectory()) {
+        final File[] listing = liveDir.listFiles();
+        if (null == listing) {
+            return null;
+        }
+        final LinkedList<File> candidates = new LinkedList<File>();
+        for (final File ls : listing) {
+            if (ls.isDirectory() && ls.canRead() && ls.canExecute()) {
                 candidates.add(ls);
             }
         }
@@ -71,15 +83,15 @@ public class ServerCertGetter {
         }
 
         try {
-            String myHostName = LocalHostResolver.getFQDN();
-            Tracer.globalInfo("------we think our hostname is "+myHostName);
-            for (File candidate : candidates) {
+            final String myHostName = LocalHostResolver.getFQDN();
+            Tracer.globalInfo("------we think our hostname is " + myHostName);
+            for (final File candidate : candidates) {
                 if (candidate.getName().equalsIgnoreCase(myHostName)) {
                     return candidate;
                 }
             }
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
         }
         return candidates.removeLast();
     }
