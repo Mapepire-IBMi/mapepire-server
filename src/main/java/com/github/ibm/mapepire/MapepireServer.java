@@ -145,8 +145,8 @@ public class MapepireServer {
                 s_server = new Server();
 
                 final ServerConnector connector;
-                final String isUnsecure = System.getenv("MP_UNSECURE");
-                if (StringUtils.isNonEmpty(isUnsecure) && isUnsecure.equals("true")) {
+                final boolean isUnsecure = false; //Devemopment only if having issues with TLS in client language runtime. NEVER commit changes which would cause this to be true in a real build. 
+                if (isUnsecure) {
                     final String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
                     logger.println_err("\n\n" + uhOhWarning + "\n\n");
                     Tracer.globalWarn(uhOhWarning);
