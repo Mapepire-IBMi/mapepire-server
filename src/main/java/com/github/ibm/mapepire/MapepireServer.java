@@ -441,8 +441,8 @@ public class MapepireServer {
             final String currentPart = (i < currentParts.length) ? currentParts[i] : "0";
             final String requiredPart = (i < requiredParts.length) ? requiredParts[i] : "0";
             try {
-                final int currentNumericPart = Integer.parseInt(currentParts[i]);
-                final int requiredNumericPart = Integer.parseInt(requiredParts[i]);
+                final int currentNumericPart = Integer.parseInt(currentPart);
+                final int requiredNumericPart = Integer.parseInt(requiredPart);
 
                 if (currentNumericPart < requiredNumericPart) {
                     return true;
