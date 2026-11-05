@@ -1,6 +1,7 @@
 package com.github.ibm.mapepire.ws;
 
 import com.github.ibm.mapepire.DataStreamProcessor;
+import com.github.ibm.mapepire.MapepireServer;
 import com.github.ibm.mapepire.SystemConnection;
 import com.github.ibm.mapepire.Tracer;
 import org.eclipse.jetty.websocket.api.Session;
@@ -34,6 +35,7 @@ public class DbWebsocketClient extends WebSocketAdapter {
   @Override
   public void onWebSocketConnect(Session sess) {
     super.onWebSocketConnect(sess);
+    sess.setIdleTimeout(MapepireServer.getWsIdleTimeoutMillis());
     tracer.logInfo("Socket Connected: " + sess + " [Connection ID: " + tracer.getConnectionId() + "]");
   }
 

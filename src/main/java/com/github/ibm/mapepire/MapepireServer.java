@@ -54,21 +54,34 @@ public class MapepireServer {
     private static final String MINIMUM_REQUIRED_JAVA_VERSION = "1.8.0_341";
     // Files in the temp directory older than this are deleted
     private static final long TEMP_FILE_MAX_AGE_MILLIS = TimeUnit.DAYS.toMillis(90);
-    // WebSocket connections with no traffic for this long are closed, unless overridden via WS_IDLE_TIMEOUT_SECONDS
+    // Java system property (value in seconds) that overrides DEFAULT_WS_IDLE_TIMEOUT_MILLIS
+    public static final String PROP_WS_IDLE_TIMEOUT = "mapepire.ws.idletimeout";
+    // WebSocket connections with no traffic for this long are closed, unless overridden via PROP_WS_IDLE_TIMEOUT
     private static final long DEFAULT_WS_IDLE_TIMEOUT_MILLIS = TimeUnit.DAYS.toMillis(7);
+    // Resolved once so an invalid override is only warned about once, not on every connection
+    private static final long WS_IDLE_TIMEOUT_MILLIS = resolveWsIdleTimeoutMillis();
     private static volatile boolean s_isSingleMode = false;
     private static volatile boolean s_isReadOnly = Boolean.getBoolean("mapepire.basiconly");
 
     /**
-     * Determine how long a WebSocket connection may sit idle before the server closes it. The default is
-     * {@link #DEFAULT_WS_IDLE_TIMEOUT_MILLIS}; it can be overridden with the WS_IDLE_TIMEOUT_SECONDS
-     * environment variable. A value that is not a positive integer is ignored with a warning, so the idle
-     * timeout can never be disabled by configuration.
+     * Get how long a WebSocket connection may sit idle before the server closes it.
      *
      * @return the WebSocket idle timeout, in milliseconds
      */
-    private static long getWsIdleTimeoutMillis() {
-        final String idleTimeoutStr = System.getenv("WS_IDLE_TIMEOUT_SECONDS");
+    public static long getWsIdleTimeoutMillis() {
+        return WS_IDLE_TIMEOUT_MILLIS;
+    }
+
+    /**
+     * Determine the WebSocket idle timeout. The default is {@link #DEFAULT_WS_IDLE_TIMEOUT_MILLIS}; it can be
+     * overridden with the {@link #PROP_WS_IDLE_TIMEOUT} Java system property, given in seconds. A value that is
+     * not a positive integer is ignored with a warning, so the idle timeout can never be disabled by
+     * configuration.
+     *
+     * @return the WebSocket idle timeout, in milliseconds
+     */
+    private static long resolveWsIdleTimeoutMillis() {
+        final String idleTimeoutStr = System.getProperty(PROP_WS_IDLE_TIMEOUT);
         if (StringUtils.isEmpty(idleTimeoutStr)) {
             return DEFAULT_WS_IDLE_TIMEOUT_MILLIS;
         }
@@ -80,7 +93,7 @@ public class MapepireServer {
         } catch (final NumberFormatException _e) {
             // Fall through to the warning below
         }
-        Tracer.globalWarn("Invalid WS_IDLE_TIMEOUT_SECONDS value '" + idleTimeoutStr + "', using default " + TimeUnit.MILLISECONDS.toSeconds(DEFAULT_WS_IDLE_TIMEOUT_MILLIS) + "s");
+        Tracer.globalWarn("Invalid " + PROP_WS_IDLE_TIMEOUT + " value '" + idleTimeoutStr + "', using default " + TimeUnit.MILLISECONDS.toSeconds(DEFAULT_WS_IDLE_TIMEOUT_MILLIS) + "s");
         return DEFAULT_WS_IDLE_TIMEOUT_MILLIS;
     }
 
