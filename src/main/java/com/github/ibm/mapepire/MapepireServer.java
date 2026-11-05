@@ -54,8 +54,35 @@ public class MapepireServer {
     private static final String MINIMUM_REQUIRED_JAVA_VERSION = "1.8.0_341";
     // Files in the temp directory older than this are deleted
     private static final long TEMP_FILE_MAX_AGE_MILLIS = TimeUnit.DAYS.toMillis(90);
+    // WebSocket connections with no traffic for this long are closed, unless overridden via WS_IDLE_TIMEOUT_SECONDS
+    private static final long DEFAULT_WS_IDLE_TIMEOUT_MILLIS = TimeUnit.DAYS.toMillis(7);
     private static volatile boolean s_isSingleMode = false;
     private static volatile boolean s_isReadOnly = Boolean.getBoolean("mapepire.basiconly");
+
+    /**
+     * Determine how long a WebSocket connection may sit idle before the server closes it. The default is
+     * {@link #DEFAULT_WS_IDLE_TIMEOUT_MILLIS}; it can be overridden with the WS_IDLE_TIMEOUT_SECONDS
+     * environment variable. A value that is not a positive integer is ignored with a warning, so the idle
+     * timeout can never be disabled by configuration.
+     *
+     * @return the WebSocket idle timeout, in milliseconds
+     */
+    private static long getWsIdleTimeoutMillis() {
+        final String idleTimeoutStr = System.getenv("WS_IDLE_TIMEOUT_SECONDS");
+        if (StringUtils.isEmpty(idleTimeoutStr)) {
+            return DEFAULT_WS_IDLE_TIMEOUT_MILLIS;
+        }
+        try {
+            final long idleTimeoutSeconds = Long.parseLong(idleTimeoutStr.trim());
+            if (0 < idleTimeoutSeconds) {
+                return TimeUnit.SECONDS.toMillis(idleTimeoutSeconds);
+            }
+        } catch (final NumberFormatException _e) {
+            // Fall through to the warning below
+        }
+        Tracer.globalWarn("Invalid WS_IDLE_TIMEOUT_SECONDS value '" + idleTimeoutStr + "', using default " + TimeUnit.MILLISECONDS.toSeconds(DEFAULT_WS_IDLE_TIMEOUT_MILLIS) + "s");
+        return DEFAULT_WS_IDLE_TIMEOUT_MILLIS;
+    }
 
     public static boolean isSingleMode() {
         return s_isSingleMode;
@@ -244,6 +271,7 @@ public class MapepireServer {
                         maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
                     }
                     nativeWebSocketConfiguration.getPolicy().setMaxTextMessageSize(maxWsMessageSize);
+                    nativeWebSocketConfiguration.getPolicy().setIdleTimeout(getWsIdleTimeoutMillis());
 
                     // Add websockets
                     nativeWebSocketConfiguration.addMapping("/db/*", new DbSocketCreator());

@@ -34,7 +34,6 @@ public class DbWebsocketClient extends WebSocketAdapter {
   @Override
   public void onWebSocketConnect(Session sess) {
     super.onWebSocketConnect(sess);
-    sess.setIdleTimeout(Integer.MAX_VALUE);
     tracer.logInfo("Socket Connected: " + sess + " [Connection ID: " + tracer.getConnectionId() + "]");
   }
 
