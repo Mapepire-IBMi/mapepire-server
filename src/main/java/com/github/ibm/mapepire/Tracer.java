@@ -513,10 +513,10 @@ public class Tracer {
             if (0 == chmodProcess.waitFor()) {
                 ret = File.createTempFile(filePrefix, ".html", logDir);
             } else {
-                ret = File.createTempFile(filePrefix, ".html");
+                ret = File.createTempFile(filePrefix, ".html", MapepireServer.getTempDirectory());
             }
         } else {
-            ret = File.createTempFile(filePrefix, ".html");
+            ret = File.createTempFile(filePrefix, ".html", MapepireServer.getTempDirectory());
         }
         return m_destFile = ret;
     }

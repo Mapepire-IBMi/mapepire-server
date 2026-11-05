@@ -1,5 +1,6 @@
 package com.github.ibm.mapepire.http;
 
+import com.github.ibm.mapepire.MapepireServer;
 import com.github.ibm.mapepire.Tracer;
 
 import java.io.*;
@@ -272,7 +273,7 @@ public class BlobStore {
         }
 
         static BlobEntry ofFile(byte[] bytes, Instant expiresAt, String credentials) throws IOException {
-            File tmp = Files.createTempFile("mapepire-blob-", ".tmp").toFile();
+            File tmp = Files.createTempFile(MapepireServer.getTempDirectory().toPath(), "mapepire-blob-", ".tmp").toFile();
             tmp.deleteOnExit();
             try (FileOutputStream fos = new FileOutputStream(tmp)) {
                 fos.write(bytes);
@@ -295,7 +296,7 @@ public class BlobStore {
         static BlobEntry ofBlobAsync(Blob blob, long declaredLength,
                                      Instant expiresAt, String credentials,
                                      String tokenForLogging) throws IOException {
-            File tmp = Files.createTempFile("mapepire-blob-", ".tmp").toFile();
+            File tmp = Files.createTempFile(MapepireServer.getTempDirectory().toPath(), "mapepire-blob-", ".tmp").toFile();
             tmp.deleteOnExit();
 
             // Open the stream NOW on the calling thread, before _rs.next() is called.
