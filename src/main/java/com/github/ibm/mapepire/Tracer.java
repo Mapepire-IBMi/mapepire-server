@@ -373,6 +373,10 @@ public class Tracer {
         if (_dest == m_dest) {
             return this;
         }
+        if (Dest.FILE == _dest && !MapepireServer.isSingleMode() && !m_isGlobal) {
+            m_dest = Dest.IN_MEM;
+            return this; // File-backed tracing cannot be initiated from remote clients
+        }
         if (Dest.FILE == m_dest && null != m_fileWriter) {
             try {
                 m_fileWriter.close();
