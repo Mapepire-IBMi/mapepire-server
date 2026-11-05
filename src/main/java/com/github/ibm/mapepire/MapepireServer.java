@@ -101,6 +101,16 @@ public class MapepireServer {
         return s_isSingleMode;
     }
 
+    /**
+     * Entry point for the Mapepire server.
+     * <p>
+     * With {@code --single}, a single connection is served over standard input and output. Otherwise the server
+     * runs as a daemon, accepting TLS WebSocket connections on the configured port. This method does not return
+     * normally; the JVM is terminated when processing ends.
+     *
+     * @param _args
+     *            the command-line arguments
+     */
     public static void main(final String[] _args) {
 
         final LinkedList<String> args = new LinkedList<String>();
@@ -140,7 +150,7 @@ public class MapepireServer {
                             }
                         } catch (final IOException _e) {
                             System.setErr(origErr);
-                            _e.printStackTrace();
+                            Tracer.globalErr(_e);
                         }
                     }
 
@@ -194,7 +204,7 @@ public class MapepireServer {
                 s_server = new Server();
 
                 final ServerConnector connector;
-                final boolean isUnsecure = false; //Devemopment only if having issues with TLS in client language runtime. NEVER commit changes which would cause this to be true in a real build. 
+                final boolean isUnsecure = false; //Development only if having issues with TLS in client language runtime. NEVER commit changes which would cause this to be true in a real build. 
                 if (isUnsecure) {
                     final String uhOhWarning = "WARNING: Running in unsecure mode. Credentials are NOT encrypted!";
                     logger.println_err("\n\n" + uhOhWarning + "\n\n");
@@ -274,20 +284,22 @@ public class MapepireServer {
                 logger.println("Starting server for " + DbSocketCreator.getHost() + " on port " + DbSocketCreator.getPort());
 
                 // Configure specific websocket behavior
-                NativeWebSocketServletContainerInitializer.configure(context, (servletContext, nativeWebSocketConfiguration) -> {
-                    nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
-                    // Max WS message size — default Integer.MAX_VALUE (unlimited).
+                NativeWebSocketServletContainerInitializer.configure(context, (_servletContext, _nativeWebSocketConfiguration) -> {
+                    _nativeWebSocketConfiguration.getPolicy().setMaxTextMessageBufferSize(65535);
+                    // Max WS message size - default Integer.MAX_VALUE (unlimited).
                     // Can be capped via MAX_WS_MESSAGE_SIZE env var if desired.
-                    int maxWsMessageSize = Integer.MAX_VALUE;
                     final String maxWsMessageSizeStr = System.getenv("MAX_WS_MESSAGE_SIZE");
+                    final int maxWsMessageSize;
                     if (StringUtils.isNonEmpty(maxWsMessageSizeStr)) {
                         maxWsMessageSize = Integer.parseInt(maxWsMessageSizeStr);
+                    } else {
+                        maxWsMessageSize = Integer.MAX_VALUE;
                     }
-                    nativeWebSocketConfiguration.getPolicy().setMaxTextMessageSize(maxWsMessageSize);
-                    nativeWebSocketConfiguration.getPolicy().setIdleTimeout(getWsIdleTimeoutMillis());
+                    _nativeWebSocketConfiguration.getPolicy().setMaxTextMessageSize(maxWsMessageSize);
+                    _nativeWebSocketConfiguration.getPolicy().setIdleTimeout(getWsIdleTimeoutMillis());
 
                     // Add websockets
-                    nativeWebSocketConfiguration.addMapping("/db/*", new DbSocketCreator());
+                    _nativeWebSocketConfiguration.addMapping("/db/*", new DbSocketCreator());
                 });
 
                 // Add generic filter that will accept WebSocket upgrade.
@@ -309,11 +321,16 @@ public class MapepireServer {
         System.exit(12);
     }
 
+    /**
+     * Get the location the server code was loaded from, for display in logs and diagnostics.
+     *
+     * @return the code source location, or {@code "<unknown>"} if it cannot be determined; never {@code null}
+     */
     public static String getInstallLocationHumanReadable() {
         try {
             return MapepireServer.class.getProtectionDomain().getCodeSource().getLocation().toString();
-        } catch (Exception e) {
-            Tracer.globalErr(e);
+        } catch (final Exception _e) {
+            Tracer.globalErr(_e);
             return "<unknown>";
         }
     }
