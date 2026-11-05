@@ -61,7 +61,7 @@ public class MapepireServer {
     // Resolved once so an invalid override is only warned about once, not on every connection
     private static final long WS_IDLE_TIMEOUT_MILLIS = resolveWsIdleTimeoutMillis();
     private static volatile boolean s_isSingleMode = false;
-    private static volatile boolean s_isReadOnly = Boolean.getBoolean("mapepire.basiconly");
+    private static volatile boolean s_isBasicQueryOnly = Boolean.getBoolean("mapepire.basiconly");
 
     /**
      * Get how long a WebSocket connection may sit idle before the server closes it.
@@ -122,7 +122,7 @@ public class MapepireServer {
             System.exit(0);
         }
         if (args.remove("--bqo") || args.remove("-bqo") || args.remove("--basic-queries-only") || args.remove("--basic-only")) {
-            s_isReadOnly = true;
+            s_isBasicQueryOnly = true;
         }
 
         try {
@@ -462,7 +462,7 @@ public class MapepireServer {
         return false;
     }
 
-    public static boolean isReadOnly() {
-        return s_isReadOnly;
+    public static boolean isBasicQueryOnly() {
+        return s_isBasicQueryOnly;
     }
 }

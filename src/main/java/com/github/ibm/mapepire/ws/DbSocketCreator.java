@@ -15,7 +15,7 @@ public class DbSocketCreator implements WebSocketCreator
 {
     private static boolean isDaemon = false;
     private static String host = "localhost";
-    private static int port = MapepireServer.isReadOnly()? 8077: 8076;
+    private static int port = MapepireServer.isBasicQueryOnly()? 8077: 8076;
 
     public static void enableDaemon() {
         isDaemon = true;
