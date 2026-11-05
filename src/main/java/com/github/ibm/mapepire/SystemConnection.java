@@ -244,7 +244,7 @@ public class SystemConnection {
             // check if this connection is allowed by our security rules file
             AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
 
-            m_isBasicQueryOnly = MapepireServer.isReadOnly() || (RuleType.ALLOWBASICONLY == accessRule.getRuleType());
+            m_isBasicQueryOnly = MapepireServer.isBasicQueryOnly() || (RuleType.ALLOWBASICONLY == accessRule.getRuleType()) || isReadOnlyRequestedByProperty(_jdbcProps);
             final String jdbcPropsStr;
             if (m_isBasicQueryOnly) {
                 if (StringUtils.isEmpty(_jdbcProps)) {
@@ -299,6 +299,28 @@ public class SystemConnection {
         } catch (Exception e) {
             throw new SQLException(e);
         }
+    }
+
+    /**
+     * Returns whether the client-supplied JDBC properties request read-only access, that is, contain an
+     * {@code access=read only} property. Property names and values are matched case-insensitively and
+     * with surrounding whitespace ignored, the same way the JDBC driver interprets them.
+     *
+     * @param _jdbcProps
+     *            the semicolon-separated JDBC properties supplied by the client, or {@code null}
+     * @return {@code true} if any {@code access} property in the string has the value {@code read only}
+     */
+    private static boolean isReadOnlyRequestedByProperty(final String _jdbcProps) {
+        if (StringUtils.isEmpty(_jdbcProps)) {
+            return false;
+        }
+        for (final String pair : _jdbcProps.split(";")) {
+            final String[] keyValue = pair.split("=", 2);
+            if (2 == keyValue.length && "access".equalsIgnoreCase(keyValue[0].trim()) && "read only".equalsIgnoreCase(keyValue[1].trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Connection verifyReadOnlyAtDriver(final Connection _conn) throws SQLException {
