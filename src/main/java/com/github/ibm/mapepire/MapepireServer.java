@@ -8,10 +8,16 @@ import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -46,6 +52,8 @@ public class MapepireServer {
     private static Server s_server;
     // Required minimum Java version
     private static final String MINIMUM_REQUIRED_JAVA_VERSION = "1.8.0_341";
+    // Files in the temp directory older than this are deleted
+    private static final long TEMP_FILE_MAX_AGE_MILLIS = TimeUnit.DAYS.toMillis(90);
     private static volatile boolean s_isSingleMode = false;
     private static volatile boolean s_isReadOnly = Boolean.getBoolean("mapepire.basiconly");
 
@@ -294,9 +302,47 @@ public class MapepireServer {
             candidate = new File("/QOpenSys/QIBM/UserData/AI/db_server/");
         }
         if (candidate.exists() && candidate.isDirectory() && candidate.canWrite()) {
+            final Thread cleanupThread = new Thread(() -> deleteOldFiles(candidate), "TempDirCleanup");
+            cleanupThread.setDaemon(true);
+            cleanupThread.start();
             return candidate;
         }
         return fallback;
+    }
+
+    /**
+     * Recursively delete regular files under the given directory whose last-modified time is older than
+     * {@link #TEMP_FILE_MAX_AGE_MILLIS}. Directories are left in place and symbolic links are not followed.
+     * Failures are logged and do not stop the traversal.
+     *
+     * @param _dir
+     *            the directory to clean up
+     */
+    private static void deleteOldFiles(final File _dir) {
+        final long cutoff = System.currentTimeMillis() - TEMP_FILE_MAX_AGE_MILLIS;
+        try {
+            Files.walkFileTree(_dir.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(final Path _file, final BasicFileAttributes _attrs) {
+                    if (_attrs.isRegularFile() && _attrs.lastModifiedTime().toMillis() < cutoff) {
+                        try {
+                            Files.deleteIfExists(_file);
+                        } catch (final IOException _e) {
+                            Tracer.globalErr(_e);
+                        }
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(final Path _file, final IOException _exc) {
+                    Tracer.globalErr(_exc);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (final IOException _e) {
+            Tracer.globalErr(_e);
+        }
     }
 
     /**
