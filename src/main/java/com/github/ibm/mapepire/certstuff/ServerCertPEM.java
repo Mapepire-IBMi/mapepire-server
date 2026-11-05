@@ -12,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.UUID;
 
+import com.github.ibm.mapepire.MapepireServer;
 import com.github.ibm.mapepire.Tracer;
 
 public class ServerCertPEM implements ServerCertInfo {
@@ -42,7 +43,7 @@ public class ServerCertPEM implements ServerCertInfo {
             return m_keystore;
         }
 
-        File p12 = File.createTempFile("mppcert", ".p12");
+        File p12 = File.createTempFile("mppcert", ".p12", MapepireServer.getTempDirectory());
         String[] cmd = new String[] {
                 "/QOpenSys/usr/bin/openssl",
                 "pkcs12",

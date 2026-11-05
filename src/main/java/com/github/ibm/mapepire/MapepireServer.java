@@ -1,6 +1,7 @@
 package com.github.ibm.mapepire;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -266,6 +267,36 @@ public class MapepireServer {
             Tracer.globalErr(e);
             return "<unknown>";
         }
+    }
+
+    /**
+     * Determine the directory to use for temporary files.
+     * <p>
+     * In daemon mode, this is {@code /QOpenSys/QIBM/UserData/AI/db_server/}. In single mode, this is
+     * {@code <user.home>/.vscode/tmp}, which is created if it does not already exist. In either mode, the chosen
+     * directory is only used if it exists, is a directory, and is writable; otherwise {@code /tmp} is
+     * returned.
+     *
+     * @return the temporary directory to use; never {@code null}
+     */
+    public static File getTempDirectory() {
+        final File fallback = new File("/tmp");
+        final File candidate;
+        if (isSingleMode()) {
+            final String home = System.getProperty("user.home");
+            if (StringUtils.isEmpty(home)) {
+                return fallback;
+            }
+            candidate = new File(new File(home, ".vscode"), "tmp");
+            // mkdirs() returns false when the directory already exists, so verify the result below instead
+            candidate.mkdirs();
+        } else {
+            candidate = new File("/QOpenSys/QIBM/UserData/AI/db_server/");
+        }
+        if (candidate.exists() && candidate.isDirectory() && candidate.canWrite()) {
+            return candidate;
+        }
+        return fallback;
     }
 
     /**
