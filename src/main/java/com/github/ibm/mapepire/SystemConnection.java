@@ -291,8 +291,9 @@ public class SystemConnection {
             }
             DriverManager.registerDriver(new AS400JDBCDriver());
             final String connectionString = getConnectionString();
+            final Properties connectionProperties = connectionString.startsWith("jdbc:as400:") ? getConnectionProperties() : new Properties();
             getTracer().logInfo("Using connection string " + connectionString);
-            m_conn = verifyReadOnlyAtDriver(DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
+            m_conn = verifyReadOnlyAtDriver(DriverManager.getConnection(connectionString + ";" + jdbcPropsStr, connectionProperties));
             m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
             return m_conn;
 
@@ -347,7 +348,15 @@ public class SystemConnection {
         return null == this.host ? "localhost" : this.host;
     }
 
-    private String getAuthString() throws IOException {
+    /**
+     * Supplies Toolbox credentials separately from the URL so JDBC delimiters in a password are
+     * preserved and credentials cannot appear in the connection-string trace message.
+     *
+     * @return credentials for an authenticated connection, or empty properties for single mode
+     *         without an explicit user/password pair
+     * @throws IOException if credentials required by server mode are missing or invalid
+     */
+    private Properties getConnectionProperties() throws IOException {
         if (!MapepireServer.isSingleMode()) {
             if (StringUtils.isEmpty(userProfile) || userProfile.contains("*")) {
                 throw new IOException(INVALID_USERNAME_MESSAGE);
@@ -356,18 +365,24 @@ public class SystemConnection {
                 throw new IOException(INVALID_PASSWORD_MESSAGE);
             }
         }
-        if (MapepireServer.isSingleMode() && (userProfile == null || password == null)) {
-            return getHost();
-        } else {
-            return String.format("%s;user=%s;password=%s", getHost(), userProfile, new String(password));
+        final Properties properties = new Properties();
+        if (null != userProfile && null != password) {
+            properties.setProperty("user", userProfile);
+            properties.setProperty("password", new String(password));
         }
+        return properties;
     }
 
-    private String getConnectionString() throws IOException {
+    /**
+     * Selects the native or Toolbox JDBC URL without embedding credentials.
+     *
+     * @return the JDBC URL for the current connection method
+     */
+    private String getConnectionString() {
         if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == this.m_lastUsedConnectionMethod)) {
             return Boolean.getBoolean(PROP_RESTRICTED_LOCAL_CONNECTION) ? "jdbc:default:connection" : "jdbc:db2:*LOCAL";
         }
-        return "jdbc:as400:" + this.getAuthString();
+        return "jdbc:as400:" + getHost();
     }
 
     private boolean isUsingKerberos() {
