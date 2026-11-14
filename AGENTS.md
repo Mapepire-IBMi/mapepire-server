@@ -41,8 +41,10 @@ mvn install         # full build (default goal), produces the jar-with-dependenc
 The jt400 dependency is `provided` — it resolves from `/QIBM/ProdData/OS400/jt400/lib/jt400.jar` on IBM i.
 Comment out the `<scope>` in [pom.xml](pom.xml) for local off-platform development.
 
-There is no automated test suite. Validate changes by compiling and, where behaviour is affected, by
-exercising the protocol against a running server.
+Automated tests are JUnit 4 unit tests under [src/test/java](src/test/java). Run them with `mvn test`;
+they also run during `mvn install`, and none of them connects to an IBM i. Coverage is narrow — currently
+only JDBC credential handling in `SystemConnection` — so still validate changes by compiling and, where
+behaviour is affected, by exercising the protocol against a running server.
 
 ## Layout
 

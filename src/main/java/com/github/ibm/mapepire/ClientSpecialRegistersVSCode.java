@@ -21,7 +21,7 @@ public class ClientSpecialRegistersVSCode implements ClientSpecialRegisters {
                 m_clientIP = "localhost";
             }
         }
-        
+
         m_accountingString = "location: " + MapepireServer.getInstallLocationHumanReadable();
         m_toString = String.format("User=%s,IP=%s,acct=%s", "" + System.getProperty("user.name"), m_clientIP, m_accountingString);
     }
