@@ -15,6 +15,7 @@ import com.github.ibm.mapepire.requests.CloseSqlCursor;
 import com.github.ibm.mapepire.requests.DoVe;
 import com.github.ibm.mapepire.requests.Exit;
 import com.github.ibm.mapepire.requests.GetClDoc;
+import com.github.ibm.mapepire.requests.GetCLJob;
 import com.github.ibm.mapepire.requests.GetCmdXml;
 import com.github.ibm.mapepire.requests.GetDbJob;
 import com.github.ibm.mapepire.requests.GetTraceData;
@@ -211,6 +212,9 @@ public class DataStreamProcessor implements Runnable {
                 break;
             case "getdbjob":
                 dispatch(new GetDbJob(this, m_conn, reqObj));
+                break;
+            case "getcljob":
+                dispatch(new GetCLJob(this, m_conn, reqObj));
                 break;
             case "getversion":
                 dispatch(new GetVersion(this, m_conn, reqObj));
