@@ -53,6 +53,7 @@ The following request types are currently supported
 | `sqlmore`     | fetch more rows from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request <br/> `rows`: the maximum number of rows to return | `data`: the data <br/> `is_done`: whether all rows were fetched | 
 | `sqlclose`     | close cursor from a previous `sql`/`prepare_sql`/`prepare_sql_execute` request  | `cont_id`: the request ID of the previously-run `sql`/`prepare_sql`/`prepare_sql_execute` request |  | 
 | `getdbjob`     | Get server job for database tasks  |  | `job`: the server job | 
+| `getcljob`     | Get remote command job |  | `job`: the remote command job; an empty string if no job is available/started | 
 | `getversion`   | Get version info  |  | `build_date`: build date <br/> `version`: version | 
 | `ping`         | Liveness check |  | `alive`: this program is still responsive <br/> `db_alive`: there is an active connection to the database |
 | `setconfig`    | Set configuration options | `tracelevel`: see valid trace levels, below <br/> `tracedest`: one of (`file`, `in_mem`) <br/> `jtopentracelevel`: see valid trace levels, below <br/> `jtopentracedest`: one of (`file`, `in_mem`) | `tracedest`, `tracelevel`,`jtopentracedest`, `jtopentracelevel`, | 
