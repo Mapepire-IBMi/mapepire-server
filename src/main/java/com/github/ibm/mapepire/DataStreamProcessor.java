@@ -213,7 +213,7 @@ public class DataStreamProcessor implements Runnable {
             case "getdbjob":
                 dispatch(new GetDbJob(this, m_conn, reqObj));
                 break;
-            case "getcljob":
+            case "getrccljob":
                 dispatch(new GetCLJob(this, m_conn, reqObj));
                 break;
             case "getversion":
