@@ -60,6 +60,20 @@ public class MapepireServer {
     private static final long DEFAULT_WS_IDLE_TIMEOUT_MILLIS = TimeUnit.DAYS.toMillis(7);
     // Resolved once so an invalid override is only warned about once, not on every connection
     private static final long WS_IDLE_TIMEOUT_MILLIS = resolveWsIdleTimeoutMillis();
+
+    // Java system property (value in seconds) that sets how often the server pings each client.
+    // Set to 0 to disable heartbeat. Default: 30 s.
+    public static final String PROP_HEARTBEAT_INTERVAL = "mapepire.heartbeat.interval";
+    private static final long DEFAULT_HEARTBEAT_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(30);
+
+    // Java system property (value in seconds) after which a client that has not answered a ping
+    // is considered dead and its connection is forcibly closed. Default: 90 s (3 missed pings).
+    public static final String PROP_HEARTBEAT_TIMEOUT = "mapepire.heartbeat.timeout";
+    private static final long DEFAULT_HEARTBEAT_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(90);
+
+    private static final long HEARTBEAT_INTERVAL_MILLIS = resolveHeartbeatIntervalMillis();
+    private static final long HEARTBEAT_TIMEOUT_MILLIS  = resolveHeartbeatTimeoutMillis();
+
     private static volatile boolean s_isSingleMode = false;
     private static volatile boolean s_isBasicQueryOnly = Boolean.getBoolean("mapepire.basiconly");
 
@@ -70,6 +84,25 @@ public class MapepireServer {
      */
     public static long getWsIdleTimeoutMillis() {
         return WS_IDLE_TIMEOUT_MILLIS;
+    }
+
+    /**
+     * Get the interval between server-initiated WebSocket ping frames.
+     * A value of {@code 0} means heartbeat is disabled.
+     *
+     * @return the heartbeat interval in milliseconds
+     */
+    public static long getHeartbeatIntervalMillis() {
+        return HEARTBEAT_INTERVAL_MILLIS;
+    }
+
+    /**
+     * Get the maximum time a client may be silent (no pong) before the server closes the connection.
+     *
+     * @return the heartbeat timeout in milliseconds
+     */
+    public static long getHeartbeatTimeoutMillis() {
+        return HEARTBEAT_TIMEOUT_MILLIS;
     }
 
     /**
@@ -95,6 +128,55 @@ public class MapepireServer {
         }
         Tracer.globalWarn("Invalid " + PROP_WS_IDLE_TIMEOUT + " value '" + idleTimeoutStr + "', using default " + TimeUnit.MILLISECONDS.toSeconds(DEFAULT_WS_IDLE_TIMEOUT_MILLIS) + "s");
         return DEFAULT_WS_IDLE_TIMEOUT_MILLIS;
+    }
+
+    /**
+     * Determine the heartbeat ping interval. The default is {@link #DEFAULT_HEARTBEAT_INTERVAL_MILLIS};
+     * it can be overridden with the {@link #PROP_HEARTBEAT_INTERVAL} Java system property, given in
+     * seconds. A value of {@code 0} disables the heartbeat. A negative or non-numeric value is ignored
+     * with a warning.
+     *
+     * @return the heartbeat interval in milliseconds, or {@code 0} to disable
+     */
+    private static long resolveHeartbeatIntervalMillis() {
+        final String str = System.getProperty(PROP_HEARTBEAT_INTERVAL);
+        if (StringUtils.isEmpty(str)) {
+            return DEFAULT_HEARTBEAT_INTERVAL_MILLIS;
+        }
+        try {
+            final long seconds = Long.parseLong(str.trim());
+            if (0 <= seconds) {
+                return TimeUnit.SECONDS.toMillis(seconds);
+            }
+        } catch (final NumberFormatException _e) {
+            // Fall through to the warning below
+        }
+        Tracer.globalWarn("Invalid " + PROP_HEARTBEAT_INTERVAL + " value '" + str + "', using default " + TimeUnit.MILLISECONDS.toSeconds(DEFAULT_HEARTBEAT_INTERVAL_MILLIS) + "s");
+        return DEFAULT_HEARTBEAT_INTERVAL_MILLIS;
+    }
+
+    /**
+     * Determine the heartbeat timeout. The default is {@link #DEFAULT_HEARTBEAT_TIMEOUT_MILLIS};
+     * it can be overridden with the {@link #PROP_HEARTBEAT_TIMEOUT} Java system property, given in
+     * seconds. A non-positive or non-numeric value is ignored with a warning.
+     *
+     * @return the heartbeat timeout in milliseconds
+     */
+    private static long resolveHeartbeatTimeoutMillis() {
+        final String str = System.getProperty(PROP_HEARTBEAT_TIMEOUT);
+        if (StringUtils.isEmpty(str)) {
+            return DEFAULT_HEARTBEAT_TIMEOUT_MILLIS;
+        }
+        try {
+            final long seconds = Long.parseLong(str.trim());
+            if (0 < seconds) {
+                return TimeUnit.SECONDS.toMillis(seconds);
+            }
+        } catch (final NumberFormatException _e) {
+            // Fall through to the warning below
+        }
+        Tracer.globalWarn("Invalid " + PROP_HEARTBEAT_TIMEOUT + " value '" + str + "', using default " + TimeUnit.MILLISECONDS.toSeconds(DEFAULT_HEARTBEAT_TIMEOUT_MILLIS) + "s");
+        return DEFAULT_HEARTBEAT_TIMEOUT_MILLIS;
     }
 
     public static boolean isSingleMode() {
