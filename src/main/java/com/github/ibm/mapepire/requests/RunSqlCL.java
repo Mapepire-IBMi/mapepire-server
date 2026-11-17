@@ -69,7 +69,7 @@ public class RunSqlCL extends ClientRequest {
             }
         }
         addReplyData("data", messages);
-
+        addReplyData("is_done", true);
         if (null != callException) {
             if (callException instanceof SQLException && callException.getMessage().startsWith("[CPF0006]")) {
                 // Keep exception message consistent with the one thrown by RunCL request, still throw the exception as SQLException to be consistent with the other SQL based requests
