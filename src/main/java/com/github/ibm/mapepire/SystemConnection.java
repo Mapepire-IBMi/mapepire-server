@@ -370,7 +370,9 @@ public class SystemConnection {
             }
             DriverManager.registerDriver(new AS400JDBCDriver());
             final String connectionString = getConnectionString();
-            getTracer().logInfo("Using connection string " + connectionString);
+            if (MapepireServer.isSingleMode()) {
+                getTracer().logInfo("Using connection string " + connectionString);
+            }
             m_conn = verifyReadOnlyAtDriver(DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
             m_conn.setClientInfo(m_clientRegs.getProperties(_applicationName));
             return m_conn;
