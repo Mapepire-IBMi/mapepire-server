@@ -45,7 +45,7 @@ public class SystemConnection {
 
     // Built-in functions from "Chapter 4. Built-in functions" of the Db2 for i SQL Reference, IBM i 7.3
     //@formatter:off
-    private static final Set<String> BUILTIN_FUNCTIONS_ALLOWED_IN_BASIC_QUERY = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+    private static final Set<String> s_builtinFunctionsAllowedInBasicQuery = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
             // Aggregate functions
             "ARRAY_AGG", "AVG", "CORR", "CORRELATION", "COUNT", "COUNT_BIG", "COVARIANCE", "COVAR", "COVAR_SAMP", "COVARIANCE_SAMP",
             "GROUPING", "JSON_ARRAYAGG", "JSON_OBJECTAGG", "LISTAGG", "MAX", "MEDIAN", "MIN", "PERCENTILE_CONT", "PERCENTILE_DISC",
@@ -101,61 +101,98 @@ public class SystemConnection {
     private Connection m_conn;
     private ConnectionMethod m_lastUsedConnectionMethod = ConnectionMethod.CLI;
     private String m_lastUsedJdbcProps = "";
-    // TODO: document the expectations around the host, username, and password fields
-    private final String host;
-    private final String userProfile;
-    private final char[] password;
+    /**
+     * The IBM i system to connect to. In daemon mode this is the host name the client asked for, and is never
+     * empty. In single mode it comes from the {@code mapepire.debug.host} system property and is usually
+     * {@code null}, which means the local system ({@code localhost}).
+     */
+    private final String m_host;
+    /**
+     * The IBM i user profile to connect as. In daemon mode this is the user the client authenticated as, and is
+     * never empty and never contains {@code *}. In single mode it comes from the {@code mapepire.debug.user}
+     * system property, falling back to the user the server process runs as. A value containing {@code @} is
+     * treated as a Kerberos principal.
+     */
+    private final String m_userProfile;
+    /**
+     * The password for {@link #m_userProfile}. In daemon mode this is never {@code null} or empty. In single mode
+     * it comes from the {@code mapepire.debug.pw} system property and is usually {@code null}, in which case the
+     * connection is made without explicit credentials. This is a secret: it must never be logged, traced, or
+     * included in an exception message.
+     */
+    private final char[] m_password;
     private final ClientSpecialRegisters m_clientRegs;
     private String m_applicationName;
-    private final String clientAddress;
+    private final String m_clientAddress;
     private final Tracer m_tracer;
     // Raw Base64 "user:pass" from the WebSocket Authorization header.
     // Stored so BlobStore can validate HTTP /blob/{token} requests.
     private String m_rawCredentials = null;
     private boolean m_isBasicQueryOnly = true;
 
-    private final WeakHashMap<String, Boolean> m_knownWhetherBasicQuerySQL = new WeakHashMap<String, Boolean>();
+    private final WeakHashMap<String, Boolean> m_knownWhetherBasicQuerySql = new WeakHashMap<String, Boolean>();
 
     /**
-     * Constructor that is only to be used when not in single mode
-     * 
+     * Create a connection for single mode. The user, host, and password are taken from the
+     * {@code mapepire.debug.*} system properties, falling back to the user the server process runs as on the
+     * local system.
+     *
      * @throws IOException
+     *             if the server is not running in single mode
      */
     public SystemConnection() throws IOException {
         if (!MapepireServer.isSingleMode()) {
             throw new IOException(IMPROPER_USAGE_MESSAGE);
         }
-        ClientSpecialRegistersVSCode clientRegs = new ClientSpecialRegistersVSCode();
-        this.m_clientRegs = clientRegs;
-        this.clientAddress = clientRegs.getClientAddress();
-        this.userProfile = System.getProperty(PROP_DEBUG_USER, System.getProperty("user.name"));
-        this.m_tracer = Tracer.getNew();
-        this.host = System.getProperty(PROP_DEBUG_HOST, null);
-        String debugpw = System.getProperty(PROP_DEBUG_PASSWORD);
-        this.password = null == debugpw ? null : debugpw.toCharArray();
+        final ClientSpecialRegistersVSCode clientRegs = new ClientSpecialRegistersVSCode();
+        m_clientRegs = clientRegs;
+        m_clientAddress = clientRegs.getClientAddress();
+        m_userProfile = System.getProperty(PROP_DEBUG_USER, System.getProperty("user.name"));
+        m_tracer = Tracer.getNew();
+        m_host = System.getProperty(PROP_DEBUG_HOST, null);
+        final String debugpw = System.getProperty(PROP_DEBUG_PASSWORD);
+        m_password = null == debugpw ? null : debugpw.toCharArray();
 
     }
 
-    public SystemConnection(String clientHost, String clientAddress, String host, String user, char[] pass, Tracer tracer) throws IOException {
+    /**
+     * Create a connection for daemon mode, on behalf of a remote client that has supplied credentials.
+     *
+     * @param _clientHost
+     *            the host name of the connecting client, recorded in the client special registers
+     * @param _clientAddress
+     *            the IP address of the connecting client, checked against the auth rules file on connect
+     * @param _host
+     *            the IBM i system to connect to; must not be empty or contain {@code *}
+     * @param _user
+     *            the IBM i user profile to connect as; must not be empty or contain {@code *}
+     * @param _pass
+     *            the password for {@code _user}; must not be {@code null} or empty
+     * @param _tracer
+     *            the per-connection tracer
+     * @throws IOException
+     *             if the server is running in single mode, or the user, host, or password is invalid
+     */
+    public SystemConnection(final String _clientHost, final String _clientAddress, final String _host, final String _user, final char[] _pass, final Tracer _tracer) throws IOException {
         super();
         if (MapepireServer.isSingleMode()) {
             throw new IOException(IMPROPER_USAGE_MESSAGE);
         }
-        this.host = host;
-        if (StringUtils.isEmpty(user) || user.contains("*")) {
+        m_host = _host;
+        if (StringUtils.isEmpty(_user) || _user.contains("*")) {
             throw new IOException(INVALID_USERNAME_MESSAGE);
         }
-        if (StringUtils.isEmpty(host) || host.contains("*")) {
+        if (StringUtils.isEmpty(_host) || _host.contains("*")) {
             throw new IOException("Invalid Hostname");
         }
-        if (pass == null || pass.length == 0) {
+        if (null == _pass || 0 == _pass.length) {
             throw new IOException(INVALID_PASSWORD_MESSAGE);
         }
-        this.userProfile = user;
-        this.password = pass;
-        this.clientAddress = clientAddress;
-        this.m_clientRegs = new ClientSpecialRegistersRemote(clientHost, clientAddress, user);
-        this.m_tracer = tracer;
+        m_userProfile = _user;
+        m_password = _pass;
+        m_clientAddress = _clientAddress;
+        m_clientRegs = new ClientSpecialRegistersRemote(_clientHost, _clientAddress, _user);
+        m_tracer = _tracer;
     }
 
     /** Returns the raw Base64 Authorization credentials, or {@code null} in single mode. */
@@ -164,14 +201,23 @@ public class SystemConnection {
     }
 
     /** Called by {@link com.github.ibm.mapepire.ws.DbWebsocketClient} at connection time. */
-    public void setRawCredentials(String rawCredentials) {
-        this.m_rawCredentials = rawCredentials;
+    public void setRawCredentials(final String _rawCredentials) {
+        m_rawCredentials = _rawCredentials;
     }
 
     public static boolean isRunningOnIBMi() {
         return System.getProperty("os.name", "").contains("400") || new File("/usr/bin/qsh").exists();
     }
 
+    /**
+     * Return the current JDBC connection. If there is no open connection and the
+     * {@code codeserver.jdbc.autoconnect} system property is set, reconnect using the settings from the last
+     * connection attempt.
+     *
+     * @return the open JDBC connection
+     * @throws SQLException
+     *             if there is no open connection and autoconnect is disabled, or reconnecting fails
+     */
     public synchronized Connection getJdbcConnection() throws SQLException {
         if (null != m_conn && !m_conn.isClosed()) {
             return m_conn;
@@ -183,25 +229,40 @@ public class SystemConnection {
     }
 
     /**
-     * @return the {@link AS400} object for the current JDBC connection
+     * @return the {@link AS400} object for the current JDBC connection, or {@code null} if the connection is not
+     *         a jt400 connection
+     * @throws SQLException
+     *             if there is no open JDBC connection
      */
-    public synchronized AS400 getSystem() throws SQLException{
-        Connection connection = getJdbcConnection();
+    public synchronized AS400 getSystem() throws SQLException {
+        final Connection connection = getJdbcConnection();
         if (connection instanceof AS400JDBCConnection) {
             return ((AS400JDBCConnection) connection).getSystem();
         }
         return null;
     }
 
+    /**
+     * Return the qualified name ({@code number/user/name}) of the database server job behind the current JDBC
+     * connection. Never fails: if the name cannot be determined, the error is traced and a placeholder is
+     * returned.
+     *
+     * @return the qualified job name, or {@code ??????/??????/??????} if it cannot be determined
+     * @throws SQLException
+     *             declared for callers; not currently thrown
+     */
     public String getJdbcJobName() throws SQLException {
         try {
-            Connection c = getJdbcConnection();
+            final Connection c = getJdbcConnection();
             if (c instanceof AS400JDBCConnection) {
                 return makePrettyJobNameFromJt400Name(((AS400JDBCConnection) c).getServerJobIdentifier());
             }
             return c.getClass().getMethod("getServerJobName").invoke(c).toString();
-        } catch (Exception e) {
-            this.m_tracer.logErr(e);
+        } catch (final Exception _e) {
+            // Deliberately broad: besides the SQLException and the several reflection exceptions, the reflective
+            // fallback can fail with runtime exceptions (a null return, a driver without the method). Every failure
+            // has the same outcome -- a placeholder name -- so there is nothing gained by listing them separately.
+            m_tracer.logErr(_e);
             return "??????/??????/??????";
         }
     }
@@ -213,25 +274,43 @@ public class SystemConnection {
         return String.format("%s/%s/%s", number, user, name);
     }
 
+    /**
+     * Close the current JDBC connection, if there is one. For a jt400 connection, all services on the
+     * underlying {@link AS400} object are disconnected. Errors are traced, not thrown.
+     */
     public synchronized void close() {
         if (null != m_conn) {
             try {
                 final AS400 system = getSystem();
-                if(system != null){
+                if (null != system) {
                     system.disconnectAllServices();
-                }
-                else{
+                } else {
                     m_conn.close();
                 }
-            } catch (Exception e) {
-                getTracer().logErr(e);
+            } catch (final Exception _e) {
+                getTracer().logErr(_e);
             }
             m_conn = null;
         }
     }
 
+    /**
+     * Close any current JDBC connection and open a new one. The connection is first checked against the auth
+     * rules file; if the server, the matching rule, or the client's JDBC properties restrict it to basic queries,
+     * the connection is opened read-only.
+     *
+     * @param _connectionMethod
+     *            how to connect; {@link ConnectionMethod#CLI} is only honored in single mode on IBM i
+     * @param _jdbcProps
+     *            semicolon-separated JDBC properties supplied by the client, or {@code null}
+     * @param _applicationName
+     *            the client application name for the special registers, or empty to keep the previous one
+     * @return the new JDBC connection
+     * @throws SQLException
+     *             if the connection is refused by an auth rule, or cannot be opened
+     */
     public synchronized Connection reconnect(final ConnectionMethod _connectionMethod, final String _jdbcProps, final String _applicationName) throws SQLException {
-        this.close();
+        close();
         if (StringUtils.isNonEmpty(_applicationName)) {
             m_applicationName = _applicationName;
         }
@@ -242,7 +321,7 @@ public class SystemConnection {
 
         try {
             // check if this connection is allowed by our security rules file
-            AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(this.userProfile, this.clientAddress); // TODO: how to handle this for kerberos?
+            final AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(m_userProfile, m_clientAddress); // TODO: how to handle this for kerberos?
 
             m_isBasicQueryOnly = MapepireServer.isBasicQueryOnly() || (RuleType.ALLOWBASICONLY == accessRule.getRuleType()) || isReadOnlyRequestedByProperty(_jdbcProps);
             final String jdbcPropsStr;
@@ -258,23 +337,23 @@ public class SystemConnection {
 
             if (isUsingKerberos()) {
                 // Create AS400 object
-                AS400 as400System;
-                String systemName = (this.host != null) ? this.host : "localhost";
+                final AS400 as400System;
+                final String systemName = (null != m_host) ? m_host : "localhost";
 
-                if (this.userProfile != null && this.password != null) {
-                    as400System = new AS400(systemName, this.userProfile, this.password);
+                if (null != m_userProfile && null != m_password) {
+                    as400System = new AS400(systemName, m_userProfile, m_password);
                 } else {
                     as400System = new AS400(systemName);
                 }
 
                 // Parse JDBC properties into Properties object
-                Properties jdbcProps = new Properties();
+                final Properties jdbcProps = new Properties();
                 if (StringUtils.isNonEmpty(jdbcPropsStr)) {
-                    String[] propPairs = jdbcPropsStr.split(";");
-                    for (String pair : propPairs) {
+                    final String[] propPairs = jdbcPropsStr.split(";");
+                    for (final String pair : propPairs) {
                         if (StringUtils.isNonEmpty(pair)) {
-                            String[] keyValue = pair.split("=", 2);
-                            if (keyValue.length == 2) {
+                            final String[] keyValue = pair.split("=", 2);
+                            if (2 == keyValue.length) {
                                 jdbcProps.setProperty(keyValue[0].trim(), keyValue[1].trim());
                             }
                         }
@@ -282,22 +361,22 @@ public class SystemConnection {
                 }
 
                 // Create AS400JDBCConnection from AS400 object
-                AS400JDBCDriver driver = new AS400JDBCDriver();
+                final AS400JDBCDriver driver = new AS400JDBCDriver();
 
                 // Connect with null database name (database name should only be used for IASP connections)
                 m_conn = verifyReadOnlyAtDriver(driver.connect(as400System, jdbcProps, null));
-                m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
+                m_conn.setClientInfo(m_clientRegs.getProperties(_applicationName));
                 return m_conn;
             }
             DriverManager.registerDriver(new AS400JDBCDriver());
             final String connectionString = getConnectionString();
             getTracer().logInfo("Using connection string " + connectionString);
             m_conn = verifyReadOnlyAtDriver(DriverManager.getConnection(connectionString + ";" + jdbcPropsStr));
-            m_conn.setClientInfo(this.m_clientRegs.getProperties(_applicationName));
+            m_conn.setClientInfo(m_clientRegs.getProperties(_applicationName));
             return m_conn;
 
-        } catch (Exception e) {
-            throw new SQLException(e);
+        } catch (final Exception _e) {
+            throw new SQLException(_e);
         }
     }
 
@@ -323,6 +402,16 @@ public class SystemConnection {
         return false;
     }
 
+    /**
+     * If this connection is restricted to basic queries, verify that the driver really did open the given
+     * connection read-only, and mark it read-only. Does nothing if the connection is not restricted.
+     *
+     * @param _conn
+     *            the newly opened JDBC connection
+     * @return {@code _conn}
+     * @throws SQLException
+     *             if the connection is restricted but the driver did not honor read-only mode
+     */
     private Connection verifyReadOnlyAtDriver(final Connection _conn) throws SQLException {
         if (!m_isBasicQueryOnly) {
             return _conn;
@@ -335,7 +424,7 @@ public class SystemConnection {
             try {
                 s.execute("CALL systools.lprintf('ERROR: Disregard of read only mode detected')");
                 throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
-            } catch (SQLException e) {
+            } catch (final SQLException _e) {
                 // expected condition. If we're read-only, this should fail
             }
         }
@@ -344,37 +433,45 @@ public class SystemConnection {
     }
 
     public String getHost() {
-        return null == this.host ? "localhost" : this.host;
+        return null == m_host ? "localhost" : m_host;
     }
 
+    /**
+     * Build the host-and-credentials part of a {@code jdbc:as400:} URL. The result contains the password, so it
+     * must never be logged.
+     *
+     * @return the host, followed by {@code ;user=...;password=...} when credentials are available
+     * @throws IOException
+     *             if the server is in daemon mode and the user profile or password is invalid
+     */
     private String getAuthString() throws IOException {
         if (!MapepireServer.isSingleMode()) {
-            if (StringUtils.isEmpty(userProfile) || userProfile.contains("*")) {
+            if (StringUtils.isEmpty(m_userProfile) || m_userProfile.contains("*")) {
                 throw new IOException(INVALID_USERNAME_MESSAGE);
             }
-            if (StringUtils.isEmpty(password)) {
+            if (StringUtils.isEmpty(m_password)) {
                 throw new IOException(INVALID_PASSWORD_MESSAGE);
             }
         }
-        if (MapepireServer.isSingleMode() && (userProfile == null || password == null)) {
+        if (MapepireServer.isSingleMode() && (null == m_userProfile || null == m_password)) {
             return getHost();
         } else {
-            return String.format("%s;user=%s;password=%s", getHost(), userProfile, new String(password));
+            return String.format("%s;user=%s;password=%s", getHost(), m_userProfile, new String(m_password));
         }
     }
 
     private String getConnectionString() throws IOException {
-        if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == this.m_lastUsedConnectionMethod)) {
+        if (isRunningOnIBMi() && MapepireServer.isSingleMode() && (ConnectionMethod.CLI == m_lastUsedConnectionMethod)) {
             return Boolean.getBoolean(PROP_RESTRICTED_LOCAL_CONNECTION) ? "jdbc:default:connection" : "jdbc:db2:*LOCAL";
         }
-        return "jdbc:as400:" + this.getAuthString();
+        return "jdbc:as400:" + getAuthString();
     }
 
     private boolean isUsingKerberos() {
-        if (null == this.userProfile) {
+        if (null == m_userProfile) {
             return false;
         }
-        return this.userProfile.contains("@");
+        return m_userProfile.contains("@");
     }
 
     public Tracer getTracer() {
@@ -404,12 +501,12 @@ public class SystemConnection {
         if (!m_isBasicQueryOnly) {
             return;
         }
-        Boolean b = m_knownWhetherBasicQuerySQL.get(_sql);
+        final Boolean b = m_knownWhetherBasicQuerySql.get(_sql);
         if (null != b) {
             if (b.booleanValue()) {
                 return;
             } else {
-                throw new SQLException (BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
+                throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
             }
         }
         final Connection conn = getJdbcConnection();
@@ -435,9 +532,9 @@ public class SystemConnection {
                     } else {
                         isOk = isStatementQuery && isUsageQuery && isData;
                     }
-                    m_knownWhetherBasicQuerySQL.put(_sql, Boolean.valueOf(isOk));
+                    m_knownWhetherBasicQuerySql.put(_sql, Boolean.valueOf(isOk));
                     if (!isOk) {
-                        throw new SQLException (BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
+                        throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
                     }
                 }
             }
@@ -459,7 +556,7 @@ public class SystemConnection {
         if (null != _schema || null == _name) {
             return false;
         }
-        return Boolean.getBoolean(PROP_DISABLE_BUILTINS_IN_BASIC_QUERY) ? false : BUILTIN_FUNCTIONS_ALLOWED_IN_BASIC_QUERY.contains(_name.trim().toUpperCase(Locale.ROOT));
+        return Boolean.getBoolean(PROP_DISABLE_BUILTINS_IN_BASIC_QUERY) ? false : s_builtinFunctionsAllowedInBasicQuery.contains(_name.trim().toUpperCase(Locale.ROOT));
     }
 
     public boolean isBasicQueryOnly() {
