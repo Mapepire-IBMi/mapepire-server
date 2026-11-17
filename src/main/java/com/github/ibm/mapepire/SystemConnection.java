@@ -321,7 +321,7 @@ public class SystemConnection {
 
         try {
             // check if this connection is allowed by our security rules file
-            final AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(m_userProfile, m_clientAddress); // TODO: how to handle this for kerberos?
+            final AuthRule accessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(m_userProfile, m_clientAddress);
 
             m_isBasicQueryOnly = MapepireServer.isBasicQueryOnly() || (RuleType.ALLOWBASICONLY == accessRule.getRuleType()) || isReadOnlyRequestedByProperty(_jdbcProps);
             final String jdbcPropsStr;
@@ -364,7 +364,31 @@ public class SystemConnection {
                 final AS400JDBCDriver driver = new AS400JDBCDriver();
 
                 // Connect with null database name (database name should only be used for IASP connections)
-                m_conn = verifyReadOnlyAtDriver(driver.connect(as400System, jdbcProps, null));
+                final Connection conn = driver.connect(as400System, jdbcProps, null);
+                // Rule user names are IBM i user profile names and are never expected to be Kerberos principals (the
+                // rule syntax cannot even express an '@'). Here m_userProfile is a principal, so the rule check before
+                // connecting could only have matched wildcard rules. Re-check against the IBM i user profile that the
+                // principal mapped to, which is only known now that the connection has been made. This can only
+                // tighten the earlier result: a deny refuses the connection, and ALLOWBASICONLY restricts it.
+                try {
+                    final String realUserProfile = getCurrentUserProfile(conn);
+                    final AuthRule realUserAccessRule = AuthFile.getDefault().getAccessRuleAndThrowIfDeny(realUserProfile, m_clientAddress);
+                    m_isBasicQueryOnly = m_isBasicQueryOnly || (RuleType.ALLOWBASICONLY == realUserAccessRule.getRuleType());
+                    if (m_isBasicQueryOnly) {
+                        // The connection may have been opened without "access=read only" if only the real user
+                        // profile's rule restricts it, so make it read-only before verifying that it is
+                        conn.setReadOnly(true);
+                    }
+                    m_conn = verifyReadOnlyAtDriver(conn);
+                } catch (final Exception _e) {
+                    // On failure the connection is never stored in m_conn, so close() cannot reach it; close it here
+                    try {
+                        conn.close();
+                    } catch (final SQLException _closeErr) {
+                        _e.addSuppressed(_closeErr);
+                    }
+                    throw _e;
+                }
                 m_conn.setClientInfo(m_clientRegs.getProperties(_applicationName));
                 return m_conn;
             }
@@ -379,6 +403,26 @@ public class SystemConnection {
 
         } catch (final Exception _e) {
             throw new SQLException(_e);
+        }
+    }
+
+    /**
+     * Return the IBM i user profile that the given connection is running as, by querying {@code CURRENT_USER}.
+     * For a Kerberos connection this is the profile the principal was mapped to, which is not otherwise known
+     * until the connection has been made.
+     *
+     * @param _conn
+     *            an open JDBC connection
+     * @return the connection's current user profile, with trailing blanks removed
+     * @throws SQLException
+     *             if the query fails or returns no row
+     */
+    private static String getCurrentUserProfile(final Connection _conn) throws SQLException {
+        try (final Statement s = _conn.createStatement(); final ResultSet rs = s.executeQuery("values(CURRENT_USER)")) {
+            if (!rs.next()) {
+                throw new SQLException("Unable to determine the current user profile");
+            }
+            return rs.getString(1).trim();
         }
     }
 
