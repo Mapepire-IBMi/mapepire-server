@@ -20,12 +20,22 @@ public class PrepareSql extends BlockRetrievableRequest {
     private PreparedStatement m_stmt = null;
     private final PreparedExecute m_executeTask;
 
-    public PrepareSql(final DataStreamProcessor _io, final SystemConnection m_conn, final JsonObject _reqObj,
+    public PrepareSql(final DataStreamProcessor _io, final SystemConnection _conn, final JsonObject _reqObj,
             final boolean _isImmediateExecute) {
-        super(_io, m_conn, _reqObj);
+        super(_io, _conn, _reqObj);
         m_executeTask = _isImmediateExecute ? new PreparedExecute(_io, _reqObj, this) : null;
     }
 
+    /**
+     * Prepare the requested SQL statement and add its result-set and parameter metadata to the reply. If this
+     * request also executes immediately, run the statement and merge the execution reply. The prepared
+     * statement stays open after this method returns so that it can be executed again; it is released by
+     * {@link #closeResources()}.
+     *
+     * @throws Exception
+     *             if the statement is not allowed on this connection, or cannot be prepared, described, or
+     *             executed
+     */
     @Override
     public void go() throws Exception {
         final String sql = getRequestField("sql").getAsString();
@@ -33,9 +43,9 @@ public class PrepareSql extends BlockRetrievableRequest {
         systemConnection.verifyBasicQueryOnly(sql);
         final Connection jdbcConn = systemConnection.getJdbcConnection();
         final PreparedStatement stmt;
-        if(sql.trim().toLowerCase().startsWith("call")){
+        if (sql.trim().toLowerCase().startsWith("call")) {
             stmt = jdbcConn.prepareCall(sql);
-        }else {
+        } else {
             stmt = jdbcConn.prepareStatement(sql);
         }
         synchronized (this) {
@@ -62,6 +72,13 @@ public class PrepareSql extends BlockRetrievableRequest {
         }
     }
 
+    /**
+     * Add the {@code metadata} reply field, describing the prepared statement's result-set columns and
+     * parameters, and the {@code parameter_count} reply field.
+     *
+     * @throws Exception
+     *             if the statement's metadata cannot be retrieved
+     */
     private void describeStatement() throws Exception {
         final Map<String, Object> metaData = new LinkedHashMap<String, Object>();
 
@@ -76,19 +93,19 @@ public class PrepareSql extends BlockRetrievableRequest {
                 columnAttrs.put("type", rsMetaData.getColumnTypeName(i));
                 columnAttrs.put("display_size", rsMetaData.getColumnDisplaySize(i));
                 columnAttrs.put("label", rsMetaData.getColumnLabel(i));
-	            columnAttrs.put("precision", rsMetaData.getPrecision(i));
-	            columnAttrs.put("scale", rsMetaData.getScale(i));
-	            columnAttrs.put("autoIncrement", rsMetaData.isAutoIncrement(i));
-	            columnAttrs.put("nullable", rsMetaData.isNullable(i));
-	            columnAttrs.put("readOnly", rsMetaData.isReadOnly(i));
-	            columnAttrs.put("writeable", rsMetaData.isWritable(i));
-	            columnAttrs.put("table", rsMetaData.getTableName(i));
+                columnAttrs.put("precision", rsMetaData.getPrecision(i));
+                columnAttrs.put("scale", rsMetaData.getScale(i));
+                columnAttrs.put("autoIncrement", rsMetaData.isAutoIncrement(i));
+                columnAttrs.put("nullable", rsMetaData.isNullable(i));
+                columnAttrs.put("readOnly", rsMetaData.isReadOnly(i));
+                columnAttrs.put("writeable", rsMetaData.isWritable(i));
+                columnAttrs.put("table", rsMetaData.getTableName(i));
                 columnMetaData.add(columnAttrs);
             }
             metaData.put("columns", columnMetaData);
         }
 
-        ParameterMetaData pMeta = m_stmt.getParameterMetaData();
+        final ParameterMetaData pMeta = m_stmt.getParameterMetaData();
         if (null != pMeta) {
             addReplyData("parameter_count", pMeta.getParameterCount());
             final List<Object> parameterList = new LinkedList<Object>();
@@ -107,14 +124,21 @@ public class PrepareSql extends BlockRetrievableRequest {
         addReplyData("metadata", metaData);
     }
 
-    private static String getDb2ParameterName(PreparedStatement _stmt, int _i) throws SQLException {
+    private static String getDb2ParameterName(final PreparedStatement _stmt, final int _parameterIndex) throws SQLException {
         if (_stmt instanceof AS400JDBCPreparedStatement) {
-            return ((AS400JDBCPreparedStatement) _stmt).getDB2ParameterName(_i);
+            return ((AS400JDBCPreparedStatement) _stmt).getDB2ParameterName(_parameterIndex);
         }
         return "?";
     }
 
-    private static String getModeString(int _parameterMode) {
+    /**
+     * Map a JDBC parameter mode to the string sent to clients in the parameter metadata.
+     *
+     * @param _parameterMode
+     *            a {@link ParameterMetaData} {@code parameterMode*} constant
+     * @return {@code IN}, {@code OUT}, {@code INOUT}, or {@code UNKNOWN}
+     */
+    private static String getModeString(final int _parameterMode) {
         switch (_parameterMode) {
             case ParameterMetaData.parameterModeIn:
                 return "IN";
@@ -130,9 +154,16 @@ public class PrepareSql extends BlockRetrievableRequest {
     PreparedStatement getStatement() {
         return m_stmt;
     }
+
+    /**
+     * Report whether this request has no more data to fetch. A prepare-only request is always done; a
+     * prepare-and-execute request is done when the execution has returned all of its rows.
+     *
+     * @return {@code true} if no more rows can be fetched for this request
+     */
     @Override
     public boolean isDone() {
-        if(null != m_executeTask) {
+        if (null != m_executeTask) {
             return m_isDone || m_executeTask.isDone();
         }
         // This means that the request was _only_ for a prepare, so yes we're done if we haven't fetched any data
@@ -149,7 +180,7 @@ public class PrepareSql extends BlockRetrievableRequest {
     @Override
     protected synchronized void processAfterReplySent() {
         super.processAfterReplySent();
-        if (m_executeTask != null) {
+        if (null != m_executeTask) {
             m_executeTask.processAfterReplySent();
         }
     }
