@@ -6,8 +6,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,6 +24,7 @@ import com.github.ibm.mapepire.authfile.AuthRule.AuthCheckResult;
 import com.github.ibm.mapepire.authfile.AuthRule.RuleType;
 import com.github.theprez.jcmdutils.ProcessLauncher;
 import com.github.theprez.jcmdutils.ProcessLauncher.ProcessResult;
+import com.github.theprez.jcmdutils.StringUtils;
 
 /**
  * Loads and evaluates the IP/user connection rules, read from the rules file and, on IBM i, the
@@ -31,6 +37,21 @@ public class AuthFile {
     private static final long GOVERNANCE_QUERY_TIMEOUT_SECONDS = 60;
     private static AuthFile s_defaultInstance = null;
     private static final Pattern s_authRulePattern = Pattern.compile("^\\s*(deny|allow|allowbasiconly)\\s+([*\\w]+)\\s*@\\s*([0-9*:.]+)\\s*$", Pattern.CASE_INSENSITIVE);
+
+    // IBM-supplied user profiles, which may never connect regardless of the configured rules. From "IBM-supplied
+    // user profiles" in the IBM i 7.6 Security reference: https://www.ibm.com/docs/en/i/7.6.0?topic=sup-supplied-user-profiles
+    //@formatter:off
+    private static final Set<String> s_ibmSuppliedProfiles = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+            "QADSM", "QAFDFTUSR", "QAFOWN", "QAFUSR", "QAIUSER", "QANZAGENT", "QAUTPROF", "QBRMS", "QCLUMGT", "QCLUSTER",
+            "QDBSHR", "QDBSHRDO", "QDFTOWN", "QDIRSRV", "QDLFM", "QDOC", "QDSNX", "QEJB", "QEJBSVR", "QFNC",
+            "QGATE", "QIPP", "QLPAUTO", "QLPINSTALL", "QLWISVR", "QMQM", "QMSF", "QNETSPLF", "QNFSANON", "QNTP",
+            "QONDADM", "QPEX", "QPGMR", "QPGMR_NC", "QRCL", "QRDARS400", "QRDARS4001", "QRDARS4002", "QRDARS4003", "QRDARS4004",
+            "QRDARS4005", "QRDARSADM", "QRJE", "QRMTCAL", "QRSC", "QSECOFR", "QSECOFR_NC", "QSNADS", "QSPL", "QSPLJOB",
+            "QSRV", "QSRVAGT", "QSRVBAS", "QSSHD", "QSVCCS", "QSVCM", "QSVSM", "QSVSMSS", "QSYS", "QSYSOPR",
+            "QSYSOPR_NC", "QTCM", "QTCP", "QTFTP", "QTMHHTP1", "QTMHHTTP", "QTMPLPD", "QTMTWSG", "QTSTRQS", "QUSER",
+            "QUSER_NC", "QWEBADMIN", "QWSERVICE", "QYCMCIMOM", "QYPSJSVR", "QYPUOWN"
+        )));
+    //@formatter:on
     
     public static synchronized AuthFile getDefault() {
         if (null != s_defaultInstance) {
@@ -161,8 +182,9 @@ public class AuthFile {
     }
 
     /**
-     * Find the rule that governs a connection, refusing the connection if that rule is a deny. Rules are
-     * evaluated in order and the last matching rule wins; if no rule matches, the connection is allowed.
+     * Find the rule that governs a connection, refusing the connection if that rule is a deny. IBM-supplied user
+     * profiles are always refused, before any configured rule is consulted. Otherwise, rules are evaluated in order
+     * and the last matching rule wins; if no rule matches, the connection is allowed.
      *
      * @param _user
      *            the user profile requesting the connection
@@ -170,9 +192,16 @@ public class AuthFile {
      *            the client IP address the connection originated from
      * @return the last matching rule, or a synthesized allow rule if none matched
      * @throws IOException
-     *             if the connection is refused by a security rule, or the rules cannot be loaded
+     *             if the user is empty or an IBM-supplied profile, the connection is refused by a security rule, or the
+     *             rules cannot be loaded
      */
     public AuthRule getAccessRuleAndThrowIfDeny(final String _user, final String _ip) throws IOException {
+        if (StringUtils.isEmpty(_user)) {
+            throw new IOException("Connection refused (empty userid)");
+        }
+        if (s_ibmSuppliedProfiles.contains(_user.trim().toUpperCase(Locale.ROOT))) {
+            throw new IOException("Connection refused by built-in security rule");
+        }
         AuthRule lastMatchingRule = null;
         for (final AuthRule rule : getRules()) {
             final AuthCheckResult checkResult = rule.check(_user, _ip);
