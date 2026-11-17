@@ -280,7 +280,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
                                                       List<BlobStore.BlobEntry> pendingSpools) {
         try {
             // BlobStore.storeAndReturnEntry owns blob.free() from this point on
-            BlobStore.BlobEntry entry = BlobStore.getInstance().storeAndReturnEntry(blob, length, conn.getRawCredentials());
+            BlobStore.BlobEntry entry = BlobStore.getInstance().storeAndReturnEntry(blob, length, conn.getRawCredentials(), conn.getTracer());
             // Only track entries that have a live async spool thread — small blobs
             // are stored synchronously and their latch is already at 0.
             if (entry != null && entry.isAsyncSpool()) {
@@ -306,7 +306,7 @@ public abstract class BlockRetrievableRequest extends ClientRequest {
             return Base64.getEncoder().encodeToString(bytes);
         }
         try {
-            String token = BlobStore.getInstance().store(bytes, conn.getRawCredentials());
+            String token = BlobStore.getInstance().store(bytes, conn.getRawCredentials(), conn.getTracer());
             Map<String, Object> ref = new LinkedHashMap<>();
             ref.put("blob_url", "/blob/" + token);
             ref.put("size", (long) bytes.length);
