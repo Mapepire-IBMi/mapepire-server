@@ -423,11 +423,16 @@ public class SystemConnection {
             throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
         }
         try (final Statement s = _conn.createStatement()) {
+            boolean isProbeAccepted = false;
             try {
                 s.execute("CALL systools.lprintf('ERROR: Disregard of read only mode detected')");
-                throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
+                isProbeAccepted = true;
             } catch (final SQLException _e) {
                 // expected condition. If we're read-only, this should fail
+            }
+            // Thrown outside the try above so that the catch cannot swallow it
+            if (isProbeAccepted) {
+                throw new SQLException(BASIC_QUERY_ONLY_MESSAGE, SQLSTATE_NOT_AUTHORIZED, BASIC_QUERY_ONLY_VENDOR_CODE);
             }
         }
         _conn.setReadOnly(true);
