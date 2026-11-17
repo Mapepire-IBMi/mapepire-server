@@ -23,7 +23,12 @@ public class RunSql extends BlockRetrievableRequest {
         systemConnection.verifyBasicQueryOnly(sql);
         final int numRows = super.getRequestFieldInt("rows", 1000);
         final Connection jdbcConn = systemConnection.getJdbcConnection();
-        final Statement stmt = jdbcConn.createStatement(); //TODO: look into using prepared statements for performance
+        // A plain Statement is used deliberately. Always routing this request through a PreparedStatement
+        // was considered, but there is no universal benefit: for one-shot statement text the extra prepare
+        // step buys nothing, and any gain depends on whether the same statement is executed again. That
+        // prepare-and-reuse decision belongs to the application, which can use the prepare_sql request
+        // when it intends to run a statement repeatedly.
+        final Statement stmt = jdbcConn.createStatement();
         synchronized (this) {
             if (m_isReleased) {
                 stmt.close();
