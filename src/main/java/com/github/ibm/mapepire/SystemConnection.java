@@ -23,6 +23,7 @@ import com.github.theprez.jcmdutils.StringUtils;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400JDBCConnection;
 import com.ibm.as400.access.AS400JDBCDriver;
+import com.ibm.as400.access.SecureAS400;
 
 public class SystemConnection {
     // System property names
@@ -99,6 +100,7 @@ public class SystemConnection {
     }
 
     private Connection m_conn;
+    private AS400 m_localIBMi;
     private ConnectionMethod m_lastUsedConnectionMethod = ConnectionMethod.CLI;
     private String m_lastUsedJdbcProps = "";
     /**
@@ -239,7 +241,13 @@ public class SystemConnection {
         if (connection instanceof AS400JDBCConnection) {
             return ((AS400JDBCConnection) connection).getSystem();
         }
-        return null;
+
+        if(m_localIBMi == null && isRunningOnIBMi()) {
+            final boolean secure = m_lastUsedJdbcProps.contains("secure=true");
+            m_localIBMi = secure ? new SecureAS400() : new AS400();
+        }
+
+        return m_localIBMi;
     }
 
     /**
@@ -291,6 +299,15 @@ public class SystemConnection {
                 getTracer().logErr(_e);
             }
             m_conn = null;
+        }
+
+        if(m_localIBMi != null) {
+            try {
+                m_localIBMi.disconnectAllServices();
+            } catch (final Exception _e) {
+                getTracer().logErr(_e);
+            }
+            m_localIBMi = null;
         }
     }
 
