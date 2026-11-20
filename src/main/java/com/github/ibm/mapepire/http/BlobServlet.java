@@ -1,7 +1,5 @@
 package com.github.ibm.mapepire.http;
 
-import com.github.ibm.mapepire.Tracer;
-
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -70,8 +68,7 @@ public class BlobServlet extends HttpServlet {
             in = entry.openStream();
         } catch (IOException e) {
             entry.cleanup();
-            //TODO: look into proper way to trace this instead of global
-            Tracer.globalErr(e);
+            entry.getTracer().logErr(e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "Blob data unavailable");
             return;
@@ -98,9 +95,7 @@ public class BlobServlet extends HttpServlet {
             out.flush();
             // Sanitise token before logging to prevent log injection.
             String safeToken = token.replaceAll("[^a-fA-F0-9\\-]", "?");
-            
-            //TODO: look into proper way to trace this instead of global
-            Tracer.globalInfo("BlobServlet: streamed token " + safeToken + " (" + actualSize + " bytes)");
+            entry.getTracer().logInfo("BlobServlet: streamed token " + safeToken + " (" + actualSize + " bytes)");
         } finally {
             try { in.close(); } catch (IOException ignored) {}
             entry.cleanup();

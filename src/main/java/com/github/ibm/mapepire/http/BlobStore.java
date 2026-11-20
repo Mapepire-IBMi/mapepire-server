@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -28,7 +29,9 @@ import java.util.concurrent.TimeUnit;
  * for the spool to finish before streaming bytes.</p>
  *
  * <p>Each entry carries the Basic-Auth credentials of the connection that
- * produced it so that {@link BlobServlet} can re-validate the caller.</p>
+ * produced it so that {@link BlobServlet} can re-validate the caller, and that
+ * connection's {@link Tracer} so that storing, streaming, and expiring the
+ * entry are traced to the owning connection rather than the global tracer.</p>
  *
  * <p>A background thread sweeps expired entries every 30 seconds.</p>
  */
@@ -39,6 +42,8 @@ public class BlobStore {
 
     // Default TTL in seconds — overridable via BLOB_TOKEN_TTL env var
     private static volatile long s_ttlSeconds = 60;
+
+    private static final String TRACER_REQUIRED_MESSAGE = "Storing a BLOB requires the owning connection's Tracer";
 
     private static final BlobStore s_instance = new BlobStore();
 
@@ -57,7 +62,7 @@ public class BlobStore {
             try {
                 s_ttlSeconds = Long.parseLong(envTtl.trim());
             } catch (NumberFormatException e) {
-                //TODO: look into proper way to trace this instead of global
+                // Process configuration with no owning connection, so this belongs on the global tracer
                 Tracer.globalWarn("Invalid BLOB_TOKEN_TTL value '" + envTtl + "', using default " + s_ttlSeconds + "s");
             }
         }
@@ -91,21 +96,24 @@ public class BlobStore {
      * @param data        the BLOB bytes
      * @param credentials Base64-encoded "user:pass" copied from the WebSocket
      *                    Authorization header — used to re-validate on retrieval
+     * @param _tracer     the tracer of the connection that produced the BLOB; the
+     *                    entry is traced here for its whole lifetime. Must not be {@code null}.
      * @return opaque token (UUID string) to embed in the response as a URL path segment
      */
-    public String store(byte[] data, String credentials) throws IOException {
+    public String store(byte[] data, String credentials, final Tracer _tracer) throws IOException {
+        Objects.requireNonNull(_tracer, TRACER_REQUIRED_MESSAGE);
         String token = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plusSeconds(s_ttlSeconds);
 
         BlobEntry entry;
         if (data.length <= MEMORY_THRESHOLD_BYTES) {
-            entry = BlobEntry.ofBytes(data, expiresAt, credentials);
+            entry = BlobEntry.ofBytes(data, expiresAt, credentials, _tracer);
         } else {
-            entry = BlobEntry.ofFile(data, expiresAt, credentials);
+            entry = BlobEntry.ofFile(data, expiresAt, credentials, _tracer);
         }
         m_entries.put(token, entry);
-        //TODO: look into proper way to trace this instead of global
-        Tracer.globalInfo("BlobStore: stored token " + token + " size=" + data.length + " expires=" + expiresAt);
+        // The token is a server-generated UUID, so unlike BlobServlet's request-supplied token it needs no sanitising
+        _tracer.logInfo("BlobStore: stored token " + token + " size=" + data.length + " expires=" + expiresAt);
         return token;
     }
 
@@ -122,8 +130,13 @@ public class BlobStore {
      * <p>The BLOB stream is opened on the <em>calling thread</em> before returning so
      * that the JDBC cursor can safely advance. {@link Blob#free()} is called by the spool
      * thread when it finishes (large blobs) or immediately for small blobs.</p>
+     *
+     * @param _tracer the tracer of the connection that produced the BLOB; the entry is
+     *                traced here for its whole lifetime. Must not be {@code null}.
      */
-    public BlobEntry storeAndReturnEntry(Blob blob, long length, String credentials) throws IOException {
+    public BlobEntry storeAndReturnEntry(Blob blob, long length, String credentials, final Tracer _tracer) throws IOException {
+        // Checked before any work, so that a missing tracer cannot leave a temp file or open BLOB stream behind
+        Objects.requireNonNull(_tracer, TRACER_REQUIRED_MESSAGE);
         String tok = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plusSeconds(s_ttlSeconds);
 
@@ -132,12 +145,12 @@ public class BlobStore {
             try {
                 byte[] bytes = readAllBytes(blob.getBinaryStream());
                 blob.free();
-                entry = BlobEntry.ofBytes(bytes, expiresAt, credentials);
+                entry = BlobEntry.ofBytes(bytes, expiresAt, credentials, _tracer);
             } catch (SQLException e) {
                 throw new IOException("Failed to read BLOB data", e);
             }
         } else {
-            entry = BlobEntry.ofBlobAsync(blob, length, expiresAt, credentials, tok);
+            entry = BlobEntry.ofBlobAsync(blob, length, expiresAt, credentials, _tracer, tok);
         }
         entry.m_token = tok;
         m_entries.put(tok, entry);
@@ -193,8 +206,9 @@ public class BlobStore {
         while (it.hasNext()) {
             Map.Entry<String, BlobEntry> e = it.next();
             if (now.isAfter(e.getValue().expiresAt)) {
-                //TODO: look into proper way to trace this instead of global
-                Tracer.globalInfo("BlobStore: expiring token " + e.getKey());
+                // Traced to the owning connection even if it has since closed: a Tracer stays usable after its
+                // connection ends, and the expiry belongs in that connection's trace, not the server job log
+                e.getValue().getTracer().logInfo("BlobStore: expiring token " + e.getKey());
                 e.getValue().cleanup();
                 it.remove();
             }
@@ -214,12 +228,19 @@ public class BlobStore {
         // volatile so the spool thread can push expiresAt forward once done
         public volatile Instant expiresAt;
         public final String credentials; // Base64 "user:pass"
+        /** The tracer of the connection that produced this entry. Never {@code null}. */
+        private final Tracer m_tracer;
         /** The UUID token string (without "/blob/" prefix). Set by {@link BlobStore#storeAndReturnEntry}. */
         private String m_token;
 
         /** Returns the UUID token string (without "/blob/" prefix). */
         public String getToken() {
             return m_token;
+        }
+
+        /** Returns the tracer of the connection that produced this entry. Never {@code null}. */
+        public Tracer getTracer() {
+            return m_tracer;
         }
 
         /**
@@ -239,12 +260,13 @@ public class BlobStore {
         private final boolean m_isAsyncSpool;
 
         private BlobEntry(byte[] bytes, File file, long size, Instant expiresAt,
-                          String credentials, CountDownLatch ready, boolean isAsyncSpool) {
+                          String credentials, final Tracer _tracer, CountDownLatch ready, boolean isAsyncSpool) {
             this.m_bytes        = bytes;
             this.m_file         = file;
             this.size           = size;
             this.expiresAt      = expiresAt;
             this.credentials    = credentials;
+            m_tracer            = _tracer;
             this.m_ready        = ready;
             this.m_isAsyncSpool = isAsyncSpool;
         }
@@ -267,18 +289,18 @@ public class BlobStore {
 
         // -- factories --------------------------------------------------------
 
-        static BlobEntry ofBytes(byte[] bytes, Instant expiresAt, String credentials) {
-            return new BlobEntry(bytes, null, bytes.length, expiresAt, credentials,
+        static BlobEntry ofBytes(byte[] bytes, Instant expiresAt, String credentials, final Tracer _tracer) {
+            return new BlobEntry(bytes, null, bytes.length, expiresAt, credentials, _tracer,
                     new CountDownLatch(0), false);
         }
 
-        static BlobEntry ofFile(byte[] bytes, Instant expiresAt, String credentials) throws IOException {
+        static BlobEntry ofFile(byte[] bytes, Instant expiresAt, String credentials, final Tracer _tracer) throws IOException {
             File tmp = Files.createTempFile(MapepireServer.getTempDirectory().toPath(), "mapepire-blob-", ".tmp").toFile();
             tmp.deleteOnExit();
             try (FileOutputStream fos = new FileOutputStream(tmp)) {
                 fos.write(bytes);
             }
-            return new BlobEntry(null, tmp, bytes.length, expiresAt, credentials,
+            return new BlobEntry(null, tmp, bytes.length, expiresAt, credentials, _tracer,
                     new CountDownLatch(0), false);
         }
 
@@ -295,7 +317,7 @@ public class BlobStore {
          */
         static BlobEntry ofBlobAsync(Blob blob, long declaredLength,
                                      Instant expiresAt, String credentials,
-                                     String tokenForLogging) throws IOException {
+                                     final Tracer _tracer, String tokenForLogging) throws IOException {
             File tmp = Files.createTempFile(MapepireServer.getTempDirectory().toPath(), "mapepire-blob-", ".tmp").toFile();
             tmp.deleteOnExit();
 
@@ -312,7 +334,7 @@ public class BlobStore {
             CountDownLatch ready = new CountDownLatch(1);
             BlobEntry entry = new BlobEntry(null, tmp, declaredLength,
                     Instant.MAX /* updated by spool thread on completion */,
-                    credentials, ready, true);
+                    credentials, _tracer, ready, true);
 
             Thread spoolThread = new Thread(() -> {
                 try (FileOutputStream fos = new FileOutputStream(tmp);
